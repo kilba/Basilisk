@@ -119,12 +119,12 @@ void bs_debugStart() {
 
 	bs_createOrthographicProjection(&cam, 0, 1200, 0, 800);
 
-    bs_createBatch(&color_batch, 1000, BS_STATIC_BATCH, BS_POSITION_COLOR);
+    bs_createBatch(&color_batch, 1000, BS_POSITION_COLOR);
     color_batch.shader = &color_shader;
     color_batch.camera = &cam;
     color_batch.draw_mode = BS_TRIANGLES;
 
-    bs_pushQuad((bs_vec2){ 0.0, 0.0 }, (bs_vec2){ 200.0, 200.0 }, (bs_RGBA){ 255, 255, 255, 255 });
+    // bs_pushQuad((bs_vec2){ 0.0, 0.0 }, (bs_vec2){ 200.0, 200.0 }, (bs_RGBA){ 255, 255, 255, 255 });
 
     bs_pushBatch();
     bs_freeBatchData();

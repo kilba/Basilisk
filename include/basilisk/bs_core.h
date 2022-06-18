@@ -80,34 +80,57 @@ typedef struct {
 
 	int *indices;
 	int draw_mode;
-	int max_vertex_count;
-	int draw_count_non_resetting;
 	int vertex_draw_count;
 	// Amounf of indices (6 per quad)
 	int index_draw_count;
-	// Amount of differing indices (4 per quad)
-	int index_draw_unique_count;
 
 	unsigned int VAO, VBO, EBO;
 } bs_Batch;
+
+typedef struct {
+	bs_Vertex *vertices;
+	int vertex_count;
+
+	int *indices;
+	int index_count;
+} bs_Mesh;
+
+typedef struct {
+	bs_Mesh *meshes;
+	int mesh_count;
+	int vertex_count;
+	int index_count;
+} bs_Model;
+
+typedef struct {
+	bs_vec3 pos;
+	bs_vec2 dim;
+	bs_RGBA col;
+	bs_Tex2D *tex;
+} bs_Quad;
 
 /* --- RENDERING --- */
 void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height, void (*render)(), bs_Shader *shader);
 void bs_setFramebufferShader(bs_Framebuffer *framebuffer, bs_Shader *shader);
 
+void bs_pushVertexStruct(bs_Vertex vertex);
 void bs_pushVertex(float px, float py, float pz, float tx, float ty, float nx, float ny, float nz, bs_RGBA color);
-void bs_pushQuad(bs_vec2 pos, bs_vec2 dim, bs_RGBA color);
+void bs_pushQuad(bs_Quad *quad);
 void bs_pushTriangle(bs_vec2 pos1, bs_vec2 pos2, bs_vec2 pos3, bs_RGBA color);
-void bs_pushCube();
+void bs_pushMesh(bs_Mesh *mesh);
+void bs_pushModel(bs_Model *model);
 
-void bs_createBatch(bs_Batch *batch, int vertex_amount, int batch_type, int attrib_type);
+/* --- BATCHING --- */
+void bs_createBatch(bs_Batch *batch, int index_count, int attrib_type);
+void bs_selectBatch(bs_Batch *batch);
+void bs_pushBatch();
+void bs_renderBatch(int start_index, int draw_count);
+
+void bs_freeBatchData();
+void bs_clearBatch();
+void bs_changeBatchBufferSize(bs_Batch *batch, int index_count);
 
 void bs_setBatchShader(bs_Batch *batch, bs_Shader *shader);
-void bs_selectBatch(bs_Batch *batch);
-
-void bs_pushBatch();
-void bs_freeBatchData();
-void bs_renderBatch(int start_index, int draw_count);
 int bs_getBatchSize(bs_Batch *batch);
 
 /* --- WINDOW INITIALIZATION --- */
@@ -145,10 +168,6 @@ void bs_setPerspectiveProjection(bs_Camera *cam, float fovy, float aspect, float
 #define BS_LINEAR_MIPMAP_NEAREST 0x2701
 
 #define BS_MAX_TEXTURES 16
-
-// BATCH TYPES
-#define BS_STATIC_BATCH 0
-#define BS_DYNAMIC_BATCH 1
 
 // BATCH ATTRIBUTE TYPES
 #define BS_POSITION_TEXTURE 0

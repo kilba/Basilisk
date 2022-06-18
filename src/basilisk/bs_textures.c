@@ -79,6 +79,7 @@ void bs_appendToAtlas(unsigned char *atlas_data, int width, int height, bs_Atlas
         bs_Tex2D *tex = &atlas->textures[i];
         cappend_append(atlas_data, width, height, tex->data, tex->w, tex->h, tex->x, tex->y);
         free(tex->data);
+        tex->data = NULL;
     }
 }
 

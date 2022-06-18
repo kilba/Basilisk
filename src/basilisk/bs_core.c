@@ -12,8 +12,12 @@
 // STD
 #include <string.h>
 #include <stddef.h>
-#include <windows.h>
 #include <lodepng.h>
+
+#ifdef _WIN32
+    #include <windows.h>
+    #include <objidl.h>
+#endif
 
 float screen_quad_vertices[] = {
     // positions   // texCoords
@@ -37,7 +41,6 @@ struct bs_Window {
 } bs_window;
 
 GLFWwindow *window;
-bs_fRGBA clear_color = { 0.0, 0.0, 0.0, 0.0 };
 
 bs_Framebuffer std_framebuffer;
 
@@ -97,12 +100,65 @@ void bs_printHardwareInfo() {
 }
 
 void bs_setBackgroundColor(bs_fRGBA color) {
-    clear_color = (bs_fRGBA){ color.r / 255.0, color.g / 255.0, color.b / 255.0, color.a / 255.0 };
+    glClearColor(color.r / 255.0, color.g / 255.0, color.b / 255.0, color.a / 255.0);
 }
 
 bs_vec2 bs_getWindowDimensions() {
     return (bs_vec2){ bs_window.width, bs_window.height };
 }
+
+#ifdef _WIN32
+    BITMAPINFOHEADER createBitmapHeader(int width, int height) {
+        BITMAPINFOHEADER  bi;
+
+        // create a bitmap
+        bi.biSize = sizeof(BITMAPINFOHEADER);
+        bi.biWidth = width;
+        bi.biHeight = -height;
+        bi.biPlanes = 1;
+        bi.biBitCount = 24;
+        bi.biCompression = BI_RGB;
+        bi.biSizeImage = 0;
+        bi.biXPelsPerMeter = 0;
+        bi.biYPelsPerMeter = 0;
+        bi.biClrUsed = 0;
+        bi.biClrImportant = 0;
+
+        return bi;
+    }
+
+    unsigned char* getScreenTexture(int x, int y, int w, int h) {
+        HWND hWnd = GetDesktopWindow();
+
+        HDC hwindowDC = GetDC(hWnd);
+        HDC hwindowCompatibleDC = CreateCompatibleDC(hwindowDC);
+        SetStretchBltMode(hwindowCompatibleDC, COLORONCOLOR);
+
+        int screenx = x;
+        int screeny = y;
+        int width = w;
+        int height = h;
+
+        HBITMAP hbwindow = CreateCompatibleBitmap(hwindowDC, width, height);
+        BITMAPINFOHEADER bi = createBitmapHeader(width, height);
+
+        SelectObject(hwindowCompatibleDC, hbwindow);
+
+        DWORD dwBmpSize = ((width * bi.biBitCount + 31) / 32) * 4 * height;
+        HANDLE hDIB = GlobalAlloc(GHND, dwBmpSize);
+        unsigned char* lpbitmap = (unsigned char*)GlobalLock(hDIB);
+
+        // copy from the window device context to the bitmap device context
+        StretchBlt(hwindowCompatibleDC, 0, 0, width, height, hwindowDC, screenx, screeny, width, height, SRCCOPY);   //change SRCCOPY to NOTSRCCOPY for wacky colors !
+        GetDIBits(hwindowCompatibleDC, hbwindow, 0, height, lpbitmap, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
+
+        GlobalFree(hDIB);
+        DeleteDC(hwindowCompatibleDC);
+        ReleaseDC(hWnd, hwindowDC);
+
+        return lpbitmap;
+    }
+#endif
 
 /* --- INPUTS/CALLBACKS --- */
 bool key_states[350];
@@ -185,10 +241,6 @@ bs_Camera *bs_getStdCamera() {
 }
 
 /* --- BATCHING --- */
-void bs_changeBatchBufferSize(bs_Batch *batch) {
-    
-}
-
 void bs_selectBatch(bs_Batch *batch) {
     curr_batch = batch;
 
@@ -199,6 +251,10 @@ void bs_selectBatch(bs_Batch *batch) {
 
 void bs_setBatchShader(bs_Batch *batch, bs_Shader *shader) {
     batch->shader = shader;
+}
+
+void bs_pushVertexStruct(bs_Vertex vertex) {
+    curr_batch->vertices[curr_batch->vertex_draw_count++] = vertex;
 }
 
 void bs_pushVertex(float px, float py, float pz, float tx, float ty, float nx, float ny, float nz, bs_RGBA color) {
@@ -220,58 +276,71 @@ void bs_pushVertex(float px, float py, float pz, float tx, float ty, float nx, f
 }
 
 // Adds a quad to the vertex array in the chosen batch
-void bs_pushQuad(bs_vec2 pos, bs_vec2 dim, bs_RGBA color) {
-    bs_Tex2D *curr_texture = bs_getSelectedTexture();
-
-    dim.x += pos.x;
-    dim.y += pos.y;
-    // dim.x = pos.x + curr_texture->w * scale;
-    // dim.y = pos.y + curr_texture->h * scale;
-
-    bs_pushVertex(pos.x, pos.y, 0.0, curr_texture->tex_x , curr_texture->tex_hy, 0.0, 0.0, 0.0, color); // Bottom Left
-    bs_pushVertex(dim.x, pos.y, 0.0, curr_texture->tex_wx, curr_texture->tex_hy, 0.0, 0.0, 0.0, color); // Bottom right
-    bs_pushVertex(pos.x, dim.y, 0.0, curr_texture->tex_x , curr_texture->tex_y , 0.0, 0.0, 0.0, color); // Top Left
-    bs_pushVertex(dim.x, dim.y, 0.0, curr_texture->tex_wx, curr_texture->tex_y , 0.0, 0.0, 0.0, color); // Top Right
+void bs_pushQuad(bs_Quad *quad) {
+    bs_vec2 dim_pos = { quad->dim.x + quad->pos.x, quad->dim.y + quad->pos.y };
 
     int indices[] = {
-        curr_batch->index_draw_unique_count+0, curr_batch->index_draw_unique_count+1, curr_batch->index_draw_unique_count+2,
-        curr_batch->index_draw_unique_count+1, curr_batch->index_draw_unique_count+2, curr_batch->index_draw_unique_count+3,
+        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
+        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
     };
-
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
 
-    curr_batch->index_draw_unique_count += 4;
+    bs_pushVertex(quad->pos.x, quad->pos.y, quad->pos.z, quad->tex->tex_x , quad->tex->tex_hy, 0.0, 0.0, 0.0, quad->col); // Bottom Left
+    bs_pushVertex(dim_pos.x  , quad->pos.y, quad->pos.z, quad->tex->tex_wx, quad->tex->tex_hy, 0.0, 0.0, 0.0, quad->col); // Bottom right
+    bs_pushVertex(quad->pos.x, dim_pos.y  , quad->pos.z, quad->tex->tex_x , quad->tex->tex_y , 0.0, 0.0, 0.0, quad->col); // Top Left
+    bs_pushVertex(dim_pos.x  , dim_pos.y  , quad->pos.z, quad->tex->tex_wx, quad->tex->tex_y , 0.0, 0.0, 0.0, quad->col); // Top Right
+
     curr_batch->index_draw_count += 6;
 }
 
 void bs_pushTriangle(bs_vec2 pos1, bs_vec2 pos2, bs_vec2 pos3, bs_RGBA color) {
+    int indices[] = {
+        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
+    };
+    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 3 * sizeof(int));
+
     bs_pushVertex(pos1.x, pos1.y, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, color);
     bs_pushVertex(pos2.x, pos2.y, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, color);
     bs_pushVertex(pos3.x, pos3.y, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, color);
 
-    int indices[] = {
-        curr_batch->index_draw_unique_count+0, curr_batch->index_draw_unique_count+1, curr_batch->index_draw_unique_count+2,
-    };
-
-    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 3 * sizeof(int));
-
-    curr_batch->index_draw_unique_count += 3;
     curr_batch->index_draw_count += 3;
 }
 
-void bs_createDynamicBatch(bs_Batch *batch) {
-    glGenVertexArrays(1, &batch->VAO);
-    glGenBuffers(3, &batch->VBO);
-    glGenBuffers(1, &batch->EBO);
+void bs_pushMesh(bs_Mesh *mesh) {
+    for(int i = 0; i < mesh->index_count; i++) {
+        curr_batch->indices[curr_batch->index_draw_count+i] = mesh->indices[i] + curr_batch->vertex_draw_count;
+    }
 
-    bs_selectBatch(batch);
+    for(int i = 0; i < mesh->vertex_count; i++) {
+        mesh->vertices[i].color.r = 100;
+        mesh->vertices[i].color.g = 80;
+        mesh->vertices[i].color.b = 120;
+        mesh->vertices[i].color.a = 255;
+        bs_pushVertexStruct(mesh->vertices[i]);
+    }
+
+    curr_batch->index_draw_count += mesh->index_count;
 }
 
-void bs_initStaticBatch(bs_Batch *batch) {
-    batch->index_draw_count = batch->index_draw_unique_count = batch->vertex_draw_count = 0;
+void bs_pushModel(bs_Model *model) {
 
-    batch->indices = malloc(sizeof(int) * 6 * batch->max_vertex_count);
-    batch->vertices = malloc(sizeof(bs_Vertex) * 4 * batch->max_vertex_count);
+}
+
+void bs_changeBatchBufferSize(bs_Batch *batch, int index_count) {
+    batch->vertices = realloc(batch->vertices, index_count * sizeof(bs_Vertex));    
+    batch->indices  = realloc(batch->indices , index_count * sizeof(int));
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(bs_Vertex)  * index_count, batch->vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, batch->indices, GL_STATIC_DRAW);
+}
+
+void bs_createBatch(bs_Batch *batch, int index_count, int attrib_type) {
+    batch->camera = &std_camera;
+    batch->draw_mode = BS_TRIANGLES;
+
+    batch->index_draw_count = batch->vertex_draw_count = 0;
+    batch->indices = malloc(sizeof(int) * index_count);
+    batch->vertices = malloc(sizeof(bs_Vertex) * index_count);
 
     glGenVertexArrays(1, &batch->VAO);
     glGenBuffers(1, &batch->VBO);
@@ -279,22 +348,8 @@ void bs_initStaticBatch(bs_Batch *batch) {
 
     bs_selectBatch(batch);
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(bs_Vertex) * 4 * batch->max_vertex_count, NULL, GL_STATIC_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * 6 * batch->max_vertex_count, NULL, GL_STATIC_DRAW);
-}
-
-void bs_createBatch(bs_Batch *batch, int vertex_amount, int batch_type, int attrib_type) {
-    batch->max_vertex_count = vertex_amount;
-    batch->camera = &std_camera;
-    batch->draw_mode = BS_TRIANGLES;
-
-    // Handle unique batch properties
-    if(batch_type == BS_STATIC_BATCH) {
-        bs_initStaticBatch(batch);
-    }
-    if(batch_type == BS_DYNAMIC_BATCH) {
-
-    }
+    glBufferData(GL_ARRAY_BUFFER, sizeof(bs_Vertex) * index_count, NULL, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, NULL, GL_STATIC_DRAW);
 
     if(attrib_type == BS_POSITION_COLOR) {
         glEnableVertexAttribArray(0);
@@ -315,8 +370,6 @@ void bs_createBatch(bs_Batch *batch, int vertex_amount, int batch_type, int attr
 
 // Pushes all vertices to VRAM
 void bs_pushBatch() {
-    curr_batch->draw_count_non_resetting = curr_batch->index_draw_count;
-
     // Batch should already be bound at this point so binding it again is a waste of resources
     glBufferSubData(GL_ARRAY_BUFFER, 0, curr_batch->vertex_draw_count * sizeof(bs_Vertex), curr_batch->vertices);
     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, curr_batch->index_draw_count * sizeof(int), curr_batch->indices);
@@ -325,6 +378,8 @@ void bs_pushBatch() {
 void bs_freeBatchData() {
     free(curr_batch->vertices);
     free(curr_batch->indices);
+    curr_batch->vertices = NULL;
+    curr_batch->indices = NULL;
 }
 
 void bs_renderBatch(int start_index, int draw_count) {
@@ -335,20 +390,19 @@ void bs_renderBatch(int start_index, int draw_count) {
     bs_setProjMatrixUniform(curr_batch->shader, curr_batch->camera);
 
     glDrawElements(curr_batch->draw_mode, draw_count, GL_UNSIGNED_INT, (void*)(start_index * 6 * sizeof(GLuint)));
+}
 
-
-    // Reset draw counts
+void bs_clearBatch() {
     curr_batch->vertex_draw_count = 0;
     curr_batch->index_draw_count = 0;
-    curr_batch->index_draw_unique_count = 0;
 }
 
 int bs_getBatchSize(bs_Batch *batch) {
-    return batch->draw_count_non_resetting;
+    return batch->index_draw_count;
 }
 
 /* --- FRAMEBUFFERS --- */
-void bs_createFramebufferTexImage(bs_Framebuffer *framebuffer) {
+void bs_attachColorbuffer(bs_Framebuffer *framebuffer) {
     glGenTextures(1, &framebuffer->texture_color_buffer);
     glBindTexture(GL_TEXTURE_2D, framebuffer->texture_color_buffer);
 
@@ -360,6 +414,13 @@ void bs_createFramebufferTexImage(bs_Framebuffer *framebuffer) {
 
     // Attach it to currently bound framebuffer object
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebuffer->texture_color_buffer, 0);
+}
+
+void bs_attachRenderbuffer(bs_Framebuffer *framebuffer) {
+    glGenRenderbuffers(1, &framebuffer->RBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, framebuffer->RBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, framebuffer->render_width, framebuffer->render_height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, framebuffer->RBO); 
 }
 
 void bs_setFramebufferVertices(bs_Framebuffer *framebuffer) {
@@ -395,7 +456,8 @@ void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int ren
     glGenFramebuffers(1, &framebuffer->FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
 
-    bs_createFramebufferTexImage(framebuffer);
+    bs_attachColorbuffer(framebuffer);
+    bs_attachRenderbuffer(framebuffer);
     bs_setFramebufferVertices(framebuffer);
 }
 
@@ -408,11 +470,13 @@ void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
     glBindVertexArray(framebuffer->VAO);
     glBindBuffer(GL_ARRAY_BUFFER, framebuffer->VBO);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
+    
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Clear any previous drawing
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    framebuffer->render();
 }
 
 void bs_endFramebufferRender(bs_Framebuffer *framebuffer) {
@@ -421,8 +485,10 @@ void bs_endFramebufferRender(bs_Framebuffer *framebuffer) {
 
     // Unbind
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindVertexArray(framebuffer->VAO);
     glDisable(GL_DEPTH_TEST);
+
+    glBindVertexArray(framebuffer->VAO);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     // Render
     glBindTexture(GL_TEXTURE_2D, framebuffer->texture_color_buffer);
@@ -430,9 +496,6 @@ void bs_endFramebufferRender(bs_Framebuffer *framebuffer) {
 }
 
 void bs_render() {
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     double previousTime = glfwGetTime();
     int frameCount = 0;
 
@@ -443,12 +506,6 @@ void bs_render() {
     glfwSetKeyCallback(window, bs_onKey);
 
     while(!glfwWindowShouldClose(window)) {
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
-
-        glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glClearColor(0.0, 0.0, 0.0, 0.0);
         elapsed_time += 0.01;
 
         // Measure speed
@@ -467,6 +524,7 @@ void bs_render() {
         for(int i = 0; i < bs_window.framebuffer_count; i++) {
             bs_Framebuffer *framebuffer = bs_window.framebuffers[i];
             bs_startFramebufferRender(framebuffer);
+            framebuffer->render();
             bs_endFramebufferRender(framebuffer);
         }
 
@@ -519,15 +577,6 @@ void bs_init(int width, int height, char *title, bs_WNDSettings settings) {
     std_camera.pos.z = 200.0;
     bs_setMatrixLookat(&std_camera, (bs_vec3){ 0.0, 0.0, 2.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
     bs_setPerspectiveProjection(&std_camera, 90.0, (float)width / (float)height, 0.1, 5000.0);
-
-    printf("STDCAM\n");
-    for(int y = 0; y < 4; y++) {
-        for(int x = 0; x < 4; x++) {
-            printf("%f\n", std_camera.proj[x][y]);
-            printf("%f\n", std_camera.view[x][y]);
-            printf("\n");
-        }
-    }
 }
 
 void bs_startRender(void (*render)()) {
