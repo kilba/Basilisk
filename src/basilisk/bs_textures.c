@@ -105,7 +105,7 @@ bs_Atlas *bs_createTextureAtlas(int width, int height, int max_textures) {
 
     // White square can be used as default texture
     // allows multiplication of textures with color-only primitives
-    bs_createWhiteSquare(8, atlas);
+    bs_createWhiteSquare(BS_ATLAS_SIZE / 128, atlas);
 
     atlas_count++;
 

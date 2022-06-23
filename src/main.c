@@ -18,15 +18,15 @@ bs_Quad quad;
 bs_Tex2D *tex;
 bs_Model model;
 bs_Shader shader;
+bs_Framebuffer pixel;
 
 float x_angle = 0.0;
 float y_angle = 0.0;
 float z_angle = 0.0;
 float speed = 0.05;
-    versor v;
+versor v;
 
 void render() {
-    bs_selectBatch(&batch);
 
     // glm_quat(v, x_angle, 0.0, 1.0, 0.0);
 
@@ -60,6 +60,8 @@ void render() {
         glm_quat(v, z_angle, 0.0, 0.0, 1.0);
     }
 
+    bs_selectBatch(&batch);
+
     model.meshes[0].rot = (bs_vec4){ v[0], v[1], v[2], v[3] };
     bs_pushModel(&model);
 
@@ -69,15 +71,10 @@ void render() {
 }
 
 void loadTextures() {
-    // tex = bs_loadTexture("resources/idle.png", 1);
-    // bs_selectTexture(tex+0);
-
     bs_loadModel("resources/models/untitled.gltf", "resources/models/textures", &model);
-    // model.meshes[0].pos.x += 50.0;
+}
 
-    // bs_selectTexture(model.meshes[0].tex);
-
-    // printf("%d\n", model.meshes[0].tex->w);
+void pixelUpdate() {
 }
 
 int main() {
@@ -88,6 +85,8 @@ int main() {
     shader = bs_loadShader("resources/bs_color_shader2.vs", "resources/bs_color_shader2.fs", 0);
     bs_createBatch(&batch, 20000, BS_POSITION_COLOR);
     // batch.shader = &shader;
+
+    // bs_createFramebuffer(&pixel, 1200, 800, pixelUpdate, NULL);
 
     quad.pos.x = 0.0;
     quad.pos.y = 0.0;

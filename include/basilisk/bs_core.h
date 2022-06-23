@@ -91,6 +91,9 @@ typedef struct {
 typedef struct {
 	bs_RGBA base_color;
 	bs_Tex2D *tex;
+
+	bs_vec3 specular;
+
 } bs_Material;
 
 typedef struct {

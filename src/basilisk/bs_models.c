@@ -18,6 +18,8 @@ void bs_readPositionVertices(int accessor_index, bs_Prim *prim, cgltf_data *data
 	float *vertices = malloc(num_floats * sizeof(float));
 	cgltf_accessor_unpack_floats(&data->accessors[accessor_index], vertices, num_floats);
 
+	printf("%d\n", accessor_index);
+
 	for(int i = 0; i < num_floats; i+=3) {
 		vertices[i+0] *= 10.0;
 		vertices[i+1] *= 10.0;
@@ -28,7 +30,6 @@ void bs_readPositionVertices(int accessor_index, bs_Prim *prim, cgltf_data *data
 
 	free(vertices);
 	vertices = NULL;
-
 }
 
 void bs_readNormalVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) {
@@ -67,11 +68,20 @@ void bs_readTexCoordVertices(int accessor_index, bs_Prim *prim, cgltf_data *data
 	tex_coords = NULL;
 }
 
-
 void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
 	cgltf_material *c_mat = c_prim->material;
-	cgltf_float *mat_color = c_mat->pbr_metallic_roughness.base_color_factor;
 	bs_Material *mat = &prim->material;
+
+	if(c_mat == NULL) {
+		mat->base_color.r = 255;
+		mat->base_color.g = 255;
+		mat->base_color.b = 255;
+		mat->base_color.a = 255;		
+		return;
+	}
+	printf("HAS: %d\n", c_mat->has_pbr_metallic_roughness);
+
+	cgltf_float *mat_color = c_mat->pbr_metallic_roughness.base_color_factor;
 
 	mat->base_color.r = mat_color[0] * 255;
 	mat->base_color.g = mat_color[1] * 255;
@@ -149,6 +159,7 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
 
 	model->meshes[mesh_index].prims = malloc(c_mesh->primitives_count * sizeof(bs_Prim));
 	model->meshes[mesh_index].prim_count = c_mesh->primitives_count;
+
 	for(int i = 0; i < c_mesh->primitives_count; i++) {
 		bs_loadPrim(data, &model->meshes[mesh_index], model, mesh_index, i);
 	}
@@ -161,7 +172,8 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 	for(int i = 0; i < data->textures_count; i++) {
 		// Getting the pointers to all images in the form of a 64 bit int
 		ids[i] = (int64_t)data->textures[i].image;
-
+	}
+	for(int i = 0; i < data->images_count; i++) {
 		char texture_path[256] = "resources/models/textures/";
 		strcat(texture_path, data->images[i].name);
 		strcat(texture_path, ".png");
@@ -170,8 +182,6 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 
  	curr_tex_ptr = ids[0];
  	model->textures = malloc(data->textures_count * sizeof(bs_Tex2D *));
-
- 	printf("to\n");
 
 	for(int i = 0; i < data->textures_count; i++) {
 		ids[i] -= curr_tex_ptr;
@@ -201,6 +211,7 @@ void bs_loadModel(char *model_path, char *texture_folder_path, bs_Model *model) 
 	model->mesh_count = mesh_count;
 	model->vertex_count = 0;
 	model->index_count = 0;
+
 
 	if(data->textures_count != 0) {
 		bs_loadModelTextures(data, model);

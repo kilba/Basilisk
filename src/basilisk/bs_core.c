@@ -504,8 +504,11 @@ void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int ren
     }
 
     bs_window.framebuffers[bs_window.framebuffer_count++] = framebuffer;
-
-    bs_setFramebufferShader(framebuffer, shader);
+    if(shader == NULL) {
+        bs_setFramebufferShader(framebuffer, &fbo_shader);
+    } else {
+        bs_setFramebufferShader(framebuffer, shader);
+    }
 
     glGenFramebuffers(1, &framebuffer->FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
