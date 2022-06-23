@@ -33,3 +33,11 @@ char* bs_readFileToString(char *path, int *errcode) {
     buffer[length - 1] = '\0';
     return buffer;
 }
+
+void bs_appendToFile(const char *filepath, const char *data) {
+    FILE *fp = fopen(filepath, "ab");
+    if (fp != NULL) {
+        fputs(data, fp);
+        fclose(fp);
+    }
+}

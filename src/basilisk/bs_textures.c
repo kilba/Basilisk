@@ -83,6 +83,15 @@ void bs_appendToAtlas(unsigned char *atlas_data, int width, int height, bs_Atlas
     }
 }
 
+void bs_createWhiteSquare(int dim, bs_Atlas *atlas) {
+    for(int i = 0; i < dim; i++) {
+        int pos = 0;
+        pos += 4 * atlas->w * ((atlas->h-dim+1)+i);
+        pos -= 4 * dim;
+        memset(&atlas->data[pos], 255, dim * 4 * sizeof(char));
+    }
+}
+
 bs_Atlas *bs_createTextureAtlas(int width, int height, int max_textures) {
     atlases = realloc(atlases, sizeof(bs_Atlas) * (atlas_count+1));
     bs_Atlas *atlas = &atlases[atlas_count];
@@ -94,6 +103,10 @@ bs_Atlas *bs_createTextureAtlas(int width, int height, int max_textures) {
     atlas->id = atlas_count;
     atlas->tex_count = 0;
 
+    // White square can be used as default texture
+    // allows multiplication of textures with color-only primitives
+    bs_createWhiteSquare(8, atlas);
+
     atlas_count++;
 
     return atlas;
@@ -104,7 +117,6 @@ void bs_pushAtlas(bs_Atlas *atlas) {
     bs_appendToAtlas(atlas->data, atlas->w, atlas->h, atlas);
 
     glGenTextures(1, &atlas->tex_id);
-
     glActiveTexture(GL_TEXTURE0 + atlas->id);
     glBindTexture(GL_TEXTURE_2D, atlas->tex_id);
 
@@ -117,14 +129,18 @@ void bs_pushAtlas(bs_Atlas *atlas) {
     glGenerateMipmap(GL_TEXTURE_2D);
 }
 
-bs_Tex2D *bs_loadTexture(char *path, int frames, bs_Atlas *atlas) {
-    bs_Tex2D *tex = atlas->textures + atlas->tex_count;
+bs_Tex2D *bs_loadTexture(char *path, int frames) {
+    // printf(path);
+    // printf("\n");
+    bs_Atlas *std_atlas = bs_getStdAtlas();
+
+    bs_Tex2D *tex = std_atlas->textures + std_atlas->tex_count;
     unsigned char *data;
 
     lodepng_decode32_file(&data, &tex->w, &tex->h, path);
-    bs_splitTexture(data, tex->w, tex->h, frames, &atlas->tex_count, &atlas->textures);
+    bs_splitTexture(data, tex->w, tex->h, frames, &std_atlas->tex_count, &std_atlas->textures);
 
-    atlas->tex_count += frames;
+    std_atlas->tex_count += frames;
 
     return tex;
 }

@@ -21,7 +21,7 @@ typedef struct {
 
 /* --- TEXTURES --- */
 bs_Atlas *bs_createTextureAtlas(int width, int height, int max_textures);
-bs_Tex2D *bs_loadTexture(char *path, int frames, bs_Atlas *atlas);
+bs_Tex2D *bs_loadTexture(char *path, int frames);
 void bs_selectTexture(bs_Tex2D *texture);
 void bs_pushAtlas(bs_Atlas *atlas);
 void bs_saveAtlasToFile(bs_Atlas *atlas, char *name);

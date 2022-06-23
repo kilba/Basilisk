@@ -5,9 +5,10 @@
 
 // Basilisk
 #include <bs_shaders.h>
-#include <bs_core.h>
 #include <bs_textures.h>
 #include <bs_debug.h>
+#include <bs_core.h>
+#include <bs_math.h>
 
 // STD
 #include <string.h>
@@ -51,6 +52,8 @@ bs_Shader texture_shader;
 bs_Camera std_camera;
 bs_Batch *curr_batch;
 bs_Tex2D empty_texture;
+
+bs_Atlas *std_atlas;
 
 float elapsed_time = 0.0;
 
@@ -221,7 +224,12 @@ void bs_setViewMatrixOrtho(bs_Camera *cam) {
 
 void bs_createOrthographicProjection(bs_Camera *cam, int left, int right, int bottom, int top) {
     bs_setViewMatrixOrtho(cam);
-    bs_setProjMatrixOrtho(cam, 0, right, 0, top);
+    bs_setProjMatrixOrtho(cam, left, right, bottom, top);
+
+    int x_res = bs_sign(left - right);
+    int y_res = bs_sign(top - bottom);
+
+    cam->res = (bs_vec2){ x_res, y_res };
 }
 
 void bs_setMatrixLookat(bs_Camera *cam, bs_vec3 center, bs_vec3 up) {
@@ -232,8 +240,9 @@ void bs_setMatrixLook(bs_Camera *cam, bs_vec3 dir, bs_vec3 up) {
     glm_look((vec3){ cam->pos.x, cam->pos.y, cam->pos.z }, (vec3){ dir.x, dir.y, dir.z }, (vec3){ up.x, up.y, up.z }, cam->view);
 }
 
-void bs_setPerspectiveProjection(bs_Camera *cam, float fovy, float aspect, float nearZ, float farZ) {
-    glm_perspective(fovy, aspect, nearZ, farZ, cam->proj);
+void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float nearZ, float farZ) {
+    glm_perspective(glm_rad(fovy), res.x / res.y, nearZ, farZ, cam->proj);
+    cam->res = res;
 }
 
 bs_Camera *bs_getStdCamera() {
@@ -251,6 +260,10 @@ void bs_selectBatch(bs_Batch *batch) {
 
 void bs_setBatchShader(bs_Batch *batch, bs_Shader *shader) {
     batch->shader = shader;
+}
+
+bs_Atlas *bs_getStdAtlas() {
+    return std_atlas;
 }
 
 void bs_pushVertexStruct(bs_Vertex vertex) {
@@ -306,24 +319,64 @@ void bs_pushTriangle(bs_vec2 pos1, bs_vec2 pos2, bs_vec2 pos3, bs_RGBA color) {
     curr_batch->index_draw_count += 3;
 }
 
+void bs_pushPrim(bs_Prim *prim, mat4 model) {
+    for(int i = 0; i < prim->index_count; i++) {
+        curr_batch->indices[curr_batch->index_draw_count+i] = prim->indices[i] + curr_batch->vertex_draw_count;
+    }
+
+    for(int i = 0; i < prim->vertex_count; i++) {
+        bs_Vertex vertex;
+
+        vertex.color.r = prim->material.base_color.r;
+        vertex.color.g = prim->material.base_color.g;
+        vertex.color.b = prim->material.base_color.b;
+        vertex.color.a = prim->material.base_color.a;
+
+        vertex.normal = prim->vertices[i].normal;
+
+        // TODO: Figure out why 1.0 causes glitchy rendering
+        const float white_tex_coord = 0.9999;
+        vertex.tex_coord = (bs_vec2){ white_tex_coord, white_tex_coord };
+
+        if(prim->material.tex != NULL) {
+            // TODO: These values are constant, unnecessary to set them every frame
+            vertex.tex_coord.x = prim->vertices[i].tex_coord.x + prim->material.tex->tex_x;
+            vertex.tex_coord.y = prim->vertices[i].tex_coord.y + prim->material.tex->tex_y;
+        }
+
+        vec3 glm_vertex_pos = { prim->vertices[i].position.x, prim->vertices[i].position.y, prim->vertices[i].position.z };
+        glm_mat4_mulv3(model, glm_vertex_pos, 1.0, glm_vertex_pos);
+        memcpy(&vertex.position, glm_vertex_pos, 3 * sizeof(float));
+
+        bs_pushVertexStruct(vertex);
+    }
+
+    curr_batch->index_draw_count += prim->index_count;
+}
+
 void bs_pushMesh(bs_Mesh *mesh) {
-    for(int i = 0; i < mesh->index_count; i++) {
-        curr_batch->indices[curr_batch->index_draw_count+i] = mesh->indices[i] + curr_batch->vertex_draw_count;
-    }
+    mat4 model = GLM_MAT4_IDENTITY_INIT;
 
-    for(int i = 0; i < mesh->vertex_count; i++) {
-        mesh->vertices[i].color.r = 100;
-        mesh->vertices[i].color.g = 80;
-        mesh->vertices[i].color.b = 120;
-        mesh->vertices[i].color.a = 255;
-        bs_pushVertexStruct(mesh->vertices[i]);
-    }
+    vec3 glm_pos = { mesh->pos.x*10.0, mesh->pos.y*10.0, mesh->pos.z*10.0 };
+    vec3 glm_sca = { mesh->sca.x, mesh->sca.y, mesh->sca.z };
+    versor glm_rot = { mesh->rot.x, mesh->rot.y, mesh->rot.z, mesh->rot.w }; 
 
-    curr_batch->index_draw_count += mesh->index_count;
+    glm_translate(model, glm_pos);
+    glm_scale(model, glm_sca);
+    glm_quat_rotate(model, glm_rot, model);
+
+        // bs_Prim *prim = &mesh->prims[4];
+        // bs_pushPrim(prim, model);
+    for(int i = 0; i < mesh->prim_count; i++) {
+        bs_Prim *prim = &mesh->prims[i];
+        bs_pushPrim(prim, model);
+    }
 }
 
 void bs_pushModel(bs_Model *model) {
-
+    for(int i = 0; i < model->mesh_count; i++) {
+        bs_pushMesh(&model->meshes[i]);
+    }
 }
 
 void bs_changeBatchBufferSize(bs_Batch *batch, int index_count) {
@@ -361,6 +414,7 @@ void bs_createBatch(bs_Batch *batch, int index_count, int attrib_type) {
         glEnableVertexAttribArray(3);
         glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, color));
     }
+
     if(attrib_type == BS_POSITION_TEXTURE) {
 
     }
@@ -488,7 +542,7 @@ void bs_endFramebufferRender(bs_Framebuffer *framebuffer) {
     glDisable(GL_DEPTH_TEST);
 
     glBindVertexArray(framebuffer->VAO);
-    glClear(GL_COLOR_BUFFER_BIT);
+    // glClear(GL_COLOR_BUFFER_BIT);
 
     // Render
     glBindTexture(GL_TEXTURE_2D, framebuffer->texture_color_buffer);
@@ -524,6 +578,7 @@ void bs_render() {
         for(int i = 0; i < bs_window.framebuffer_count; i++) {
             bs_Framebuffer *framebuffer = bs_window.framebuffers[i];
             bs_startFramebufferRender(framebuffer);
+            bs_selectAtlas(std_atlas);
             framebuffer->render();
             bs_endFramebufferRender(framebuffer);
         }
@@ -556,7 +611,6 @@ void bs_init(int width, int height, char *title, bs_WNDSettings settings) {
     bs_initGLFW(settings);
 
     // Set default texture to be empty
-    bs_Tex2D *tex = bs_getSelectedTexture();
     empty_texture.w = empty_texture.h = 0;
     empty_texture.x = empty_texture.y = 0;
     empty_texture.tex_x = empty_texture.tex_y = 0;
@@ -574,12 +628,19 @@ void bs_init(int width, int height, char *title, bs_WNDSettings settings) {
 
     std_camera.pos.x = 0.0;
     std_camera.pos.y = 0.0;
-    std_camera.pos.z = 200.0;
-    bs_setMatrixLookat(&std_camera, (bs_vec3){ 0.0, 0.0, 2.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
-    bs_setPerspectiveProjection(&std_camera, 90.0, (float)width / (float)height, 0.1, 5000.0);
+    std_camera.pos.z = 50.0;
+    bs_setMatrixLookat(&std_camera, (bs_vec3){ 0.0, 0.0, 0.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
+    bs_setPerspectiveProjection(&std_camera, (bs_vec2){ width, height }, 90.0, 0.1, 5000.0);
+
+    // Texture Atlas Init
+    std_atlas = bs_createTextureAtlas(BS_ATLAS_SIZE, BS_ATLAS_SIZE, BS_MAX_TEXTURES);
 }
 
 void bs_startRender(void (*render)()) {
+    bs_pushAtlas(std_atlas);
+    bs_saveAtlasToFile(std_atlas, "test1.png");
+    bs_freeAtlasData(std_atlas);
+
     // Create the default framebuffer
     fbo_shader = bs_loadShader("resources/fbo_shader.vs", "resources/fbo_shader.fs", 0);
     bs_createFramebuffer(&std_framebuffer, bs_window.width, bs_window.height, render, &fbo_shader);
