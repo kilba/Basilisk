@@ -13,18 +13,17 @@ int64_t curr_tex_ptr = 0;
 int attrib_offset = 0;
 
 /* --- VERTEX LOADING --- */
-void bs_readPositionVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) {
+void bs_readPositionVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) {	
 	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
 	float *vertices = malloc(num_floats * sizeof(float));
 	cgltf_accessor_unpack_floats(&data->accessors[accessor_index], vertices, num_floats);
 
-	printf("%d\n", accessor_index);
+	printf("%d\n", num_floats);
 
 	for(int i = 0; i < num_floats; i+=3) {
 		vertices[i+0] *= 10.0;
 		vertices[i+1] *= 10.0;
 		vertices[i+2] *= 10.0;
-
 		memcpy(&prim->vertices[i/3].position, &vertices[i], 3 * sizeof(float));
 	}
 
@@ -36,7 +35,6 @@ void bs_readNormalVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) 
 	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
 	float *normals = malloc(num_floats * sizeof(float));
 	cgltf_accessor_unpack_floats(&data->accessors[accessor_index], normals, num_floats);
-
 	for(int i = 0; i < num_floats; i+=3) {
 		memcpy(&prim->vertices[i/3].normal, &normals[i], 3 * sizeof(float));
 	}
@@ -104,15 +102,14 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
 	prim->material.tex = NULL;
 
 	bool has_unique_indices = true;
+	int attrib_count = c_mesh->primitives[prim_index].attributes_count;
+	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[c_mesh->primitives[prim_index].attributes[0].index], NULL, 0);
 
-	if(attrib_offset != 0) {
+	if((c_mesh->primitives[prim_index].index_id + 1) <= data->accessors_count) {
 		// If the address of the previous primitives indices is less or equal to the current one,
 		// the primitive does not have unique indices
-		has_unique_indices = !(c_mesh->primitives[prim_index].indices <= c_mesh->primitives[prim_index-1].indices);
+		// has_unique_indices = !(prim->attrib_count <= mesh->prims[prim_index-1].attrib_count);
 	}
-
-	int attrib_count = c_mesh->primitives[prim_index].attributes_count;
-	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[attrib_offset], NULL, 0);
 
 	prim->vertices = malloc(num_floats * sizeof(bs_Vertex));
 	prim->vertex_count = num_floats / 3;
@@ -124,11 +121,12 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     	int type = c_mesh->primitives[prim_index].attributes[i].type;
     	switch(type) {
     		case cgltf_attribute_type_position:
-    			bs_readPositionVertices(attrib_offset + i, prim, data); break;
+    			bs_readPositionVertices(c_mesh->primitives[prim_index].attributes[i].index, prim, data); break;
 			case cgltf_attribute_type_normal:
-				bs_readNormalVertices(attrib_offset + i, prim, data); break;
+				bs_readNormalVertices(c_mesh->primitives[prim_index].attributes[i].index, prim, data); break;
 			case cgltf_attribute_type_texcoord:
-				bs_readTexCoordVertices(attrib_offset + i, prim, data); break;
+				bs_readTexCoordVertices(c_mesh->primitives[prim_index].attributes[i].index, prim, data); break;
+
     	}
     }
 
@@ -142,7 +140,7 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
 		prim->indices[i] = outv;
 	}
 
-	attrib_offset += (attrib_count + has_unique_indices);
+	attrib_offset = c_mesh->primitives[prim_index].index_id + 1;
 
 	mesh->vertex_count += prim->vertex_count;
 	model->vertex_count += prim->vertex_count;

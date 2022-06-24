@@ -19,6 +19,7 @@ bs_Tex2D *tex;
 bs_Model model;
 bs_Shader shader;
 bs_Framebuffer pixel;
+bs_Camera camera;
 
 float x_angle = 0.0;
 float y_angle = 0.0;
@@ -59,7 +60,14 @@ void render() {
         z_angle += speed;
         glm_quat(v, z_angle, 0.0, 0.0, 1.0);
     }
+    bs_selectBatch(&batch);
 
+    model.meshes[0].rot = (bs_vec4){ v[0], v[1], v[2], v[3] };
+    bs_pushModel(&model);
+
+    bs_pushBatch();
+    bs_renderBatch(0, bs_getBatchSize(&batch));
+    bs_clearBatch();
     bs_selectBatch(&batch);
 
     model.meshes[0].rot = (bs_vec4){ v[0], v[1], v[2], v[3] };
@@ -75,6 +83,7 @@ void loadTextures() {
 }
 
 void pixelUpdate() {
+
 }
 
 int main() {
@@ -82,9 +91,36 @@ int main() {
     bs_setBackgroundColor((bs_fRGBA){ 80, 100, 120, 255 });
     loadTextures();
 
+    camera.pos.x = 0.0;
+    camera.pos.y = 0.0;
+    camera.pos.z = 1000.0;
+
+    // model.meshes[1].pos.x = 100.0;
+    // model.meshes[1].pos.y = 10.0;
+    // model.meshes[1].pos.z = 1.0;
+
+    // bs_setMatrixLookat(&camera, (bs_vec3){ -50.0, 0.0, 0.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
+    // bs_setPerspectiveProjection(&camera, (bs_vec2){ 600, 400 }, 120.0, 0.1, 5000.0);
+    bs_createOrthographicProjection(&camera, 0, 1200, 0, 800);
+
+    vec4 pos;
+    pos[0] = model.meshes[0].pos.x;
+    pos[1] = model.meshes[0].pos.y;
+    pos[2] = model.meshes[0].pos.z;
+    pos[3] = 1.0;
+
+    glm_mat4_mulv(camera.proj, pos, pos);
+    glm_mat4_mulv(camera.view, pos, pos);
+
+    printf("%f\n", pos[0]);
+    printf("%f\n", pos[1]);
+    printf("%f\n", pos[2]);
+    printf("%f\n", pos[3]);
+
     shader = bs_loadShader("resources/bs_color_shader2.vs", "resources/bs_color_shader2.fs", 0);
-    bs_createBatch(&batch, 20000, BS_POSITION_COLOR);
+    bs_createBatch(&batch, 200000, BS_POSITION_COLOR);
     // batch.shader = &shader;
+    batch.camera = &camera;
 
     // bs_createFramebuffer(&pixel, 1200, 800, pixelUpdate, NULL);
 

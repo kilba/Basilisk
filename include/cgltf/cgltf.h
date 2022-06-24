@@ -567,6 +567,7 @@ typedef struct cgltf_mesh_gpu_instancing {
 } cgltf_mesh_gpu_instancing;
 
 typedef struct cgltf_primitive {
+	int index_id;
 	cgltf_primitive_type type;
 	cgltf_accessor* indices;
 	cgltf_material* material;
@@ -2669,14 +2670,17 @@ static int cgltf_parse_json_attribute_list(cgltf_options* options, jsmntok_t con
 		CGLTF_CHECK_KEY(tokens[i]);
 
 		i = cgltf_parse_json_string(options, tokens, i, json_chunk, &(*out_attributes)[j].name);
+
 		if (i < 0)
 		{
 			return CGLTF_ERROR_JSON;
 		}
 
+		int attrib_index = cgltf_json_to_int(tokens + i, json_chunk);
 		cgltf_parse_attribute_type((*out_attributes)[j].name, &(*out_attributes)[j].type, &(*out_attributes)[j].index);
+		(*out_attributes)[j].index = attrib_index;
 
-		(*out_attributes)[j].data = CGLTF_PTRINDEX(cgltf_accessor, cgltf_json_to_int(tokens + i, json_chunk));
+		(*out_attributes)[j].data = CGLTF_PTRINDEX(cgltf_accessor, attrib_index);
 		++i;
 	}
 
@@ -2974,7 +2978,9 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "indices") == 0)
 		{
 			++i;
-			out_prim->indices = CGLTF_PTRINDEX(cgltf_accessor, cgltf_json_to_int(tokens + i, json_chunk));
+			int index_id = cgltf_json_to_int(tokens + i, json_chunk);
+			out_prim->indices = CGLTF_PTRINDEX(cgltf_accessor, index_id);
+			out_prim->index_id = index_id;
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "material") == 0)

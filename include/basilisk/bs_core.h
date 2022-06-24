@@ -103,6 +103,7 @@ typedef struct {
 	int vertex_count;
 	int index_count;
 
+	int attrib_count;
 	bs_Material material;
 } bs_Prim;
 
