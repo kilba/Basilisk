@@ -584,8 +584,10 @@ typedef struct cgltf_primitive {
 	cgltf_extension* extensions;
 } cgltf_primitive;
 
+typedef struct cgltf_node cgltf_node;
 typedef struct cgltf_mesh {
 	char* name;
+	cgltf_node *node;
 	cgltf_primitive* primitives;
 	cgltf_size primitives_count;
 	cgltf_float* weights;
@@ -596,8 +598,6 @@ typedef struct cgltf_mesh {
 	cgltf_size extensions_count;
 	cgltf_extension* extensions;
 } cgltf_mesh;
-
-typedef struct cgltf_node cgltf_node;
 
 typedef struct cgltf_skin {
 	char* name;
@@ -653,6 +653,7 @@ typedef struct cgltf_light {
 
 struct cgltf_node {
 	char* name;
+	int id;
 	cgltf_node* parent;
 	cgltf_node** children;
 	cgltf_size children_count;
@@ -5293,6 +5294,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 			++i;
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_PRIMITIVE);
 			out_node->mesh = CGLTF_PTRINDEX(cgltf_mesh, cgltf_json_to_int(tokens + i, json_chunk));
+
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "skin") == 0)
@@ -5440,11 +5442,13 @@ static int cgltf_parse_json_nodes(cgltf_options* options, jsmntok_t const* token
 	for (cgltf_size j = 0; j < out_data->nodes_count; ++j)
 	{
 		i = cgltf_parse_json_node(options, tokens, i, json_chunk, &out_data->nodes[j]);
+
 		if (i < 0)
 		{
 			return i;
 		}
 	}
+
 	return i;
 }
 
@@ -6191,6 +6195,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 
 	*out_data = data;
 
+
 	return cgltf_result_success;
 }
 
@@ -6334,6 +6339,10 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 		CGLTF_PTRFIXUP(data->nodes[i].skin, data->skins, data->skins_count);
 		CGLTF_PTRFIXUP(data->nodes[i].camera, data->cameras, data->cameras_count);
 		CGLTF_PTRFIXUP(data->nodes[i].light, data->lights, data->lights_count);
+		
+		if(data->nodes[i].mesh != NULL) {
+			data->nodes[i].mesh->node = &data->nodes[i];
+		}
 
 		if (data->nodes[i].has_mesh_gpu_instancing)
 		{

@@ -1,5 +1,6 @@
 #define CGLTF_IMPLEMENTATION
 #include <cgltf/cgltf.h>
+#include <cglm/cglm.h>
 
 #include <stdint.h>
 
@@ -15,41 +16,28 @@ int attrib_offset = 0;
 /* --- VERTEX LOADING --- */
 void bs_readPositionVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) {	
 	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-	float *vertices = malloc(num_floats * sizeof(float));
-	cgltf_accessor_unpack_floats(&data->accessors[accessor_index], vertices, num_floats);
+	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
-	printf("%d\n", num_floats);
-
-	for(int i = 0; i < num_floats; i+=3) {
-		vertices[i+0] *= 10.0;
-		vertices[i+1] *= 10.0;
-		vertices[i+2] *= 10.0;
-		memcpy(&prim->vertices[i/3].position, &vertices[i], 3 * sizeof(float));
+	for(int i = 0; i < num_floats / num_comps; i++) {
+		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].position.x, num_comps);
 	}
-
-	free(vertices);
-	vertices = NULL;
 }
 
 void bs_readNormalVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) {
 	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-	float *normals = malloc(num_floats * sizeof(float));
-	cgltf_accessor_unpack_floats(&data->accessors[accessor_index], normals, num_floats);
-	for(int i = 0; i < num_floats; i+=3) {
-		memcpy(&prim->vertices[i/3].normal, &normals[i], 3 * sizeof(float));
-	}
+	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
-	free(normals);
-	normals = NULL;
+	for(int i = 0; i < num_floats / num_comps; i++) {
+		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].normal.x, num_comps);
+	}
 }
 
 void bs_readTexCoordVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) {
 	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-	float *tex_coords = malloc(num_floats * sizeof(float));
-	cgltf_accessor_unpack_floats(&data->accessors[accessor_index], tex_coords, num_floats);
+	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
-	for(int i = 0; i < num_floats; i+=2) {
-		memcpy(&prim->vertices[i/2].tex_coord, &tex_coords[i], 2 * sizeof(float));
+	for(int i = 0; i < num_floats / num_comps; i++) {
+		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].tex_coord.x, num_comps);
 	}
 
 	if(prim->material.tex != NULL) {
@@ -61,9 +49,36 @@ void bs_readTexCoordVertices(int accessor_index, bs_Prim *prim, cgltf_data *data
 			prim->vertices[i/2].tex_coord.y = bs_fMap(prim->vertices[i/2].tex_coord.y, 0.0, 1.0, 0.0, y_range);
 		}
 	}
+}
 
-	free(tex_coords);
-	tex_coords = NULL;
+void bs_readJointIndices(int accessor_index, bs_Prim *prim, cgltf_data *data) {
+	int num_ints = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
+	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
+
+	for(int i = 0; i < num_ints / num_comps; i++) {
+		unsigned int xyzw[4];
+
+		cgltf_accessor_read_uint(&data->accessors[accessor_index], i, xyzw, num_comps);
+		prim->vertices[i].bone_ids.x = xyzw[0];
+		prim->vertices[i].bone_ids.y = xyzw[1];
+		prim->vertices[i].bone_ids.z = xyzw[2];
+		prim->vertices[i].bone_ids.w = xyzw[3];
+
+		// printf("%d, ", prim->vertices[i].bone_ids.x);
+		// printf("%d, ", prim->vertices[i].bone_ids.y);
+		// printf("%d, ", prim->vertices[i].bone_ids.z);
+		// printf("%d, ", prim->vertices[i].bone_ids.w);
+		// printf("\n");
+	}
+}
+
+void bs_readWeights(int accessor_index, bs_Prim *prim, cgltf_data *data) {
+	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
+	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
+
+	for(int i = 0; i < num_floats / num_comps; i++) {
+		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].weights.x, num_comps);
+	}
 }
 
 void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
@@ -77,7 +92,6 @@ void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
 		mat->base_color.a = 255;		
 		return;
 	}
-	printf("HAS: %d\n", c_mat->has_pbr_metallic_roughness);
 
 	cgltf_float *mat_color = c_mat->pbr_metallic_roughness.base_color_factor;
 
@@ -101,15 +115,8 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
 	bs_Prim *prim = &mesh->prims[prim_index];
 	prim->material.tex = NULL;
 
-	bool has_unique_indices = true;
 	int attrib_count = c_mesh->primitives[prim_index].attributes_count;
 	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[c_mesh->primitives[prim_index].attributes[0].index], NULL, 0);
-
-	if((c_mesh->primitives[prim_index].index_id + 1) <= data->accessors_count) {
-		// If the address of the previous primitives indices is less or equal to the current one,
-		// the primitive does not have unique indices
-		// has_unique_indices = !(prim->attrib_count <= mesh->prims[prim_index-1].attrib_count);
-	}
 
 	prim->vertices = malloc(num_floats * sizeof(bs_Vertex));
 	prim->vertex_count = num_floats / 3;
@@ -118,15 +125,20 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
 
 	// Read vertices
     for(int i = 0; i < attrib_count; i++) {
+    	int index = c_mesh->primitives[prim_index].attributes[i].index;
     	int type = c_mesh->primitives[prim_index].attributes[i].type;
+
     	switch(type) {
     		case cgltf_attribute_type_position:
-    			bs_readPositionVertices(c_mesh->primitives[prim_index].attributes[i].index, prim, data); break;
+    			bs_readPositionVertices(index, prim, data); break;
 			case cgltf_attribute_type_normal:
-				bs_readNormalVertices(c_mesh->primitives[prim_index].attributes[i].index, prim, data); break;
+				bs_readNormalVertices(index, prim, data); break;
 			case cgltf_attribute_type_texcoord:
-				bs_readTexCoordVertices(c_mesh->primitives[prim_index].attributes[i].index, prim, data); break;
-
+				bs_readTexCoordVertices(index, prim, data); break;
+			case cgltf_attribute_type_joints:
+				bs_readJointIndices(index, prim, data); break;
+			case cgltf_attribute_type_weights:
+				bs_readWeights(index, prim, data); break;
     	}
     }
 
@@ -147,6 +159,74 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
 	model->index_count += num_indices;
 }
 
+void bs_printMat4(bs_mat4 matrix) {
+	for(int y = 0; y < 4; y++) {
+		for(int x = 0; x < 4; x++) {
+			printf("%f, ", matrix[x][y]);
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+void bs_loadJoints(cgltf_data *data, bs_Mesh *mesh, cgltf_mesh *c_mesh) {
+	cgltf_skin *skin = c_mesh->node->skin;
+	mesh->joints = malloc(skin->joints_count * sizeof(bs_Joint));
+	mesh->joint_count = skin->joints_count;
+
+	for(int i = 0; i < skin->joints_count; i++) {
+		cgltf_node *c_joint = skin->joints[i];
+		cgltf_accessor_read_float(skin->inverse_bind_matrices, i, (float*)&mesh->joints[i].bind_matrix_inv, 16);
+
+		mat4 local = GLM_MAT4_IDENTITY_INIT;
+		memcpy(mesh->joints[i].mat, local, 16 * sizeof(float));
+
+		mesh->joints[i].name = skin->joints[i]->name;
+		c_joint->id = i;
+	}
+
+	for(int i = 0; i < skin->joints_count; i++) {
+		cgltf_node *c_joint = skin->joints[i];
+		int parent_id = skin->joints[i]->parent->id;
+
+		mesh->joints[i].parent = &mesh->joints[parent_id];
+	}
+
+	mat4 local_o = GLM_MAT4_IDENTITY_INIT;
+	mat4 bind_inv_o;
+	mat4 bind_o;
+	memcpy(bind_inv_o, mesh->joints[7].bind_matrix_inv, 16 * sizeof(float));
+	glm_mat4_inv(bind_inv_o, bind_o);
+
+	mat4 test = GLM_MAT4_IDENTITY_INIT;
+	// glm_quat_rotate(test, (versor){ 3.7, 0.0, 0.0, 1.0 }, test);
+	glm_rotate(bind_o, 2.96705973, (vec3){ 1.0, 0.0, 0.0 });
+	glm_mat4_mul(test, bind_inv_o, test);
+	glm_mat4_mul(bind_o, test, bind_o);
+
+	glm_mat4_mul(local_o, bind_o, local_o);
+	// glm_mat4_mul(local_o, bind_inv_o, local_o);
+	// glm_quat_rotate(local_o, (versor){ 0.8, 0.0, 0.0, 1.0 }, local_o);
+	bs_printMat4(local_o);
+
+	memcpy(mesh->joints[7].mat, local_o, 16 * sizeof(float));
+
+	for(int i = 0; i < skin->joints_count; i++) {
+		bs_Joint *joint = &mesh->joints[i];
+		bs_Joint *parent = mesh->joints[i].parent;
+
+		bs_mat4 joint_mat;
+		bs_mat4 parent_mat;
+
+		memcpy(joint_mat, joint->mat, 16 * sizeof(float));
+		memcpy(parent_mat, parent->mat, 16 * sizeof(float));
+
+		glm_mat4_mul(joint_mat, parent_mat, joint_mat);
+
+		memcpy(joint->mat, joint_mat, 16 * sizeof(float));
+	}
+}
+
 void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
 	cgltf_mesh *c_mesh = &data->meshes[mesh_index];
 	cgltf_node *node = &data->nodes[mesh_index];
@@ -157,6 +237,8 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
 
 	model->meshes[mesh_index].prims = malloc(c_mesh->primitives_count * sizeof(bs_Prim));
 	model->meshes[mesh_index].prim_count = c_mesh->primitives_count;
+
+	bs_loadJoints(data, &model->meshes[mesh_index], c_mesh);
 
 	for(int i = 0; i < c_mesh->primitives_count; i++) {
 		bs_loadPrim(data, &model->meshes[mesh_index], model, mesh_index, i);
@@ -210,7 +292,6 @@ void bs_loadModel(char *model_path, char *texture_folder_path, bs_Model *model) 
 	model->vertex_count = 0;
 	model->index_count = 0;
 
-
 	if(data->textures_count != 0) {
 		bs_loadModelTextures(data, model);
 	}
@@ -218,17 +299,4 @@ void bs_loadModel(char *model_path, char *texture_folder_path, bs_Model *model) 
 	for(int i = 0; i < mesh_count; i++) {
 		bs_loadMesh(data, model, i);
 	}
-
-	// for(int i = 0; i < model->meshes[0].prim_count; i++) {
-	// 	for(int j = 0; j < model->meshes[0].prims[0].vertex_count; j++) {
-	// 		model->meshes[0].prims[i].vertices[j].tex_coord.x = bs_fMap(model->meshes[0].prims[i].vertices[j].tex_coord.x, 0.0, 1.0, 0.0, model->meshes[0].tex->w / 1024.0);
-	// 		model->meshes[0].prims[i].vertices[j].tex_coord.y = bs_fMap(model->meshes[0].prims[i].vertices[j].tex_coord.y, 0.0, 1.0, 0.0, model->meshes[0].tex->h / 1024.0);
-	// 	}
-	// }
-
-	// for(int i = 0; i < model->meshes[0].vertex_count; i++) {
-	// 	printf("%f\n", model->meshes[0].prims[0].vertices[i].tex_coord.x);
-	// 	printf("%f\n", model->meshes[0].vertices[i].tex_coord.x);
-	// 	printf("\n");
-	// }
 }

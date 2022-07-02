@@ -199,6 +199,13 @@ bool bs_isKeyUpOnce(int key) {
     return result;
 }
 
+void bs_onResize(GLFWwindow* window, int width, int height) {
+    // glfwSetWindowSize(window, width, height);
+    // glViewport(0, 0, width, height);
+    // bs_window.width  = width;
+    // bs_window.height = height;
+}
+
 bs_vec2 bs_getCursorPositionReverseY() {
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
@@ -213,8 +220,8 @@ bs_vec2 bs_getCursorPosition() {
 
 /* --- MATRICES --- */
 void bs_setProjMatrixOrtho(bs_Camera *cam, int left, int right, int bottom, int top) {
-    glm_ortho(left, right, bottom, top, 0.1, 100.0, cam->proj);
-    glm_translate(cam->view, (vec3){ 0.0, 0.0, -1.0 });
+    glm_ortho(left, right, bottom, top, 0.1, 10000.0, cam->proj);
+    // glm_translate(cam->view, (vec3){ 0.0, 0.0, -1.0 });
 }
 
 void bs_setViewMatrixOrtho(bs_Camera *cam) {
@@ -223,7 +230,7 @@ void bs_setViewMatrixOrtho(bs_Camera *cam) {
 }
 
 void bs_createOrthographicProjection(bs_Camera *cam, int left, int right, int bottom, int top) {
-    bs_setViewMatrixOrtho(cam);
+    // bs_setViewMatrixOrtho(cam);
     bs_setProjMatrixOrtho(cam, left, right, bottom, top);
 
     int x_res = bs_sign(left - right);
@@ -288,9 +295,8 @@ void bs_pushVertex(float px, float py, float pz, float tx, float ty, float nx, f
     vertex->color = color;
 }
 
-// Adds a quad to the vertex array in the chosen batch
-void bs_pushQuad(bs_Quad *quad) {
-    bs_vec2 dim_pos = { quad->dim.x + quad->pos.x, quad->dim.y + quad->pos.y };
+void bs_pushTexRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Tex2D *tex) {
+    bs_vec2 dim_pos = { dim.x + pos.x, dim.y + pos.y };
 
     int indices[] = {
         curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
@@ -298,28 +304,49 @@ void bs_pushQuad(bs_Quad *quad) {
     };
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
 
-    bs_pushVertex(quad->pos.x, quad->pos.y, quad->pos.z, quad->tex->tex_x , quad->tex->tex_hy, 0.0, 0.0, 0.0, quad->col); // Bottom Left
-    bs_pushVertex(dim_pos.x  , quad->pos.y, quad->pos.z, quad->tex->tex_wx, quad->tex->tex_hy, 0.0, 0.0, 0.0, quad->col); // Bottom right
-    bs_pushVertex(quad->pos.x, dim_pos.y  , quad->pos.z, quad->tex->tex_x , quad->tex->tex_y , 0.0, 0.0, 0.0, quad->col); // Top Left
-    bs_pushVertex(dim_pos.x  , dim_pos.y  , quad->pos.z, quad->tex->tex_wx, quad->tex->tex_y , 0.0, 0.0, 0.0, quad->col); // Top Right
+    bs_pushVertex(pos.x    , pos.y    , pos.z, tex->tex_x , tex->tex_hy, 0.0, 0.0, 0.0, col); // Bottom Left
+    bs_pushVertex(dim_pos.x, pos.y    , pos.z, tex->tex_wx, tex->tex_hy, 0.0, 0.0, 0.0, col); // Bottom right
+    bs_pushVertex(pos.x    , dim_pos.y, pos.z, tex->tex_x , tex->tex_y , 0.0, 0.0, 0.0, col); // Top Left
+    bs_pushVertex(dim_pos.x, dim_pos.y, pos.z, tex->tex_wx, tex->tex_y , 0.0, 0.0, 0.0, col); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
 
-void bs_pushTriangle(bs_vec2 pos1, bs_vec2 pos2, bs_vec2 pos3, bs_RGBA color) {
+void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
+    bs_vec2 dim_pos = { dim.x + pos.x, dim.y + pos.y };
+
+    int indices[] = {
+        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
+        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
+    };
+    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
+
+    bs_pushVertex(pos.x    , pos.y    , pos.z, 0.0, 0.0, 0.0, 0.0, 0.0, col); // Bottom Left
+    bs_pushVertex(dim_pos.x, pos.y    , pos.z, 0.0, 0.0, 0.0, 0.0, 0.0, col); // Bottom right
+    bs_pushVertex(pos.x    , dim_pos.y, pos.z, 0.0, 0.0 ,0.0, 0.0, 0.0, col); // Top Left
+    bs_pushVertex(dim_pos.x, dim_pos.y, pos.z, 0.0, 0.0, 0.0, 0.0, 0.0, col); // Top Right
+
+    curr_batch->index_draw_count += 6;
+}
+
+void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     int indices[] = {
         curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
     };
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 3 * sizeof(int));
 
-    bs_pushVertex(pos1.x, pos1.y, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, color);
-    bs_pushVertex(pos2.x, pos2.y, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, color);
-    bs_pushVertex(pos3.x, pos3.y, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, color);
+    bs_pushVertex(pos1.x, pos1.y, pos1.z, 0.0, 0.0, 0.0, 0.0, 0.0, color);
+    bs_pushVertex(pos2.x, pos2.y, pos2.z, 1.0, 0.0, 0.0, 0.0, 0.0, color);
+    bs_pushVertex(pos3.x, pos3.y, pos3.z, 0.0, 1.0, 0.0, 0.0, 0.0, color);
 
     curr_batch->index_draw_count += 3;
 }
 
-void bs_pushPrim(bs_Prim *prim, mat4 model) {
+void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
+    bs_pushTriangle(start, end, end, color);
+}
+
+void bs_pushPrim(bs_Prim *prim, mat4 model, bs_Mesh *mesh) {
     for(int i = 0; i < prim->index_count; i++) {
         curr_batch->indices[curr_batch->index_draw_count+i] = prim->indices[i] + curr_batch->vertex_draw_count;
     }
@@ -345,8 +372,11 @@ void bs_pushPrim(bs_Prim *prim, mat4 model) {
         }
 
         vec3 glm_vertex_pos = { prim->vertices[i].position.x, prim->vertices[i].position.y, prim->vertices[i].position.z };
-        glm_mat4_mulv3(model, glm_vertex_pos, 1.0, glm_vertex_pos);
-        memcpy(&vertex.position, glm_vertex_pos, 3 * sizeof(float));
+        // glm_mat4_mulv3(model, glm_vertex_pos, 1.0, glm_vertex_pos);
+        
+        memcpy(&vertex.position, &glm_vertex_pos, 3 * sizeof(float));
+        memcpy(&vertex.bone_ids, &prim->vertices[i].bone_ids, sizeof(bs_ivec4));
+        memcpy(&vertex.weights, &prim->vertices[i].weights, sizeof(bs_vec4));
 
         bs_pushVertexStruct(vertex);
     }
@@ -357,19 +387,19 @@ void bs_pushPrim(bs_Prim *prim, mat4 model) {
 void bs_pushMesh(bs_Mesh *mesh) {
     mat4 model = GLM_MAT4_IDENTITY_INIT;
 
-    vec3 glm_pos = { mesh->pos.x*10.0, mesh->pos.y*10.0, mesh->pos.z*10.0 };
+    vec3 glm_pos = { mesh->pos.x, mesh->pos.y, mesh->pos.z };
     vec3 glm_sca = { mesh->sca.x, mesh->sca.y, mesh->sca.z };
     versor glm_rot = { mesh->rot.x, mesh->rot.y, mesh->rot.z, mesh->rot.w }; 
 
     glm_translate(model, glm_pos);
-    glm_scale(model, glm_sca);
     glm_quat_rotate(model, glm_rot, model);
+    glm_scale(model, glm_sca);
 
         // bs_Prim *prim = &mesh->prims[4];
         // bs_pushPrim(prim, model);
     for(int i = 0; i < mesh->prim_count; i++) {
         bs_Prim *prim = &mesh->prims[i];
-        bs_pushPrim(prim, model);
+        bs_pushPrim(prim, model, mesh);
     }
 }
 
@@ -377,6 +407,18 @@ void bs_pushModel(bs_Model *model) {
     for(int i = 0; i < model->mesh_count; i++) {
         bs_pushMesh(&model->meshes[i]);
     }
+}
+
+void bs_pushPrimUnbatched() {
+
+}
+
+void bs_pushMeshUnbatched() {
+
+}
+
+void bs_pushModelUnbatched(bs_Model *model, bs_Shader *shader) {
+
 }
 
 void bs_changeBatchBufferSize(bs_Batch *batch, int index_count) {
@@ -387,11 +429,14 @@ void bs_changeBatchBufferSize(bs_Batch *batch, int index_count) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, batch->indices, GL_STATIC_DRAW);
 }
 
-void bs_createBatch(bs_Batch *batch, int index_count, int attrib_type) {
+void bs_createBatch(bs_Batch *batch, int index_count) {
     batch->camera = &std_camera;
     batch->draw_mode = BS_TRIANGLES;
 
-    batch->index_draw_count = batch->vertex_draw_count = 0;
+    batch->vertex_draw_count = 0;
+    batch->index_draw_count = 0;
+    batch->attrib_count = 0;
+
     batch->indices = malloc(sizeof(int) * index_count);
     batch->vertices = malloc(sizeof(bs_Vertex) * index_count);
 
@@ -404,22 +449,21 @@ void bs_createBatch(bs_Batch *batch, int index_count, int attrib_type) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(bs_Vertex) * index_count, NULL, GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, NULL, GL_STATIC_DRAW);
 
-    if(attrib_type == BS_POSITION_COLOR) {
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, position));
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, tex_coord));
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, normal));
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, color));
-    }
-
-    if(attrib_type == BS_POSITION_TEXTURE) {
-
-    }
-
     bs_setBatchShader(batch, &texture_shader);
+
+    // Default attributes
+    glEnableVertexAttribArray(batch->attrib_count);
+    glVertexAttribPointer(batch->attrib_count++, 3, GL_FLOAT, GL_FALSE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, position));
+    glEnableVertexAttribArray(batch->attrib_count);
+    glVertexAttribPointer(batch->attrib_count++, 2, GL_FLOAT, GL_FALSE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, tex_coord));
+    glEnableVertexAttribArray(batch->attrib_count);
+    glVertexAttribPointer(batch->attrib_count++, 3, GL_FLOAT, GL_FALSE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, normal));
+    glEnableVertexAttribArray(batch->attrib_count);
+    glVertexAttribPointer(batch->attrib_count++, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, color));
+    glEnableVertexAttribArray(batch->attrib_count);
+    glVertexAttribIPointer(batch->attrib_count++, 4, GL_INT, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, bone_ids));
+    glEnableVertexAttribArray(batch->attrib_count);
+    glVertexAttribPointer(batch->attrib_count++, 4, GL_FLOAT, GL_FALSE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, weights));
 }
 
 // Pushes all vertices to VRAM
@@ -552,6 +596,22 @@ void bs_endFramebufferRender(bs_Framebuffer *framebuffer) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
+void bs_checkGLError() {
+    GLenum err = glGetError();
+    if(err != GL_NO_ERROR) {
+        switch(err) {
+            case GL_INVALID_ENUM                 : printf("INVALID_ENUM"); break;
+            case GL_INVALID_VALUE                : printf("INVALID_VALUE"); break;
+            case GL_INVALID_OPERATION            : printf("GL_INVALID_OPERATION"); break;
+            case GL_STACK_OVERFLOW               : printf("GL_STACK_OVERFLOW"); break;
+            case GL_STACK_UNDERFLOW              : printf("GL_STACK_UNDERFLOW"); break;
+            case GL_OUT_OF_MEMORY                : printf("OUT_OF_MEMORY"); break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION: printf("INVALID_FRAMEBUFFER_OPERATION"); break;
+        }
+        printf(" | 0x0%x\n", err);
+    }
+}
+
 void bs_render() {
     double previousTime = glfwGetTime();
     int frameCount = 0;
@@ -559,8 +619,8 @@ void bs_render() {
     for(int i = 0; i < 350; i++) {
         key_states[i] = false;
     }
-
     glfwSetKeyCallback(window, bs_onKey);
+    glfwSetWindowSizeCallback(window, bs_onResize);
 
     while(!glfwWindowShouldClose(window)) {
         elapsed_time += 0.01;
@@ -586,19 +646,7 @@ void bs_render() {
             bs_endFramebufferRender(framebuffer);
         }
 
-        GLenum err = glGetError();
-        if(err != GL_NO_ERROR) {
-            switch(err) {
-                case GL_INVALID_ENUM                 : printf("INVALID_ENUM"); break;
-                case GL_INVALID_VALUE                : printf("INVALID_VALUE"); break;
-                case GL_INVALID_OPERATION            : printf("GL_INVALID_OPERATION"); break;
-                case GL_STACK_OVERFLOW               : printf("GL_STACK_OVERFLOW"); break;
-                case GL_STACK_UNDERFLOW              : printf("GL_STACK_UNDERFLOW"); break;
-                case GL_OUT_OF_MEMORY                : printf("OUT_OF_MEMORY"); break;
-                case GL_INVALID_FRAMEBUFFER_OPERATION: printf("INVALID_FRAMEBUFFER_OPERATION"); break;
-            }
-            printf(" | 0x0%x\n", err);
-        }
+        bs_checkGLError();
 
         glfwPollEvents();
         glfwSwapBuffers(window);
@@ -641,7 +689,7 @@ void bs_init(int width, int height, char *title, bs_WNDSettings settings) {
 
 void bs_startRender(void (*render)()) {
     bs_pushAtlas(std_atlas);
-    bs_saveAtlasToFile(std_atlas, "test1.png");
+    // bs_saveAtlasToFile(std_atlas, "test1.png");
     bs_freeAtlasData(std_atlas);
 
     // Create the default framebuffer

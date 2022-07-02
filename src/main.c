@@ -2,6 +2,7 @@
 #include <bs_core.h>
 #include <bs_shaders.h>
 #include <bs_textures.h>
+#include <bs_math.h>
 #include <bs_models.h>
 #include <bs_debug.h>
 
@@ -14,8 +15,7 @@
 #include <cglm/cglm.h>
 
 bs_Batch batch;
-bs_Quad quad;
-bs_Tex2D *tex;
+bs_Tex2D tex;
 bs_Model model;
 bs_Shader shader;
 bs_Framebuffer pixel;
@@ -28,49 +28,35 @@ float speed = 0.05;
 versor v;
 
 void render() {
-
-    // glm_quat(v, x_angle, 0.0, 1.0, 0.0);
-
-    if(bs_isKeyDown(BS_KEY_W)) {
-        x_angle += speed;
-        glm_quat(v, x_angle, 1.0, 0.0, 0.0);
-    }
-
-    if(bs_isKeyDown(BS_KEY_S)) {
-        x_angle -= speed;
-        glm_quat(v, x_angle, 1.0, 0.0, 0.0);
-    }
-
-    if(bs_isKeyDown(BS_KEY_D)) {
-        y_angle += speed;
-        glm_quat(v, y_angle, 0.0, 1.0, 0.0);
-    }
-
-    if(bs_isKeyDown(BS_KEY_A)) {
-        y_angle -= speed;
-        glm_quat(v, y_angle, 0.0, 1.0, 0.0);
-    }
-
-    if(bs_isKeyDown(BS_KEY_Q)) {
-        z_angle -= speed;
-        glm_quat(v, z_angle, 0.0, 0.0, 1.0);
-    }
-
-    if(bs_isKeyDown(BS_KEY_E)) {
-        z_angle += speed;
-        glm_quat(v, z_angle, 0.0, 0.0, 1.0);
-    }
     bs_selectBatch(&batch);
 
-    model.meshes[0].rot = (bs_vec4){ v[0], v[1], v[2], v[3] };
-    bs_pushModel(&model);
+    bs_Mesh *mesh = &model.meshes[0];
+    for(int i = 0; i < mesh->joint_count; i++) {
+        bs_Joint *joint = &mesh->joints[i];
 
-    bs_pushBatch();
-    bs_renderBatch(0, bs_getBatchSize(&batch));
-    bs_clearBatch();
-    bs_selectBatch(&batch);
+        bs_mat4 result = GLM_MAT4_IDENTITY_INIT;
+        bs_mat4 bind;
+        bs_mat4 local;
+        memcpy(bind, mesh->joints[i].bind_matrix_inv, 16 * sizeof(float));
+        memcpy(local, mesh->joints[i].mat, 16 * sizeof(float));
+        glm_mat4_inv(bind, bind);
 
-    model.meshes[0].rot = (bs_vec4){ v[0], v[1], v[2], v[3] };
+        glm_mat4_mul(result, local, result);
+        glm_mat4_mul(result, bind, result);
+
+        bs_vec3 translation = { result[3][0] * 30.0, result[3][1] * 30.0, result[3][2] * 30.0 + 100.0 };
+        bs_vec3 p_translation = { result[3][0] * 30.0, result[3][1] * 30.0, result[3][2] * 30.0 };
+
+        bs_RGBA color = { 255, 0, 0, 255 };
+
+        if(i > 6 && i < 13) {
+            color = (bs_RGBA){ 0, 127, 127, 255 };
+        }
+
+        if(strcmp("Root", joint->name) != 0) {
+            // bs_pushRect(translation, (bs_vec2){ 4.0, 4.0 }, color);
+        }
+    }
     bs_pushModel(&model);
 
     bs_pushBatch();
@@ -87,56 +73,34 @@ void pixelUpdate() {
 }
 
 int main() {
-    bs_init(1200, 800, "Test", bs_WND_DEFAULT);
-    bs_setBackgroundColor((bs_fRGBA){ 80, 100, 120, 255 });
+    bs_init(1200, 900, "Test", bs_WND_DEFAULT);
+    bs_setBackgroundColor((bs_fRGBA){ 60, 60, 80, 255 });
     loadTextures();
 
-    camera.pos.x = 0.0;
-    camera.pos.y = 0.0;
-    camera.pos.z = 1000.0;
+    camera.pos.x = -600.0;
+    camera.pos.y = -300.0;
+    camera.pos.z = 500.0;
 
-    // model.meshes[1].pos.x = 100.0;
-    // model.meshes[1].pos.y = 10.0;
-    // model.meshes[1].pos.z = 1.0;
+    bs_createOrthographicProjection(&camera, 0, 1200, 0, 900);
+    bs_setMatrixLookat(&camera, (bs_vec3){ -600.0, -300.0, -1.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
 
-    // bs_setMatrixLookat(&camera, (bs_vec3){ -50.0, 0.0, 0.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
-    // bs_setPerspectiveProjection(&camera, (bs_vec2){ 600, 400 }, 120.0, 0.1, 5000.0);
-    bs_createOrthographicProjection(&camera, 0, 1200, 0, 800);
-
-    vec4 pos;
-    pos[0] = model.meshes[0].pos.x;
-    pos[1] = model.meshes[0].pos.y;
-    pos[2] = model.meshes[0].pos.z;
-    pos[3] = 1.0;
-
-    glm_mat4_mulv(camera.proj, pos, pos);
-    glm_mat4_mulv(camera.view, pos, pos);
-
-    printf("%f\n", pos[0]);
-    printf("%f\n", pos[1]);
-    printf("%f\n", pos[2]);
-    printf("%f\n", pos[3]);
-
-    shader = bs_loadShader("resources/bs_color_shader2.vs", "resources/bs_color_shader2.fs", 0);
-    bs_createBatch(&batch, 200000, BS_POSITION_COLOR);
-    // batch.shader = &shader;
+    shader = bs_loadShader("resources/bs_color_shader.vs", "resources/bs_color_shader.fs", 0);
+    bs_createBatch(&batch, 200000);
+    batch.shader = &shader;
     batch.camera = &camera;
+    // batch.draw_mode = BS_LINES;
+    bs_createFramebuffer(&pixel, 600, 450, pixelUpdate, NULL);
 
-    // bs_createFramebuffer(&pixel, 1200, 800, pixelUpdate, NULL);
+    for(int i = 0; i < model.meshes[0].joint_count; i++) {
+        char uni_loc[256] = "boneMatrices[";
+        char itoav[256];
+        itoa(i, itoav, 10);
+        strcat(uni_loc, itoav);
+        strcat(uni_loc, "]\0");
 
-    quad.pos.x = 0.0;
-    quad.pos.y = 0.0;
-    quad.pos.z = 0.0;
-
-    quad.dim.x = 100.0;
-    quad.dim.y = 100.0;
-
-    quad.col.r = 255;
-    quad.col.g = 255;
-    quad.col.b = 255;
-    quad.col.a = 255;
-
-    quad.tex = tex;
+        int loc = bs_getUniformLoc(batch.shader, uni_loc);
+        bs_uniform_mat4(loc, model.meshes[0].joints[i].mat);
+    }
 
     // bs_pushQuad(&quad);
     bs_pushBatch();

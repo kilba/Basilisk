@@ -146,6 +146,10 @@ bs_Shader bs_loadShader(char *vs_path, char *fs_path, char *gs_path) {
     return bs_loadMemShader(vscode, fscode, gscode);
 }
 
+int bs_getUniformLoc(bs_Shader *shader, char *name) {
+    return glGetUniformLocation(shader->id, name);
+}
+
 void bs_setShaderAtlas(bs_Shader *shader, bs_Atlas *atlas, char *uniform_name) {
     bs_switchShader(shader);
     int loc = glGetUniformLocation(shader->id, uniform_name);

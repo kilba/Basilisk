@@ -42,6 +42,7 @@ void bs_setViewMatrixUniform(bs_Shader *shader, void *cam);
 void bs_setProjMatrixUniform(bs_Shader *shader, void *cam);
 
 // SHADER ABSTRACTION LAYER
+int bs_getUniformLoc(bs_Shader *shader, char *name);
 void bs_switchShader(bs_Shader *shader);
 
 void bs_uniform_mat4(int loc, float mat[4][4]);

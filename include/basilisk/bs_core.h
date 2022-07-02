@@ -14,6 +14,10 @@ typedef enum {
 	bs_WND_UNCLICKABLE = 16,
 } bs_WNDSettings;
 
+typedef float bs_mat4[4][4];
+typedef float bs_mat3[3][3];
+typedef float bs_mat2[2][2];
+
 typedef struct {
 	unsigned char r;
 	unsigned char g;
@@ -21,6 +25,7 @@ typedef struct {
 	unsigned char a;
 } bs_RGBA;
 
+/* --- FLOAT TYPES --- */
 typedef struct {
 	float r;
 	float g;
@@ -46,9 +51,47 @@ typedef struct {
 	float w;
 } bs_vec4;
 
+/* --- INT TYPES --- */
 typedef struct {
-	float view[4][4];
-	float proj[4][4];
+	int x;
+	int y;
+} bs_ivec2;
+
+typedef struct {
+	int x;
+	int y;
+	int z;
+} bs_ivec3;
+
+typedef struct {
+	int x;
+	int y;
+	int z;
+	int w;
+} bs_ivec4;
+
+/* --- UNSIGNED INT TYPES --- */
+typedef struct {
+	unsigned int x;
+	unsigned int y;
+} bs_uivec2;
+
+typedef struct {
+	unsigned int x;
+	unsigned int y;
+	unsigned int z;
+} bs_uivec3;
+
+typedef struct {
+	unsigned int x;
+	unsigned int y;
+	unsigned int z;
+	unsigned int w;
+} bs_uivec4;
+
+typedef struct {
+	bs_mat4 view;
+	bs_mat4 proj;
 	bs_vec3 pos;
 	bs_vec2 res;
 } bs_Camera;
@@ -58,6 +101,8 @@ typedef struct {
 	bs_vec2 tex_coord;
 	bs_vec3 normal;
 	bs_RGBA color;
+	bs_ivec4 bone_ids;
+	bs_vec4 weights;
 } bs_Vertex;
 
 typedef struct {
@@ -84,6 +129,7 @@ typedef struct {
 	int vertex_draw_count;
 	// Amounf of indices (6 per quad)
 	int index_draw_count;
+	int attrib_count;
 
 	unsigned int VAO, VBO, EBO;
 } bs_Batch;
@@ -93,18 +139,29 @@ typedef struct {
 	bs_Tex2D *tex;
 
 	bs_vec3 specular;
-
 } bs_Material;
 
+typedef struct bs_Joint bs_Joint;
+
+struct bs_Joint {
+	char *name;
+
+	float time;
+	bs_mat4 mat;
+	bs_mat4 bind_matrix_inv;
+
+	bs_Joint *parent;
+};
+
 typedef struct {
-	bs_Vertex *vertices;
-	int *indices;
-
-	int vertex_count;
-	int index_count;
-
-	int attrib_count;
 	bs_Material material;
+	int attrib_count;
+
+	bs_Vertex *vertices;
+	int vertex_count;
+
+	int *indices;
+	int index_count;
 } bs_Prim;
 
 typedef struct {
@@ -116,6 +173,9 @@ typedef struct {
 
 	bs_Prim *prims;
 	int prim_count;
+
+	bs_Joint *joints;
+	int joint_count;
 } bs_Mesh;
 
 typedef struct {
@@ -127,26 +187,23 @@ typedef struct {
 	int index_count;
 } bs_Model;
 
-typedef struct {
-	bs_vec3 pos;
-	bs_vec2 dim;
-	bs_RGBA col;
-	bs_Tex2D *tex;
-} bs_Quad;
-
 /* --- RENDERING --- */
 void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height, void (*render)(), bs_Shader *shader);
 void bs_setFramebufferShader(bs_Framebuffer *framebuffer, bs_Shader *shader);
 
 void bs_pushVertexStruct(bs_Vertex vertex);
 void bs_pushVertex(float px, float py, float pz, float tx, float ty, float nx, float ny, float nz, bs_RGBA color);
-void bs_pushQuad(bs_Quad *quad);
-void bs_pushTriangle(bs_vec2 pos1, bs_vec2 pos2, bs_vec2 pos3, bs_RGBA color);
+void bs_pushTexRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Tex2D *tex);
+void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
+void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
+void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
 void bs_pushMesh(bs_Mesh *mesh);
 void bs_pushModel(bs_Model *model);
 
+void bs_pushModelUnbatched(bs_Model *model, bs_Shader *shader);
+
 /* --- BATCHING --- */
-void bs_createBatch(bs_Batch *batch, int index_count, int attrib_type);
+void bs_createBatch(bs_Batch *batch, int index_count);
 void bs_selectBatch(bs_Batch *batch);
 void bs_pushBatch();
 void bs_renderBatch(int start_index, int draw_count);
@@ -219,12 +276,17 @@ void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float 
 #define BS_TRIANGLE 3
 #define BS_QUAD 6
 
-// CAMERA MODES
-#define BS_ORTHOGRAPHIC 0
-#define BS_PERSPECTIVE 1
+// OPENGL DATATYPES
+#define BS_BYTE 0x1400
+#define BS_UNSIGNED_BYTE 0x1401
+#define BS_SHORT 0x1402
+#define BS_UNSIGNED_SHORT 0x1403
+#define BS_INT 0x1404
+#define BS_UNSIGNED_INT 0x1405
+#define BS_FLOAT 0x1406
 
 // ATLAS SETTINGS
-#define BS_ATLAS_SIZE 1024 /* Pixels (x, y) */
+#define BS_ATLAS_SIZE 4096 /* Pixels (x, y) */
 #define BS_MAX_TEXTURES 1000
 
 //TODO: CAPS
