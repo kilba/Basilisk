@@ -138,9 +138,11 @@ bs_Tex2D *bs_loadTexture(char *path, int frames) {
     unsigned char *data;
 
     int success = lodepng_decode32_file(&data, &tex->w, &tex->h, path);
-    printf(path);
-    printf("\n");
-    printf("Succ: %d\n", success);
+
+    if(success != 0) {
+        printf("Texture wasn't loaded: %d\n", success);
+    }
+
     bs_splitTexture(data, tex->w, tex->h, frames, &std_atlas->tex_count, &std_atlas->textures);
 
     std_atlas->tex_count += frames;

@@ -86,43 +86,41 @@ void bs_setDefaultUniformLocations(bs_Shader *shader, char *vs_code, char *fs_co
     }
 }
 
-bs_Shader bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code) {
+void bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code, bs_Shader *shader) {
     if(vs_code == NULL || fs_code == NULL) {
-        bs_Shader empty_shader;
-        empty_shader.id = -1;
-        return empty_shader;
+        shader->id = -1;
+        return;
     }
 
-    bs_Shader shader;
-    shader.id = glCreateProgram();
+    shader->id = glCreateProgram();
 
-    bs_loadShaderCode(&shader.vs_id, vs_code, GL_VERTEX_SHADER);
-    bs_loadShaderCode(&shader.fs_id, fs_code, GL_FRAGMENT_SHADER);
+    bs_loadShaderCode(&shader->vs_id, vs_code, GL_VERTEX_SHADER);
+    bs_loadShaderCode(&shader->fs_id, fs_code, GL_FRAGMENT_SHADER);
 
-    glAttachShader(shader.id, shader.vs_id);
-    glAttachShader(shader.id, shader.fs_id);
+    glAttachShader(shader->id, shader->vs_id);
+    glAttachShader(shader->id, shader->fs_id);
 
     // Geometry shader is not mandatory
     if(gs_code != 0) {
-        bs_loadShaderCode(&shader.gs_id, gs_code, GL_GEOMETRY_SHADER);
-        glAttachShader(shader.id, shader.gs_id);
+        bs_loadShaderCode(&shader->gs_id, gs_code, GL_GEOMETRY_SHADER);
+        glAttachShader(shader->id, shader->gs_id);
     }
 
-    glLinkProgram(shader.id);
-    glUseProgram(shader.id);
+    glLinkProgram(shader->id);
+    glUseProgram(shader->id);
 
     bs_Camera *cam = bs_getStdCamera();
-    bs_setDefaultUniformLocations(&shader, vs_code, fs_code, gs_code);
-    bs_setViewMatrixUniform(&shader, cam);
-    bs_setProjMatrixUniform(&shader, cam);
+    bs_setDefaultUniformLocations(shader, vs_code, fs_code, gs_code);
+    bs_setViewMatrixUniform(shader, cam);
+    bs_setProjMatrixUniform(shader, cam);
 
-    shader.index = loaded_shader_count;
+    shader->index = loaded_shader_count;
     loaded_shader_count++;
 
-    return shader;
+    return;
 }
 
-bs_Shader bs_loadShader(char *vs_path, char *fs_path, char *gs_path) {
+void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shader) {
     int vs_err_code;
     int fs_err_code;
     int gs_err_code;
@@ -135,15 +133,12 @@ bs_Shader bs_loadShader(char *vs_path, char *fs_path, char *gs_path) {
 
     // Don't compile shaders if file wasn't found
     if(vs_err_code == 2 || fs_err_code == 2) {
-        bs_Shader empty_shader;
-        empty_shader.id = -1;
-
-        // TODO: Log error
-        return empty_shader;
+        shader->id = -1;
+        return;
     }
 
     // Load the shader from memory, compile and return it
-    return bs_loadMemShader(vscode, fscode, gscode);
+    bs_loadMemShader(vscode, fscode, gscode, shader);
 }
 
 int bs_getUniformLoc(bs_Shader *shader, char *name) {

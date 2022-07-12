@@ -2553,6 +2553,7 @@ static int cgltf_parse_json_string(cgltf_options* options, jsmntok_t const* toke
 	strncpy(result, (const char*)json_chunk + tokens[i].start, size);
 	result[size] = 0;
 	*out_string = result;
+
 	return i + 1;
 }
 
@@ -5255,6 +5256,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
+	out_node->id = -1;
 	out_node->rotation[3] = 1.0f;
 	out_node->scale[0] = 1.0f;
 	out_node->scale[1] = 1.0f;

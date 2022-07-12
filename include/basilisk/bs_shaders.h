@@ -7,7 +7,7 @@
 typedef enum {
 	UNIFORM_PROJ,
 	UNIFORM_VIEW,
-	UNIFORM_TIME,	
+	UNIFORM_TIME,
 
 	UNIFORM_TYPE_COUNT,
 } bs_STDUniforms;
@@ -31,8 +31,8 @@ typedef struct {
 } bs_Shader;
 
 // INITIALIZATION
-bs_Shader bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code);
-bs_Shader bs_loadShader(char *vs_path, char *fs_path, char *gs_path);
+void bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code, bs_Shader *shader);
+void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shader);
 
 void bs_setShaderAtlas(bs_Shader *shader, bs_Atlas *atlas, char *uniform_name);
 

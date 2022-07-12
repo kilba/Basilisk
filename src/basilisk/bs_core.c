@@ -47,6 +47,7 @@ bs_Framebuffer std_framebuffer;
 
 // Shaders
 bs_Shader fbo_shader;
+bs_Shader model_shader;
 bs_Shader texture_shader;
 
 bs_Camera std_camera;
@@ -56,6 +57,7 @@ bs_Tex2D empty_texture;
 bs_Atlas *std_atlas;
 
 float elapsed_time = 0.0;
+bs_fRGBA clear_color = { 0.0, 0.0, 0.0, 1.0 };
 
 /* --- WINDOW SETTINGS --- */
 void bs_initGLFW(bs_WNDSettings settings) {
@@ -98,12 +100,16 @@ void bs_createWindow(int width, int height, char* title) {
 void bs_printHardwareInfo() {
     const GLubyte* vendor = glGetString(GL_VENDOR);
     const GLubyte* renderer = glGetString(GL_RENDERER);
-    printf("%s\n", vendor);
-    printf("%s\n", renderer);
+    bs_print(BS_CLE, "%s\n", vendor);
+    bs_print(BS_CLE, "%s\n", renderer);
 }
 
 void bs_setBackgroundColor(bs_fRGBA color) {
-    glClearColor(color.r / 255.0, color.g / 255.0, color.b / 255.0, color.a / 255.0);
+    clear_color = color;
+    clear_color.r /= 255.0;
+    clear_color.g /= 255.0;
+    clear_color.b /= 255.0;
+    clear_color.a /= 255.0;
 }
 
 bs_vec2 bs_getWindowDimensions() {
@@ -265,34 +271,34 @@ void bs_selectBatch(bs_Batch *batch) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch->EBO);
 }
 
-void bs_setBatchShader(bs_Batch *batch, bs_Shader *shader) {
-    batch->shader = shader;
-}
-
 bs_Atlas *bs_getStdAtlas() {
     return std_atlas;
 }
 
-void bs_pushVertexStruct(bs_Vertex vertex) {
-    curr_batch->vertices[curr_batch->vertex_draw_count++] = vertex;
+void bs_pushVertexStruct(void *vertex) {
+    bs_Batch *batch = curr_batch;
+    memcpy(curr_batch->vertices + curr_batch->vertex_draw_count * batch->attrib_size_bytes, vertex, batch->attrib_size_bytes);
+    curr_batch->vertex_draw_count++;
 }
 
 void bs_pushVertex(float px, float py, float pz, float tx, float ty, float nx, float ny, float nz, bs_RGBA color) {
-    bs_Vertex *vertex = &curr_batch->vertices[curr_batch->vertex_draw_count++];
+    bs_Vertex push_vertex;
 
-    vertex->position.x = px;
-    vertex->position.y = py;
-    vertex->position.z = pz;
+    push_vertex.position.x = px;
+    push_vertex.position.y = py;
+    push_vertex.position.z = pz;
 
-    vertex->tex_coord.x = tx;
-    vertex->tex_coord.y = ty;
+    push_vertex.tex_coord.x = tx;
+    push_vertex.tex_coord.y = ty;
 
     // TODO: Make these optional
-    vertex->normal.x = nx;
-    vertex->normal.y = ny;
-    vertex->normal.z = nz;
+    push_vertex.normal.x = nx;
+    push_vertex.normal.y = ny;
+    push_vertex.normal.z = nz;
 
-    vertex->color = color;
+    push_vertex.color = color;
+
+    bs_pushVertexStruct(&push_vertex);
 }
 
 void bs_pushTexRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Tex2D *tex) {
@@ -319,12 +325,14 @@ void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
         curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
         curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
     };
+
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
 
-    bs_pushVertex(pos.x    , pos.y    , pos.z, 0.0, 0.0, 0.0, 0.0, 0.0, col); // Bottom Left
-    bs_pushVertex(dim_pos.x, pos.y    , pos.z, 0.0, 0.0, 0.0, 0.0, 0.0, col); // Bottom right
-    bs_pushVertex(pos.x    , dim_pos.y, pos.z, 0.0, 0.0 ,0.0, 0.0, 0.0, col); // Top Left
-    bs_pushVertex(dim_pos.x, dim_pos.y, pos.z, 0.0, 0.0, 0.0, 0.0, 0.0, col); // Top Right
+    const float white_tex_coord = 0.9999;
+    bs_pushVertex(pos.x    , pos.y    , pos.z, white_tex_coord, white_tex_coord, 0.0, 0.0, 0.0, col); // Bottom Left
+    bs_pushVertex(dim_pos.x, pos.y    , pos.z, white_tex_coord, white_tex_coord, 0.0, 0.0, 0.0, col); // Bottom right
+    bs_pushVertex(pos.x    , dim_pos.y, pos.z, white_tex_coord, white_tex_coord, 0.0, 0.0, 0.0, col); // Top Left
+    bs_pushVertex(dim_pos.x, dim_pos.y, pos.z, white_tex_coord, white_tex_coord, 0.0, 0.0, 0.0, col); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
@@ -352,14 +360,13 @@ void bs_pushPrim(bs_Prim *prim, mat4 model, bs_Mesh *mesh) {
     }
 
     for(int i = 0; i < prim->vertex_count; i++) {
-        bs_Vertex vertex;
+        bs_RVertex vertex;
 
-        vertex.color.r = prim->material.base_color.r;
-        vertex.color.g = prim->material.base_color.g;
-        vertex.color.b = prim->material.base_color.b;
-        vertex.color.a = prim->material.base_color.a;
-
-        vertex.normal = prim->vertices[i].normal;
+        vertex.color    = prim->material.base_color;
+        vertex.normal   = prim->vertices[i].normal;
+        vertex.position = prim->vertices[i].position;
+        vertex.bone_ids = prim->vertices[i].bone_ids;
+        vertex.weights  = prim->vertices[i].weights;
 
         // TODO: Figure out why 1.0 causes glitchy rendering
         const float white_tex_coord = 0.9999;
@@ -371,14 +378,7 @@ void bs_pushPrim(bs_Prim *prim, mat4 model, bs_Mesh *mesh) {
             vertex.tex_coord.y = prim->vertices[i].tex_coord.y + prim->material.tex->tex_y;
         }
 
-        vec3 glm_vertex_pos = { prim->vertices[i].position.x, prim->vertices[i].position.y, prim->vertices[i].position.z };
-        // glm_mat4_mulv3(model, glm_vertex_pos, 1.0, glm_vertex_pos);
-        
-        memcpy(&vertex.position, &glm_vertex_pos, 3 * sizeof(float));
-        memcpy(&vertex.bone_ids, &prim->vertices[i].bone_ids, sizeof(bs_ivec4));
-        memcpy(&vertex.weights, &prim->vertices[i].weights, sizeof(bs_vec4));
-
-        bs_pushVertexStruct(vertex);
+        bs_pushVertexStruct(&vertex);
     }
 
     curr_batch->index_draw_count += prim->index_count;
@@ -395,8 +395,6 @@ void bs_pushMesh(bs_Mesh *mesh) {
     glm_quat_rotate(model, glm_rot, model);
     glm_scale(model, glm_sca);
 
-        // bs_Prim *prim = &mesh->prims[4];
-        // bs_pushPrim(prim, model);
     for(int i = 0; i < mesh->prim_count; i++) {
         bs_Prim *prim = &mesh->prims[i];
         bs_pushPrim(prim, model, mesh);
@@ -409,18 +407,6 @@ void bs_pushModel(bs_Model *model) {
     }
 }
 
-void bs_pushPrimUnbatched() {
-
-}
-
-void bs_pushMeshUnbatched() {
-
-}
-
-void bs_pushModelUnbatched(bs_Model *model, bs_Shader *shader) {
-
-}
-
 void bs_changeBatchBufferSize(bs_Batch *batch, int index_count) {
     batch->vertices = realloc(batch->vertices, index_count * sizeof(bs_Vertex));    
     batch->indices  = realloc(batch->indices , index_count * sizeof(int));
@@ -429,47 +415,62 @@ void bs_changeBatchBufferSize(bs_Batch *batch, int index_count) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, batch->indices, GL_STATIC_DRAW);
 }
 
-void bs_createBatch(bs_Batch *batch, int index_count) {
+void bs_createBatch(bs_Batch *batch, int index_count, const int batch_type, int batch_size_bytes) {
+    // Default values
     batch->camera = &std_camera;
+    batch->shader = &texture_shader;
     batch->draw_mode = BS_TRIANGLES;
-
     batch->vertex_draw_count = 0;
     batch->index_draw_count = 0;
     batch->attrib_count = 0;
+    batch->attrib_size_bytes = batch_size_bytes;
 
-    batch->indices = malloc(sizeof(int) * index_count);
-    batch->vertices = malloc(sizeof(bs_Vertex) * index_count);
-
+    // Create buffer/array objects
     glGenVertexArrays(1, &batch->VAO);
     glGenBuffers(1, &batch->VBO);
     glGenBuffers(1, &batch->EBO);
 
     bs_selectBatch(batch);
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(bs_Vertex) * index_count, NULL, GL_STATIC_DRAW);
+    // Attribute setup
+    bs_addBatchAttrib (BS_FLOAT, 3, offsetof(bs_Vertex, position) , false);
+    bs_addBatchAttrib (BS_FLOAT, 2, offsetof(bs_Vertex, tex_coord), false);
+    bs_addBatchAttrib (BS_FLOAT, 3, offsetof(bs_Vertex, normal)   , false);
+    bs_addBatchAttrib (BS_UBYTE, 4, offsetof(bs_Vertex, color)    , true);
+    if(batch_type == BS_RIG_BATCH) {
+        bs_addBatchAttribI(GL_INT  , 4, offsetof(bs_RVertex, bone_ids));
+        bs_addBatchAttrib (BS_FLOAT, 4, offsetof(bs_RVertex, weights)  , false);
+        batch->shader = &model_shader;
+    }
+
+    batch->indices = malloc(sizeof(int) * index_count);
+    batch->vertices = malloc(batch->attrib_size_bytes * index_count);
+    glBufferData(GL_ARRAY_BUFFER, batch->attrib_size_bytes * index_count, NULL, GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, NULL, GL_STATIC_DRAW);
+}
 
-    bs_setBatchShader(batch, &texture_shader);
+void bs_addBatchAttrib(const int type, unsigned int amount, size_t offset_bytes, bool normalized) {
+    bs_Batch *batch = curr_batch;
 
-    // Default attributes
     glEnableVertexAttribArray(batch->attrib_count);
-    glVertexAttribPointer(batch->attrib_count++, 3, GL_FLOAT, GL_FALSE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, position));
+    glVertexAttribPointer(batch->attrib_count++, amount, type, normalized, batch->attrib_size_bytes, (void*)offset_bytes);
+}
+
+void bs_addBatchAttribI(const int type, unsigned int amount, size_t offset_bytes) {
+    bs_Batch *batch = curr_batch;
+
     glEnableVertexAttribArray(batch->attrib_count);
-    glVertexAttribPointer(batch->attrib_count++, 2, GL_FLOAT, GL_FALSE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, tex_coord));
-    glEnableVertexAttribArray(batch->attrib_count);
-    glVertexAttribPointer(batch->attrib_count++, 3, GL_FLOAT, GL_FALSE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, normal));
-    glEnableVertexAttribArray(batch->attrib_count);
-    glVertexAttribPointer(batch->attrib_count++, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, color));
-    glEnableVertexAttribArray(batch->attrib_count);
-    glVertexAttribIPointer(batch->attrib_count++, 4, GL_INT, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, bone_ids));
-    glEnableVertexAttribArray(batch->attrib_count);
-    glVertexAttribPointer(batch->attrib_count++, 4, GL_FLOAT, GL_FALSE, sizeof(bs_Vertex), (void*)offsetof(bs_Vertex, weights));
+    glVertexAttribIPointer(batch->attrib_count++, amount, type, batch->attrib_size_bytes, (void*)offset_bytes);
+}
+
+void bs_setBatchMatrix(bs_mat4 matrix) {
+    
 }
 
 // Pushes all vertices to VRAM
 void bs_pushBatch() {
-    // Batch should already be bound at this point so binding it again is a waste of resources
-    glBufferSubData(GL_ARRAY_BUFFER, 0, curr_batch->vertex_draw_count * sizeof(bs_Vertex), curr_batch->vertices);
+    // Batch should already be bound at this point so binding it again is wasteful
+    glBufferSubData(GL_ARRAY_BUFFER, 0, curr_batch->vertex_draw_count * curr_batch->attrib_size_bytes, curr_batch->vertices);
     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, curr_batch->index_draw_count * sizeof(int), curr_batch->indices);
 }
 
@@ -577,6 +578,7 @@ void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Clear any previous drawing
+    glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
@@ -589,7 +591,6 @@ void bs_endFramebufferRender(bs_Framebuffer *framebuffer) {
     glDisable(GL_DEPTH_TEST);
 
     glBindVertexArray(framebuffer->VAO);
-    // glClear(GL_COLOR_BUFFER_BIT);
 
     // Render
     glBindTexture(GL_TEXTURE_2D, framebuffer->texture_color_buffer);
@@ -600,15 +601,16 @@ void bs_checkGLError() {
     GLenum err = glGetError();
     if(err != GL_NO_ERROR) {
         switch(err) {
-            case GL_INVALID_ENUM                 : printf("INVALID_ENUM"); break;
-            case GL_INVALID_VALUE                : printf("INVALID_VALUE"); break;
-            case GL_INVALID_OPERATION            : printf("GL_INVALID_OPERATION"); break;
-            case GL_STACK_OVERFLOW               : printf("GL_STACK_OVERFLOW"); break;
-            case GL_STACK_UNDERFLOW              : printf("GL_STACK_UNDERFLOW"); break;
-            case GL_OUT_OF_MEMORY                : printf("OUT_OF_MEMORY"); break;
-            case GL_INVALID_FRAMEBUFFER_OPERATION: printf("INVALID_FRAMEBUFFER_OPERATION"); break;
+            case GL_INVALID_ENUM                 : bs_print(BS_CLE, "INVALID_ENUM"); break;
+            case GL_INVALID_VALUE                : bs_print(BS_CLE, "INVALID_VALUE"); break;
+            case GL_INVALID_OPERATION            : bs_print(BS_CLE, "GL_INVALID_OPERATION"); break;
+            case GL_STACK_OVERFLOW               : bs_print(BS_CLE, "GL_STACK_OVERFLOW"); break;
+            case GL_STACK_UNDERFLOW              : bs_print(BS_CLE, "GL_STACK_UNDERFLOW"); break;
+            case GL_OUT_OF_MEMORY                : bs_print(BS_CLE, "OUT_OF_MEMORY"); break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION: bs_print(BS_CLE, "INVALID_FRAMEBUFFER_OPERATION"); break;
         }
-        printf(" | 0x0%x\n", err);
+
+        bs_print(BS_CLE, " | 0x0%x\n", err);
     }
 }
 
@@ -631,11 +633,14 @@ void bs_render() {
         // If a second has passed.
         if (currentTime - previousTime >= 1.0) {
             // Display the frame count here any way you want.
-            printf("%d\n", frameCount);
+            bs_print(BS_CLE, "%d\n", frameCount);
 
             frameCount = 0;
             previousTime = currentTime;
         }
+
+        glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Render all framebuffers
         for(int i = 0; i < bs_window.framebuffer_count; i++) {
@@ -685,6 +690,13 @@ void bs_init(int width, int height, char *title, bs_WNDSettings settings) {
 
     // Texture Atlas Init
     std_atlas = bs_createTextureAtlas(BS_ATLAS_SIZE, BS_ATLAS_SIZE, BS_MAX_TEXTURES);
+
+    // Create the default framebuffer
+    bs_loadShader("resources/fbo_shader.vs", "resources/fbo_shader.fs", 0, &fbo_shader);
+
+    // Load default shaders
+    bs_loadShader("resources/bs_texture_shader.vs", "resources/bs_texture_shader.fs", 0, &texture_shader);
+    bs_loadShader("resources/bs_model_shader.vs"  , "resources/bs_model_shader.fs"  , 0, &model_shader);
 }
 
 void bs_startRender(void (*render)()) {
@@ -692,12 +704,7 @@ void bs_startRender(void (*render)()) {
     // bs_saveAtlasToFile(std_atlas, "test1.png");
     bs_freeAtlasData(std_atlas);
 
-    // Create the default framebuffer
-    fbo_shader = bs_loadShader("resources/fbo_shader.vs", "resources/fbo_shader.fs", 0);
     bs_createFramebuffer(&std_framebuffer, bs_window.width, bs_window.height, render, &fbo_shader);
-
-    // Load default shaders
-    texture_shader = bs_loadShader("resources/bs_color_shader.vs", "resources/bs_color_shader.fs", 0);
 
     bs_render();
     bs_exitGLFW();

@@ -2,7 +2,7 @@
 #define BS_CORE_H
 
 #include <bs_shaders.h>
-#include <glad/glad.h>
+#include <cglm/cglm.h>
 
 typedef enum {
 	bs_WND_DEFAULT = 0,
@@ -14,9 +14,9 @@ typedef enum {
 	bs_WND_UNCLICKABLE = 16,
 } bs_WNDSettings;
 
-typedef float bs_mat4[4][4];
-typedef float bs_mat3[3][3];
-typedef float bs_mat2[2][2];
+typedef mat2 bs_mat2;
+typedef mat3 bs_mat3;
+typedef mat4 bs_mat4;
 
 typedef struct {
 	unsigned char r;
@@ -101,9 +101,17 @@ typedef struct {
 	bs_vec2 tex_coord;
 	bs_vec3 normal;
 	bs_RGBA color;
+} bs_Vertex;
+
+// Vertex declaration for rigged models
+typedef struct {
+	bs_vec3 position;
+	bs_vec2 tex_coord;
+	bs_vec3 normal;
+	bs_RGBA color;
 	bs_ivec4 bone_ids;
 	bs_vec4 weights;
-} bs_Vertex;
+} bs_RVertex;
 
 typedef struct {
 	int render_width;
@@ -121,18 +129,26 @@ typedef struct {
 // Contains all objects queued to render the next frame (unless using multiple batches)
 typedef struct {
 	bs_Shader *shader;
-	bs_Vertex *vertices;
 	bs_Camera *camera;
 
+	void *vertices;
 	int *indices;
+
 	int draw_mode;
 	int vertex_draw_count;
-	// Amounf of indices (6 per quad)
 	int index_draw_count;
+
 	int attrib_count;
+	int attrib_size_bytes;
 
 	unsigned int VAO, VBO, EBO;
 } bs_Batch;
+
+typedef struct bs_Joint bs_Joint;
+typedef struct {
+	bs_Joint *joints;
+	int joint_count;
+} bs_Anim;
 
 typedef struct {
 	bs_RGBA base_color;
@@ -141,23 +157,22 @@ typedef struct {
 	bs_vec3 specular;
 } bs_Material;
 
-typedef struct bs_Joint bs_Joint;
-
 struct bs_Joint {
-	char *name;
-
-	float time;
+	// Don't put a variable in front of "mat" as it is being initialized on declaration
 	bs_mat4 mat;
+	bs_mat4 local_inv;
+	bs_mat4 bind_matrix;
 	bs_mat4 bind_matrix_inv;
 
 	bs_Joint *parent;
+	int loc;
 };
 
 typedef struct {
 	bs_Material material;
 	int attrib_count;
 
-	bs_Vertex *vertices;
+	bs_RVertex *vertices;
 	int vertex_count;
 
 	int *indices;
@@ -191,7 +206,7 @@ typedef struct {
 void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height, void (*render)(), bs_Shader *shader);
 void bs_setFramebufferShader(bs_Framebuffer *framebuffer, bs_Shader *shader);
 
-void bs_pushVertexStruct(bs_Vertex vertex);
+void bs_pushVertexStruct(void *vertex);
 void bs_pushVertex(float px, float py, float pz, float tx, float ty, float nx, float ny, float nz, bs_RGBA color);
 void bs_pushTexRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Tex2D *tex);
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
@@ -203,7 +218,9 @@ void bs_pushModel(bs_Model *model);
 void bs_pushModelUnbatched(bs_Model *model, bs_Shader *shader);
 
 /* --- BATCHING --- */
-void bs_createBatch(bs_Batch *batch, int index_count);
+void bs_createBatch(bs_Batch *batch, int index_count, const int batch_type, int batch_size_bytes);
+void bs_addBatchAttrib (const int type, unsigned int amount, size_t offset_bytes, bool normalized);
+void bs_addBatchAttribI(const int type, unsigned int amount, size_t offset_bytes);
 void bs_selectBatch(bs_Batch *batch);
 void bs_pushBatch();
 void bs_renderBatch(int start_index, int draw_count);
@@ -223,7 +240,7 @@ void bs_startRender(void (*render)());
 void bs_setBackgroundColor(bs_fRGBA color);
 bs_vec2 bs_getWindowDimensions();
 
-/* --- INPUTS/CALLBACKS --- */
+/* --- INPUTS / CALLBACKS --- */
 bool bs_isKeyDown(int key);
 bool bs_isKeyUp(int key);
 bool bs_isKeyDownOnce(int key);
@@ -251,11 +268,9 @@ void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float 
 #define BS_LINEAR_MIPMAP_LINEAR 0x2703
 #define BS_LINEAR_MIPMAP_NEAREST 0x2701
 
-// BATCH ATTRIBUTE TYPES
-#define BS_POSITION_TEXTURE 0
-#define BS_POSITION_COLOR 1
-#define BS_POSITION_TEXTURE_NORMAL 2
-#define BS_POSITION_COLOR_NORMAL 3
+// BATCH ATTRIBUTE TYPES AND SIZE
+#define BS_STD_BATCH 0
+#define BS_RIG_BATCH 1
 
 // RENDER MODES
 #define BS_POINTS 0x0000
@@ -277,12 +292,12 @@ void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float 
 #define BS_QUAD 6
 
 // OPENGL DATATYPES
-#define BS_BYTE 0x1400
-#define BS_UNSIGNED_BYTE 0x1401
+#define BS_SBYTE 0x1400
+#define BS_UBYTE 0x1401
 #define BS_SHORT 0x1402
-#define BS_UNSIGNED_SHORT 0x1403
+#define BS_USHORT 0x1403
 #define BS_INT 0x1404
-#define BS_UNSIGNED_INT 0x1405
+#define BS_UINT 0x1405
 #define BS_FLOAT 0x1406
 
 // ATLAS SETTINGS

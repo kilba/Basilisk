@@ -1,2 +1,2 @@
 default:
-	gcc -obuild/basilisktest.exe src/main.c src/basilisk/* -Iinclude/basilisk/ -Iinclude/gl/ -Iinclude/ -Llib -Wall -Wno-switch -lglfw3 -lgdi32 -lglad -llodepng -Wno-varargs
+	gcc -obuild/basilisktest.exe src/weebking/* src/basilisk/* -Iinclude/basilisk/ -Iinclude/gl/ -Iinclude/ -Iinclude/weebking -Llib -Wall -Wno-switch -lglfw3 -lgdi32 -lglad -llodepng -Wno-varargs -Wno-unused-variable

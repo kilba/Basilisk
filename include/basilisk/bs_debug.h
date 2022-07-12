@@ -1,10 +1,16 @@
 #ifndef BS_DEBUGGING_H
 #define BS_DEBUGGING_H
 
-#include <bs_core.h>
-
+void bs_print(const int info_type, char *format, ...);
 void bs_debugUpdate();
 void bs_debugStart();
-void bs_enterFreecam(bs_Camera *cam);
+
+// Comment out BS_DEBUG on release
+#define BS_DEBUG
+
+#define BS_CLE 0
+#define BS_INF 1
+#define BS_WAR 2
+#define BS_ERR 3
 
 #endif /* BS_DEBUGGING_H */
