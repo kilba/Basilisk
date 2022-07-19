@@ -1,0 +1,9 @@
+[submodule "glfw"]
+	path = glfw
+	url = https://github.com/glfw/glfw
+[submodule "lodepng"]
+	path = lodepng
+	url = https://github.com/lvandeve/lodepng
+[submodule "cglm"]
+	path = cglm
+	url = https://github.com/recp/cglm
