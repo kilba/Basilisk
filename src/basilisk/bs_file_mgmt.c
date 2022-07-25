@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char* bs_readFileToString(char *path, int *errcode) {
+char* bs_readFileToString(char *path, int *content_len, int *errcode) {
     if(path == 0) {
         *errcode = 1;
         return NULL;
@@ -30,6 +30,7 @@ char* bs_readFileToString(char *path, int *errcode) {
     }
 
     *errcode = 0;
+    *content_len = length;
     buffer[length - 1] = '\0';
     return buffer;
 }
@@ -40,4 +41,12 @@ void bs_appendToFile(const char *filepath, const char *data) {
         fputs(data, fp);
         fclose(fp);
     }
+}
+
+void bs_writeToFile(const char *filepath, const char *data) {
+    FILE *fp = fopen(filepath, "w");
+    if (fp != NULL) {
+        fputs(data, fp);
+        fclose(fp);
+    }  
 }

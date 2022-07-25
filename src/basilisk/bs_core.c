@@ -52,7 +52,7 @@ bs_Shader texture_shader;
 
 bs_Camera std_camera;
 bs_Batch *curr_batch;
-bs_Tex2D empty_texture;
+bs_TextureSlice empty_texture;
 
 bs_Atlas *std_atlas;
 
@@ -62,7 +62,7 @@ bs_fRGBA clear_color = { 0.0, 0.0, 0.0, 1.0 };
 /* --- WINDOW SETTINGS --- */
 void bs_initGLFW(bs_WNDSettings settings) {
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
@@ -303,7 +303,7 @@ void bs_pushVertex(float px, float py, float pz, float tx, float ty, float nx, f
     bs_pushVertexStruct(&push_vertex);
 }
 
-void bs_pushTexRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Tex2D *tex) {
+void bs_pushTexRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_TextureSlice *tex) {
     bs_vec2 dim_pos = { dim.x + pos.x, dim.y + pos.y };
 
     int indices[] = {
@@ -624,6 +624,40 @@ void bs_render() {
     glfwSetKeyCallback(window, bs_onKey);
     glfwSetWindowSizeCallback(window, bs_onResize);
 
+    /* TEMP- */
+    // bs_ComputeShader cshader;
+    // bs_Texture tex;
+    // bs_Batch batch;
+
+    // bs_initTexture(&tex, 1200/4, 900/4, NULL);
+    // bs_setTextureSettings(BS_NEAREST, BS_NEAREST);
+    // bs_pushTexture(BS_CHANNEL_RGBA32F, BS_CHANNEL_RGBA, BS_FLOAT);
+
+    // bs_loadComputeShader("resources/testshader.comp", &cshader, &tex);
+    // bs_createBatch(&batch, 6, BS_STD_BATCH, sizeof(bs_Vertex));
+
+    // int indices[] = {
+        // batch.vertex_draw_count+0, batch.vertex_draw_count+1, batch.vertex_draw_count+2,
+        // batch.vertex_draw_count+1, batch.vertex_draw_count+2, batch.vertex_draw_count+3,
+    // };
+    // memcpy(&batch.indices[batch.index_draw_count], indices, 6 * sizeof(int));
+
+    // bs_pushVertex(0   , 0  , 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, (bs_RGBA){ 255, 0, 0, 255 });
+    // bs_pushVertex(0   , 900, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, (bs_RGBA){ 255, 0, 0, 255 });
+    // bs_pushVertex(1200, 0  , 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, (bs_RGBA){ 255, 0, 0, 255 });
+    // bs_pushVertex(1200, 900, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, (bs_RGBA){ 255, 0, 0, 255 });
+
+    // batch.index_draw_count += 6;
+    // bs_pushBatch();
+
+    // bs_switchShaderCompute(&cshader);
+    // int loc = glGetUniformLocation(cshader.id, "testpos");
+
+    // float posx = 0.0;
+    // float posy = 0.0;
+    // float posz = 100.0;
+    /* -TEMP */
+
     while(!glfwWindowShouldClose(window)) {
         elapsed_time += 0.01;
 
@@ -648,6 +682,51 @@ void bs_render() {
             bs_startFramebufferRender(framebuffer);
             bs_selectAtlas(std_atlas);
             framebuffer->render();
+
+            // if(i == 1) {
+                /* TEMP- */
+                // Compute
+                // float speed = 1.0;
+                // bs_switchShaderCompute(&cshader);
+                // if(bs_isKeyDown(BS_KEY_D)) {
+                //     posx += speed;
+                //     glUniform3f(loc, posx, posy, posz);
+                // }
+                // if(bs_isKeyDown(BS_KEY_A)) {
+                //     posx -= speed;
+                //     glUniform3f(loc, posx, posy, posz);
+                // }
+                // if(bs_isKeyDown(BS_KEY_W)) {
+                //     posy += speed;
+                //     glUniform3f(loc, posx, posy, posz);
+                // }
+                // if(bs_isKeyDown(BS_KEY_S)) {
+                //     posy -= speed;
+                //     glUniform3f(loc, posx, posy, posz);
+                // }
+                // if(bs_isKeyDown(BS_KEY_DOWN)) {
+                //     posz += speed;
+                //     glUniform3f(loc, posx, posy, posz);
+                // }
+                // if(bs_isKeyDown(BS_KEY_UP)) {
+                //     posz -= speed;
+                //     glUniform3f(loc, posx, posy, posz);
+                // }
+                // printf("%f\n", posz);
+
+
+                // make sure writing to image has finished before read
+                // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+                // glDispatchCompute(1200/4, 900/4, 1);
+
+                // bs_switchShader(&texture_shader);
+
+                // glBindTexture(GL_TEXTURE_2D, cshader.tex->id);
+                // bs_selectBatch(&batch);
+                // bs_renderBatch(0, 6);
+                /* -TEMP */
+            // }
+
             bs_endFramebufferRender(framebuffer);
         }
 
@@ -684,9 +763,9 @@ void bs_init(int width, int height, char *title, bs_WNDSettings settings) {
 
     std_camera.pos.x = 0.0;
     std_camera.pos.y = 0.0;
-    std_camera.pos.z = 50.0;
-    bs_setMatrixLookat(&std_camera, (bs_vec3){ 0.0, 0.0, 0.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
-    bs_setPerspectiveProjection(&std_camera, (bs_vec2){ width, height }, 90.0, 0.1, 5000.0);
+    std_camera.pos.z = 500.0;
+    bs_setMatrixLookat(&std_camera, (bs_vec3){ 0.0, 0.0, -1.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
+    bs_createOrthographicProjection(&std_camera, 0, width, 0, height);
 
     // Texture Atlas Init
     std_atlas = bs_createTextureAtlas(BS_ATLAS_SIZE, BS_ATLAS_SIZE, BS_MAX_TEXTURES);

@@ -243,13 +243,14 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 	if(data->textures_count == 0)
 		return;
 
-	bs_Tex2D *images[data->images_count];
+	bs_TextureSlice *images[data->images_count];
 	int64_t ids[data->textures_count];
 
 	for(int i = 0; i < data->textures_count; i++) {
 		// Getting the pointers to all images in the form of a 64 bit int
 		ids[i] = (int64_t)data->textures[i].image;
 	}
+
 	for(int i = 0; i < data->images_count; i++) {
 		char texture_path[256] = "resources/models/textures/";
 		strcat(texture_path, data->images[i].name);
@@ -258,7 +259,7 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 	}
 
  	curr_tex_ptr = ids[0];
- 	model->textures = malloc(data->textures_count * sizeof(bs_Tex2D *));
+ 	model->textures = malloc(data->textures_count * sizeof(bs_TextureSlice *));
 
 	for(int i = 0; i < data->textures_count; i++) {
 		ids[i] -= curr_tex_ptr;

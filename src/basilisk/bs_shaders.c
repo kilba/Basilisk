@@ -6,6 +6,7 @@
 // Basilisk
 #include <bs_shaders.h>
 #include <bs_core.h>
+#include <bs_debug.h>
 #include <bs_file_mgmt.h>
 #include <bs_textures.h>
 
@@ -53,13 +54,14 @@ void bs_shaderErrorCheck(GLuint *shader, int shadertype) {
         glGetShaderInfoLog(*shader, maxLength, &maxLength, &errorLog[0]);
 
         switch(shadertype) {
-            case GL_VERTEX_SHADER: printf("%s", "Vertex Shader Error!"); break;
-            case GL_FRAGMENT_SHADER: printf("%s", "Fragment Shader Error!"); break;
-            case GL_GEOMETRY_SHADER: printf("%s", "Geometry Shader Error!"); break;
+            case GL_VERTEX_SHADER: bs_print(BS_CLE, "%s", "Vertex Shader Error!"); break;
+            case GL_FRAGMENT_SHADER: bs_print(BS_CLE, "%s", "Fragment Shader Error!"); break;
+            case GL_GEOMETRY_SHADER: bs_print(BS_CLE, "%s", "Geometry Shader Error!"); break;
+            case GL_COMPUTE_SHADER: bs_print(BS_CLE, "%s", "Compute Shader Error!"); break;
         }
 
-        printf("\n");
-        printf(errorLog);
+        bs_print(BS_CLE, "\n");
+        bs_print(BS_CLE, errorLog);
 
         glDeleteShader(*shader);
     }
@@ -127,9 +129,10 @@ void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shade
 
     // Load shader source code into memory
     // TODO: Free
-    char *vscode = bs_readFileToString(vs_path, &vs_err_code);
-    char *fscode = bs_readFileToString(fs_path, &fs_err_code);
-    char *gscode = bs_readFileToString(gs_path, &gs_err_code);
+    int len;
+    char *vscode = bs_readFileToString(vs_path, &len, &vs_err_code);
+    char *fscode = bs_readFileToString(fs_path, &len, &fs_err_code);
+    char *gscode = bs_readFileToString(gs_path, &len, &gs_err_code);
 
     // Don't compile shaders if file wasn't found
     if(vs_err_code == 2 || fs_err_code == 2) {
@@ -141,6 +144,31 @@ void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shade
     bs_loadMemShader(vscode, fscode, gscode, shader);
 }
 
+/* COMPUTE SHADERS */
+void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs_Texture *tex) {
+    if(cs_code == NULL)
+        return;
+
+    bs_loadShaderCode(&compute_shader->cs_id, cs_code, GL_COMPUTE_SHADER);
+
+    compute_shader->id = glCreateProgram();
+    glAttachShader(compute_shader->id, compute_shader->cs_id);
+    glLinkProgram(compute_shader->id);
+    glUseProgram(compute_shader->id);
+
+    // TODO: Check if texture is still bound
+    compute_shader->tex = tex;
+    glBindImageTexture(0, compute_shader->tex->id, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+}
+
+void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Texture *tex) {
+    int cs_err_code;
+    int len;
+
+    char *cscode = bs_readFileToString(cs_path, &len, &cs_err_code);
+    bs_loadMemComputeShader(cscode, compute_shader, tex);
+}
+
 void bs_getUniformLoc(bs_Shader *shader, char *name, int *result) {
     *result = glGetUniformLocation(shader->id, name);
 }
@@ -148,7 +176,7 @@ void bs_getUniformLoc(bs_Shader *shader, char *name, int *result) {
 void bs_setShaderAtlas(bs_Shader *shader, bs_Atlas *atlas, char *uniform_name) {
     bs_switchShader(shader);
     int loc = glGetUniformLocation(shader->id, uniform_name);
-    glUniform1i(loc, atlas->id);
+    glUniform1i(loc, atlas->tex.id);
 }
 
 // SETTING DEFAULT UNIFORMS
@@ -185,6 +213,10 @@ void bs_setProjMatrixUniform(bs_Shader *shader, void *cam) {
 // SHADER ABSTRACTION LAYER
 void bs_switchShader(bs_Shader *shader) {
     glUseProgram(shader->id);
+}
+
+void bs_switchShaderCompute(bs_ComputeShader *compute_shader) {
+    glUseProgram(compute_shader->id);
 }
 
 // MATRICES

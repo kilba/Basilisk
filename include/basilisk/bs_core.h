@@ -154,7 +154,7 @@ typedef struct {
 
 typedef struct {
 	bs_RGBA base_color;
-	bs_Tex2D *tex;
+	bs_TextureSlice *tex;
 
 	bs_vec3 specular;
 } bs_Material;
@@ -198,7 +198,7 @@ typedef struct {
 
 typedef struct {
 	bs_Mesh *meshes;
-	bs_Tex2D **textures;
+	bs_TextureSlice **textures;
 
 	int mesh_count;
 	int vertex_count;
@@ -211,7 +211,7 @@ void bs_setFramebufferShader(bs_Framebuffer *framebuffer, bs_Shader *shader);
 
 void bs_pushVertexStruct(void *vertex);
 void bs_pushVertex(float px, float py, float pz, float tx, float ty, float nx, float ny, float nz, bs_RGBA color);
-void bs_pushTexRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Tex2D *tex);
+void bs_pushTexRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_TextureSlice *tex);
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
 void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
@@ -306,6 +306,20 @@ void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float 
 // ATLAS SETTINGS
 #define BS_ATLAS_SIZE 4096 /* Pixels (x, y) */
 #define BS_MAX_TEXTURES 1000
+
+// Base Internal Formats
+#define BS_CHANNEL_RED 0x1903
+#define BS_CHANNEL_GREEN 0x1904
+#define BS_CHANNEL_BLUE 0x1905
+#define BS_CHANNEL_ALPHA 0x1906
+#define BS_CHANNEL_RGB 0x1907
+#define BS_CHANNEL_RGBA 0x1908
+
+// Sized Internal Formats
+#define BS_CHANNEL_RGBA32F 0x8814
+#define BS_CHANNEL_RGB32F 0x8815
+#define BS_CHANNEL_RGBA16F 0x881A
+#define BS_CHANNEL_RGB16F 0x881B
 
 //TODO: CAPS
 // #define BS_KEY_UNKNOWN   -1
