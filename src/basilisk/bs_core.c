@@ -52,11 +52,13 @@ bs_Shader texture_shader;
 
 bs_Camera std_camera;
 bs_Batch *curr_batch;
-bs_TextureSlice empty_texture;
+bs_AtlasSlice empty_texture;
 
 bs_Atlas *std_atlas;
 
-float elapsed_time = 0.0;
+double elapsed_time = 0.0;
+double delta_time = 0.0;
+double previous_time = 0.0;
 bs_fRGBA clear_color = { 0.0, 0.0, 0.0, 1.0 };
 
 /* --- WINDOW SETTINGS --- */
@@ -149,23 +151,27 @@ bs_vec2 bs_getWindowDimensions() {
         int height = h;
 
         HBITMAP hbwindow = CreateCompatibleBitmap(hwindowDC, width, height);
-        BITMAPINFOHEADER bi = createBitmapHeader(width, height);
+        // BITMAPINFOHEADER bi = createBitmapHeader(width, height);
 
         SelectObject(hwindowCompatibleDC, hbwindow);
 
-        DWORD dwBmpSize = ((width * bi.biBitCount + 31) / 32) * 4 * height;
-        HANDLE hDIB = GlobalAlloc(GHND, dwBmpSize);
-        unsigned char* lpbitmap = (unsigned char*)GlobalLock(hDIB);
+        BITMAP bmp;
+        GetObject(hbwindow, sizeof(BITMAP), (LPVOID)&bmp);
 
+        // DWORD dwBmpSize = ((width * bi.biBitCount + 31) / 32) * 4 * height;
+        // HANDLE hDIB = GlobalAlloc(GHND, dwBmpSize);
+        // unsigned char* lpbitmap = (unsigned char*)GlobalLock(hDIB);
+ 
         // copy from the window device context to the bitmap device context
-        StretchBlt(hwindowCompatibleDC, 0, 0, width, height, hwindowDC, screenx, screeny, width, height, SRCCOPY);   //change SRCCOPY to NOTSRCCOPY for wacky colors !
-        GetDIBits(hwindowCompatibleDC, hbwindow, 0, height, lpbitmap, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
+        // StretchBlt(hwindowCompatibleDC, 0, 0, width, height, hwindowDC, screenx, screeny, width, height, SRCCOPY);   //change SRCCOPY to NOTSRCCOPY for wacky colors !
+        // GetDIBits(hwindowCompatibleDC, hbwindow, 0, height, lpbitmap, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
 
-        GlobalFree(hDIB);
+        // GlobalFree(hDIB);
         DeleteDC(hwindowCompatibleDC);
         ReleaseDC(hWnd, hwindowDC);
 
-        return lpbitmap;
+        // return lpbitmap;
+        return bmp.bmBits;
     }
 #endif
 
@@ -270,7 +276,7 @@ void bs_selectBatch(bs_Batch *batch) {
     glBindBuffer(GL_ARRAY_BUFFER, batch->VBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch->EBO);
 
-    bs_switchShader(curr_batch->shader);
+    bs_switchShader(curr_batch->shader->id);
 }
 
 bs_Atlas *bs_getStdAtlas() {
@@ -283,27 +289,32 @@ void bs_pushVertexStruct(void *vertex) {
     curr_batch->vertex_draw_count++;
 }
 
-void bs_pushVertex(float px, float py, float pz, float tx, float ty, float nx, float ny, float nz, bs_RGBA color) {
-    bs_Vertex push_vertex;
+void bs_pushVertex(bs_vec3 pos, bs_vec2 tex_coord, bs_vec3 normal, bs_RGBA color) {
+    bs_Batch *batch = curr_batch;
 
-    push_vertex.position.x = px;
-    push_vertex.position.y = py;
-    push_vertex.position.z = pz;
+    int offset = 0;
+    unsigned char data[curr_batch->attrib_size_bytes];
+    bool has_position  = (batch->types & BS_POSITION) == BS_POSITION;
+    bool has_normal    = (batch->types & BS_NORMAL) == BS_NORMAL;
+    bool has_tex_coord = (batch->types & BS_TEX_COORD) == BS_TEX_COORD;
+    bool has_color     = (batch->types & BS_COLOR) == BS_COLOR;
 
-    push_vertex.tex_coord.x = tx;
-    push_vertex.tex_coord.y = ty;
+    memcpy(data + offset, &pos, sizeof(bs_vec3) * has_position);
+    offset += sizeof(bs_vec3) * has_position;
 
-    // TODO: Make these optional
-    push_vertex.normal.x = nx;
-    push_vertex.normal.y = ny;
-    push_vertex.normal.z = nz;
+    memcpy(data + offset, &tex_coord, sizeof(bs_vec2) * has_tex_coord);
+    offset += sizeof(bs_vec2) * has_tex_coord;
 
-    push_vertex.color = color;
+    memcpy(data + offset, &normal, sizeof(bs_vec3) * has_normal); 
+    offset += sizeof(bs_vec3) * has_normal;
 
-    bs_pushVertexStruct(&push_vertex);
+    memcpy(data + offset, &color, sizeof(bs_RGBA));
+    offset += sizeof(bs_RGBA);
+
+    bs_pushVertexStruct(data);
 }
 
-void bs_pushTexRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_TextureSlice *tex) {
+void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_AtlasSlice *slice) {
     bs_vec2 dim_pos = { dim.x + pos.x, dim.y + pos.y };
 
     int indices[] = {
@@ -312,10 +323,28 @@ void bs_pushTexRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_TextureSlice *tex)
     };
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
 
-    bs_pushVertex(pos.x    , pos.y    , pos.z, tex->tex_x , tex->tex_hy, 0.0, 0.0, 0.0, col); // Bottom Left
-    bs_pushVertex(dim_pos.x, pos.y    , pos.z, tex->tex_wx, tex->tex_hy, 0.0, 0.0, 0.0, col); // Bottom right
-    bs_pushVertex(pos.x    , dim_pos.y, pos.z, tex->tex_x , tex->tex_y , 0.0, 0.0, 0.0, col); // Top Left
-    bs_pushVertex(dim_pos.x, dim_pos.y, pos.z, tex->tex_wx, tex->tex_y , 0.0, 0.0, 0.0, col); // Top Right
+    bs_pushVertex((bs_vec3){ pos.x    , pos.y    , pos.z }, (bs_vec2){ slice->tex_x , slice->tex_hy }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim_pos.x, pos.y    , pos.z }, (bs_vec2){ slice->tex_wx, slice->tex_hy }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x    , dim_pos.y, pos.z }, (bs_vec2){ slice->tex_x , slice->tex_y  }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Top Left
+    bs_pushVertex((bs_vec3){ dim_pos.x, dim_pos.y, pos.z }, (bs_vec2){ slice->tex_wx, slice->tex_y  }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Top Right
+
+    curr_batch->index_draw_count += 6;
+}
+
+void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
+    bs_vec2 dim_pos = { dim.x + pos.x, dim.y + pos.y };
+
+    int indices[] = {
+        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
+        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
+    };
+
+    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
+
+    bs_pushVertex((bs_vec3){ pos.x    , pos.y    , pos.z }, (bs_vec2){ 0.0, 0.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim_pos.x, pos.y    , pos.z }, (bs_vec2){ 1.0, 0.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x    , dim_pos.y, pos.z }, (bs_vec2){ 0.0, 1.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Top Left
+    bs_pushVertex((bs_vec3){ dim_pos.x, dim_pos.y, pos.z }, (bs_vec2){ 1.0, 1.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
@@ -331,10 +360,10 @@ void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
 
     const float white_tex_coord = 0.9999;
-    bs_pushVertex(pos.x    , pos.y    , pos.z, white_tex_coord, white_tex_coord, 0.0, 0.0, 0.0, col); // Bottom Left
-    bs_pushVertex(dim_pos.x, pos.y    , pos.z, white_tex_coord, white_tex_coord, 0.0, 0.0, 0.0, col); // Bottom right
-    bs_pushVertex(pos.x    , dim_pos.y, pos.z, white_tex_coord, white_tex_coord, 0.0, 0.0, 0.0, col); // Top Left
-    bs_pushVertex(dim_pos.x, dim_pos.y, pos.z, white_tex_coord, white_tex_coord, 0.0, 0.0, 0.0, col); // Top Right
+    bs_pushVertex((bs_vec3){ pos.x    , pos.y    , pos.z }, (bs_vec2){ white_tex_coord, white_tex_coord }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim_pos.x, pos.y    , pos.z }, (bs_vec2){ white_tex_coord, white_tex_coord }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x    , dim_pos.y, pos.z }, (bs_vec2){ white_tex_coord, white_tex_coord }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Top Left
+    bs_pushVertex((bs_vec3){ dim_pos.x, dim_pos.y, pos.z }, (bs_vec2){ white_tex_coord, white_tex_coord }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
@@ -345,9 +374,9 @@ void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     };
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 3 * sizeof(int));
 
-    bs_pushVertex(pos1.x, pos1.y, pos1.z, 0.0, 0.0, 0.0, 0.0, 0.0, color);
-    bs_pushVertex(pos2.x, pos2.y, pos2.z, 1.0, 0.0, 0.0, 0.0, 0.0, color);
-    bs_pushVertex(pos3.x, pos3.y, pos3.z, 0.0, 1.0, 0.0, 0.0, 0.0, color);
+    bs_pushVertex(pos1, (bs_vec2){ 0.0, 0.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, color);
+    bs_pushVertex(pos2, (bs_vec2){ 1.0, 0.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, color);
+    bs_pushVertex(pos3, (bs_vec2){ 0.0, 1.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, color);
 
     curr_batch->index_draw_count += 3;
 }
@@ -419,14 +448,16 @@ void bs_changeBatchBufferSize(bs_Batch *batch, int index_count) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, batch->indices, GL_STATIC_DRAW);
 }
 
-void bs_createBatch(bs_Batch *batch, int index_count, const int batch_type, int batch_size_bytes) {
+void bs_createBatch(bs_Batch *batch, int index_count, int batch_size_bytes, int batch_types) {
     // Default values
     batch->camera = &std_camera;
     batch->shader = &texture_shader;
     batch->draw_mode = BS_TRIANGLES;
+    batch->types = batch_types;
     batch->vertex_draw_count = 0;
     batch->index_draw_count = 0;
     batch->attrib_count = 0;
+    batch->attrib_offset = 0;
     batch->attrib_size_bytes = batch_size_bytes;
 
     // Create buffer/array objects
@@ -436,35 +467,58 @@ void bs_createBatch(bs_Batch *batch, int index_count, const int batch_type, int 
 
     bs_selectBatch(batch);
 
-    // Attribute setup
-    bs_addBatchAttrib (BS_FLOAT, 3, offsetof(bs_Vertex, position) , false);
-    bs_addBatchAttrib (BS_FLOAT, 2, offsetof(bs_Vertex, tex_coord), false);
-    bs_addBatchAttrib (BS_FLOAT, 3, offsetof(bs_Vertex, normal)   , false);
-    bs_addBatchAttrib (BS_UBYTE, 4, offsetof(bs_Vertex, color)    , true);
-    if(batch_type == BS_RIG_BATCH) {
-        bs_addBatchAttribI(GL_INT  , 4, offsetof(bs_RVertex, bone_ids));
-        bs_addBatchAttrib (BS_FLOAT, 4, offsetof(bs_RVertex, weights)  , false);
-        batch->shader = &model_shader;
-    }
-
+    // Allocate buffer spaces
     batch->indices = malloc(sizeof(int) * index_count);
     batch->vertices = malloc(batch->attrib_size_bytes * index_count);
     glBufferData(GL_ARRAY_BUFFER, batch->attrib_size_bytes * index_count, NULL, GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, NULL, GL_STATIC_DRAW);
+
+    // Attribute setup
+    if((batch_types & BS_POSITION) == BS_POSITION)
+        bs_addBatchAttrib (BS_FLOAT, 3, sizeof(bs_vec3), false);
+
+    if((batch_types & BS_TEX_COORD) == BS_TEX_COORD)
+        bs_addBatchAttrib (BS_FLOAT, 2, sizeof(bs_vec2), false);
+
+    if((batch_types & BS_NORMAL) == BS_NORMAL)
+        bs_addBatchAttrib (BS_FLOAT, 3, sizeof(bs_vec3), false);
+    
+    if((batch_types & BS_COLOR) == BS_COLOR)
+        bs_addBatchAttrib (BS_UBYTE, 4, sizeof(bs_RGBA), true);
+
+    // FIXA GL_INT -> BS_INT
+    if((batch_types & BS_BONE_IDS) == BS_BONE_IDS)
+        bs_addBatchAttribI(GL_INT  , 4, sizeof(bs_ivec4));
+
+    if((batch_types & BS_WEIGHTS) == BS_WEIGHTS)
+        bs_addBatchAttrib (BS_FLOAT, 4, sizeof(bs_vec4), false);
 }
 
-void bs_addBatchAttrib(const int type, unsigned int amount, size_t offset_bytes, bool normalized) {
+void bs_setBatchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size) {
+    glBufferData(GL_ARRAY_BUFFER, vertex_size, vertex_data, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_size, index_data, GL_STATIC_DRAW);
+}
+
+void bs_addBatchAttrib(const int type, unsigned int amount, size_t size_per_type, bool normalized) {
     bs_Batch *batch = curr_batch;
 
     glEnableVertexAttribArray(batch->attrib_count);
-    glVertexAttribPointer(batch->attrib_count++, amount, type, normalized, batch->attrib_size_bytes, (void*)offset_bytes);
+    glVertexAttribPointer(batch->attrib_count++, amount, type, normalized, batch->attrib_size_bytes, (void*)batch->attrib_offset);
+
+    batch->attrib_offset += size_per_type;
 }
 
-void bs_addBatchAttribI(const int type, unsigned int amount, size_t offset_bytes) {
+void bs_addBatchAttribI(const int type, unsigned int amount, size_t size_per_type) {
     bs_Batch *batch = curr_batch;
 
     glEnableVertexAttribArray(batch->attrib_count);
-    glVertexAttribIPointer(batch->attrib_count++, amount, type, batch->attrib_size_bytes, (void*)offset_bytes);
+    glVertexAttribIPointer(batch->attrib_count++, amount, type, batch->attrib_size_bytes, (void*)batch->attrib_offset);
+
+    batch->attrib_offset += size_per_type;
+}
+
+void bs_bindBufferRange(int target, int bind_point, int buffer, int offset, int size) {
+    glBindBufferRange(target, bind_point, buffer, offset, size);
 }
 
 // Pushes all vertices to VRAM
@@ -582,7 +636,7 @@ void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
 }
 
 void bs_endFramebufferRender(bs_Framebuffer *framebuffer) {
-    bs_switchShader(framebuffer->shader);
+    bs_switchShader(framebuffer->shader->id);
     bs_setTimeUniform(framebuffer->shader, elapsed_time);
 
     // Unbind
@@ -613,10 +667,9 @@ void bs_checkGLError() {
     }
 }
 
-void bs_render() {
-    double previousTime = glfwGetTime();
-    int frameCount = 0;
+#include <bs_models.h>
 
+void bs_render() {
     for(int i = 0; i < 350; i++) {
         key_states[i] = false;
     }
@@ -624,54 +677,9 @@ void bs_render() {
     glfwSetKeyCallback(window, bs_onKey);
     glfwSetWindowSizeCallback(window, bs_onResize);
 
-    /* TEMP- */
-    // bs_ComputeShader cshader;
-    // bs_Texture tex;
-    // bs_Batch batch;
-
-    // bs_initTexture(&tex, 1200/4, 900/4, NULL);
-    // bs_setTextureSettings(BS_NEAREST, BS_NEAREST);
-    // bs_pushTexture(BS_CHANNEL_RGBA32F, BS_CHANNEL_RGBA, BS_FLOAT);
-
-    // bs_loadComputeShader("resources/testshader.comp", &cshader, &tex);
-    // bs_createBatch(&batch, 6, BS_STD_BATCH, sizeof(bs_Vertex));
-
-    // int indices[] = {
-        // batch.vertex_draw_count+0, batch.vertex_draw_count+1, batch.vertex_draw_count+2,
-        // batch.vertex_draw_count+1, batch.vertex_draw_count+2, batch.vertex_draw_count+3,
-    // };
-    // memcpy(&batch.indices[batch.index_draw_count], indices, 6 * sizeof(int));
-
-    // bs_pushVertex(0   , 0  , 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, (bs_RGBA){ 255, 0, 0, 255 });
-    // bs_pushVertex(0   , 900, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, (bs_RGBA){ 255, 0, 0, 255 });
-    // bs_pushVertex(1200, 0  , 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, (bs_RGBA){ 255, 0, 0, 255 });
-    // bs_pushVertex(1200, 900, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, (bs_RGBA){ 255, 0, 0, 255 });
-
-    // batch.index_draw_count += 6;
-    // bs_pushBatch();
-
-    // bs_switchShaderCompute(&cshader);
-    // int loc = glGetUniformLocation(cshader.id, "testpos");
-
-    // float posx = 0.0;
-    // float posy = 0.0;
-    // float posz = 100.0;
-    /* -TEMP */
-
     while(!glfwWindowShouldClose(window)) {
-        elapsed_time += 0.01;
-
-        // Measure speed
-        double currentTime = glfwGetTime();
-        frameCount++;
-        // If a second has passed.
-        if (currentTime - previousTime >= 1.0) {
-            // Display the frame count here any way you want.
-            bs_print(BS_CLE, "%d\n", frameCount);
-
-            frameCount = 0;
-            previousTime = currentTime;
-        }
+        elapsed_time = glfwGetTime();
+        delta_time = elapsed_time - previous_time;
 
         glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -680,52 +688,12 @@ void bs_render() {
         for(int i = 0; i < bs_window.framebuffer_count; i++) {
             bs_Framebuffer *framebuffer = bs_window.framebuffers[i];
             bs_startFramebufferRender(framebuffer);
-            bs_selectAtlas(std_atlas);
+            bs_selectTexture(&std_atlas->tex);
             framebuffer->render();
 
-            // if(i == 1) {
-                /* TEMP- */
-                // Compute
-                // float speed = 1.0;
-                // bs_switchShaderCompute(&cshader);
-                // if(bs_isKeyDown(BS_KEY_D)) {
-                //     posx += speed;
-                //     glUniform3f(loc, posx, posy, posz);
-                // }
-                // if(bs_isKeyDown(BS_KEY_A)) {
-                //     posx -= speed;
-                //     glUniform3f(loc, posx, posy, posz);
-                // }
-                // if(bs_isKeyDown(BS_KEY_W)) {
-                //     posy += speed;
-                //     glUniform3f(loc, posx, posy, posz);
-                // }
-                // if(bs_isKeyDown(BS_KEY_S)) {
-                //     posy -= speed;
-                //     glUniform3f(loc, posx, posy, posz);
-                // }
-                // if(bs_isKeyDown(BS_KEY_DOWN)) {
-                //     posz += speed;
-                //     glUniform3f(loc, posx, posy, posz);
-                // }
-                // if(bs_isKeyDown(BS_KEY_UP)) {
-                //     posz -= speed;
-                //     glUniform3f(loc, posx, posy, posz);
-                // }
-                // printf("%f\n", posz);
+            /* TEMP- */
 
-
-                // make sure writing to image has finished before read
-                // glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-                // glDispatchCompute(1200/4, 900/4, 1);
-
-                // bs_switchShader(&texture_shader);
-
-                // glBindTexture(GL_TEXTURE_2D, cshader.tex->id);
-                // bs_selectBatch(&batch);
-                // bs_renderBatch(0, 6);
                 /* -TEMP */
-            // }
 
             bs_endFramebufferRender(framebuffer);
         }
@@ -734,6 +702,8 @@ void bs_render() {
 
         glfwPollEvents();
         glfwSwapBuffers(window);
+
+        previous_time = elapsed_time;
     }
 }
 
@@ -751,7 +721,6 @@ void bs_init(int width, int height, char *title, bs_WNDSettings settings) {
     empty_texture.tex_x = empty_texture.tex_y = 0;
     empty_texture.tex_wx = empty_texture.tex_hy = 0;
     empty_texture.data = NULL;
-    bs_selectTexture(&empty_texture);
 
     // Allocate 4 framebuffers by default, this auto-increments
     bs_window.allocated_framebuffer_count = 4;

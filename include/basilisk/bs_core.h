@@ -1,217 +1,17 @@
 #ifndef BS_CORE_H
 #define BS_CORE_H
 
-#include <bs_shaders.h>
 #include <cglm/cglm.h>
-
-typedef enum {
-	bs_WND_DEFAULT = 0,
-
-	bs_WND_TRANSPARENT = 1,
-	bs_WND_NO_TITLE_BAR = 2,
-	bs_WND_TOPMOST = 4,
-	bs_WND_INVISIBLE = 8,
-	bs_WND_UNCLICKABLE = 16,
-} bs_WNDSettings;
-
-typedef mat2 bs_mat2;
-typedef mat3 bs_mat3;
-typedef mat4 bs_mat4;
-
-typedef versor bs_quat;
-
-typedef struct {
-	unsigned char r;
-	unsigned char g;
-	unsigned char b;
-	unsigned char a;
-} bs_RGBA;
-
-/* --- FLOAT TYPES --- */
-typedef struct {
-	float r;
-	float g;
-	float b;
-	float a;
-} bs_fRGBA;
-
-typedef struct {
-	float x;
-	float y;
-} bs_vec2;
-
-typedef struct {
-	float x;
-	float y;
-	float z;
-} bs_vec3;
-
-typedef struct {
-	float x;
-	float y;
-	float z;
-	float w;
-} bs_vec4;
-
-/* --- INT TYPES --- */
-typedef struct {
-	int x;
-	int y;
-} bs_ivec2;
-
-typedef struct {
-	int x;
-	int y;
-	int z;
-} bs_ivec3;
-
-typedef struct {
-	int x;
-	int y;
-	int z;
-	int w;
-} bs_ivec4;
-
-/* --- UNSIGNED INT TYPES --- */
-typedef struct {
-	unsigned int x;
-	unsigned int y;
-} bs_uivec2;
-
-typedef struct {
-	unsigned int x;
-	unsigned int y;
-	unsigned int z;
-} bs_uivec3;
-
-typedef struct {
-	unsigned int x;
-	unsigned int y;
-	unsigned int z;
-	unsigned int w;
-} bs_uivec4;
-
-typedef struct {
-	bs_mat4 view;
-	bs_mat4 proj;
-	bs_vec3 pos;
-	bs_vec2 res;
-} bs_Camera;
-
-typedef struct {
-	bs_vec3 position;
-	bs_vec2 tex_coord;
-	bs_vec3 normal;
-	bs_RGBA color;
-} bs_Vertex;
-
-// Vertex declaration for rigged models
-typedef struct {
-	bs_vec3 position;
-	bs_vec2 tex_coord;
-	bs_vec3 normal;
-	bs_RGBA color;
-	bs_ivec4 bone_ids;
-	bs_vec4 weights;
-} bs_RVertex;
-
-typedef struct {
-	int render_width;
-	int render_height;
-
-	bs_Shader *shader;
-	void (*render)();
-
-	unsigned int VAO, VBO;
-
-	unsigned int FBO, RBO;
-	unsigned int texture_color_buffer;
-} bs_Framebuffer;
-
-// Contains all objects queued to render the next frame (unless using multiple batches)
-typedef struct {
-	bs_Shader *shader;
-	bs_Camera *camera;
-
-	void *vertices;
-	int *indices;
-
-	int draw_mode;
-	int vertex_draw_count;
-	int index_draw_count;
-
-	int attrib_count;
-	int attrib_size_bytes;
-
-	unsigned int VAO, VBO, EBO;
-} bs_Batch;
-
-typedef struct bs_Joint bs_Joint;
-typedef struct {
-	bs_Joint *joints;
-	int joint_count;
-} bs_Anim;
-
-typedef struct {
-	bs_RGBA base_color;
-	bs_TextureSlice *tex;
-
-	bs_vec3 specular;
-} bs_Material;
-
-struct bs_Joint {
-	// "mat" needs to be the first variable
-	bs_mat4 mat;
-	bs_mat4 local_inv;
-	bs_mat4 bind_matrix;
-	bs_mat4 bind_matrix_inv;
-
-	bs_Joint *parent;
-	int loc;
-};
-
-typedef struct {
-	bs_Material material;
-	int attrib_count;
-
-	bs_RVertex *vertices;
-	int vertex_count;
-
-	int *indices;
-	int index_count;
-} bs_Prim;
-
-typedef struct {
-	int vertex_count;
-
-	bs_vec3 pos;
-	bs_vec4 rot;
-	bs_vec3 sca;
-	bs_mat4 mat;
-
-	bs_Prim *prims;
-	int prim_count;
-
-	bs_Joint *joints;
-	int joint_count;
-} bs_Mesh;
-
-typedef struct {
-	bs_Mesh *meshes;
-	bs_TextureSlice **textures;
-
-	int mesh_count;
-	int vertex_count;
-	int index_count;
-} bs_Model;
+#include <bs_types.h>
 
 /* --- RENDERING --- */
 void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height, void (*render)(), bs_Shader *shader);
 void bs_setFramebufferShader(bs_Framebuffer *framebuffer, bs_Shader *shader);
 
 void bs_pushVertexStruct(void *vertex);
-void bs_pushVertex(float px, float py, float pz, float tx, float ty, float nx, float ny, float nz, bs_RGBA color);
-void bs_pushTexRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_TextureSlice *tex);
+void bs_pushVertex(bs_vec3 pos, bs_vec2 tex_coord, bs_vec3 normal, bs_RGBA color);
+void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_AtlasSlice *tex);
+void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
 void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
@@ -221,9 +21,11 @@ void bs_pushModel(bs_Model *model);
 void bs_pushModelUnbatched(bs_Model *model, bs_Shader *shader);
 
 /* --- BATCHING --- */
-void bs_createBatch(bs_Batch *batch, int index_count, const int batch_type, int batch_size_bytes);
-void bs_addBatchAttrib (const int type, unsigned int amount, size_t offset_bytes, bool normalized);
-void bs_addBatchAttribI(const int type, unsigned int amount, size_t offset_bytes);
+void bs_createBatch(bs_Batch *batch, int index_count, int batch_size_bytes, int batch_types);
+void bs_setBatchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size);
+void bs_addBatchAttrib (const int type, unsigned int amount, size_t size_per_type, bool normalized);
+void bs_addBatchAttribI(const int type, unsigned int amount, size_t size_per_type);
+void bs_bindBufferRange(int target, int bind_point, int buffer, int offset, int size);
 void bs_selectBatch(bs_Batch *batch);
 void bs_pushBatch();
 void bs_renderBatch(int start_index, int draw_count);
@@ -262,7 +64,7 @@ void bs_setMatrixLook(bs_Camera *cam, bs_vec3 dir, bs_vec3 up);
 void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float nearZ, float farZ);
 
 /* --- CONSTANTS --- */
-// OpenGL Filtering settings
+/* OPENGL FILTERING SETTINGS */
 #define BS_NEAREST 0x2600
 #define BS_NEAREST_MIPMAP_LINEAR 0x2702
 #define BS_NEAREST_MIPMAP_NEAREST 0x2700
@@ -271,11 +73,18 @@ void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float 
 #define BS_LINEAR_MIPMAP_LINEAR 0x2703
 #define BS_LINEAR_MIPMAP_NEAREST 0x2701
 
-// BATCH ATTRIBUTE TYPES AND SIZE
+/* BATCH ATTRIBUTE TYPES  */
 #define BS_STD_BATCH 0
 #define BS_RIG_BATCH 1
 
-// RENDER MODES
+#define BS_POSITION 1
+#define BS_TEX_COORD 2
+#define BS_COLOR 4
+#define BS_NORMAL 8
+#define BS_BONE_IDS 16
+#define BS_WEIGHTS 32
+
+/* RENDER MODES */
 #define BS_POINTS 0x0000
 #define BS_LINES 0x0001
 #define BS_LINE_LOOP 0x0002
@@ -288,13 +97,7 @@ void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float 
 #define BS_TRIANGLES_ADJACENCY 0x000C
 #define BS_TRIANGLE_STRIP_ADJACENCY 0x000D
 
-// RENDER MODE SIZES
-#define BS_VERTEX 1
-#define BS_LINE 3
-#define BS_TRIANGLE 3
-#define BS_QUAD 6
-
-// OPENGL DATATYPES
+/* DATATYPES */
 #define BS_SBYTE 0x1400
 #define BS_UBYTE 0x1401
 #define BS_SHORT 0x1402
@@ -303,11 +106,11 @@ void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float 
 #define BS_UINT 0x1405
 #define BS_FLOAT 0x1406
 
-// ATLAS SETTINGS
+/* ATLAS SETTINGS */
 #define BS_ATLAS_SIZE 4096 /* Pixels (x, y) */
 #define BS_MAX_TEXTURES 1000
 
-// Base Internal Formats
+/* BASE INTERNAL FORMATS */
 #define BS_CHANNEL_RED 0x1903
 #define BS_CHANNEL_GREEN 0x1904
 #define BS_CHANNEL_BLUE 0x1905
@@ -315,13 +118,13 @@ void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float 
 #define BS_CHANNEL_RGB 0x1907
 #define BS_CHANNEL_RGBA 0x1908
 
-// Sized Internal Formats
+/* SIZED INTERNAL FORMATS */
 #define BS_CHANNEL_RGBA32F 0x8814
 #define BS_CHANNEL_RGB32F 0x8815
 #define BS_CHANNEL_RGBA16F 0x881A
 #define BS_CHANNEL_RGB16F 0x881B
 
-//TODO: CAPS
+/* KEY CODES */
 // #define BS_KEY_UNKNOWN   -1
 #define BS_KEY_SPACE   32
 #define BS_KEY_APOSTROPHE   39 /* ' */
@@ -444,5 +247,27 @@ void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float 
 #define BS_KEY_RIGHT_SUPER   347
 #define BS_KEY_MENU   348
 #define BS_KEY_LAST   BS_KEY_MENU
+
+/* MEMORY BARRIERS */
+#define BS_VERTEX_ATTRIB_ARRAY_BARRIER_BIT 0x00000001
+#define BS_ELEMENT_ARRAY_BARRIER_BIT 0x00000002
+#define BS_UNIFORM_BARRIER_BIT 0x00000004
+#define BS_TEXTURE_FETCH_BARRIER_BIT 0x00000008
+#define BS_SHADER_IMAGE_ACCESS_BARRIER_BIT 0x00000020
+#define BS_COMMAND_BARRIER_BIT 0x00000040
+#define BS_PIXEL_BUFFER_BARRIER_BIT 0x00000080
+#define BS_TEXTURE_UPDATE_BARRIER_BIT 0x00000100
+#define BS_BUFFER_UPDATE_BARRIER_BIT 0x00000200
+#define BS_FRAMEBUFFER_BARRIER_BIT 0x00000400
+#define BS_TRANSFORM_FEEDBACK_BARRIER_BIT 0x00000800
+#define BS_ATOMIC_COUNTER_BARRIER_BIT 0x00001000
+#define BS_ALL_BARRIER_BITS 0xFFFFFFFF
+#define BS_SHADER_STORAGE_BARRIER_BIT 0x00002000
+
+/* BIND OPERATION */
+#define BS_UNIFORM_BUFFER 0x8A11
+#define BS_ATOMIC_COUNTER_BUFFER 0x92C0
+#define BS_SHADER_STORAGE_BUFFER 0x90D2
+#define BS_TRANSFORM_FEEDBACK_BUFFER 0x8C8E
 
 #endif /* BS_CORE_H */

@@ -7,6 +7,7 @@
 #include <bs_models.h>
 #include <bs_core.h>
 #include <bs_textures.h>
+#include <bs_shaders.h>
 #include <bs_file_mgmt.h>
 #include <bs_math.h>
 
@@ -243,7 +244,7 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 	if(data->textures_count == 0)
 		return;
 
-	bs_TextureSlice *images[data->images_count];
+	bs_AtlasSlice *images[data->images_count];
 	int64_t ids[data->textures_count];
 
 	for(int i = 0; i < data->textures_count; i++) {
@@ -259,7 +260,7 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 	}
 
  	curr_tex_ptr = ids[0];
- 	model->textures = malloc(data->textures_count * sizeof(bs_TextureSlice *));
+ 	model->textures = malloc(data->textures_count * sizeof(bs_AtlasSlice*));
 
 	for(int i = 0; i < data->textures_count; i++) {
 		ids[i] -= curr_tex_ptr;

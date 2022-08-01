@@ -19,15 +19,15 @@
 
 int atlas_count = 0;
 bs_Atlas *atlases;
-bs_TextureSlice *curr_texture_slice;
-bs_Texture *curr_texture;
+bs_AtlasSlice *curr_atlas_slice;
+bs_Tex2D *curr_texture;
 
-void bs_splitTexture(unsigned char *data, int w, int h, int frames, int *curr_tex_count, bs_TextureSlice **textures) {
+void bs_splitTexture(unsigned char *data, int w, int h, int frames, int *curr_tex_count, bs_AtlasSlice **textures) {
     int slice_width = w / frames; // TODO: Check if not an int
 
     // For each frame
     for(int i = 0; i < frames; i++) {
-        bs_TextureSlice *tex = (*textures) + *curr_tex_count + i;
+        bs_AtlasSlice *tex = (*textures) + *curr_tex_count + i;
         tex->w = w;
         tex->h = h;
         tex->x = 0;
@@ -56,7 +56,7 @@ void bs_splitTexture(unsigned char *data, int w, int h, int frames, int *curr_te
 
 void bs_setOffsets(int width, int height, bs_Atlas *atlas) {
     rectpacker_Rect *rects = malloc(sizeof(rectpacker_Rect) * atlas->tex_count);
-    bs_TextureSlice *tex = atlas->textures;
+    bs_AtlasSlice *tex = atlas->textures;
 
     for(int i = 0; i < atlas->tex_count; i++) {
         rects[i].w = tex[i].w;
@@ -77,7 +77,7 @@ void bs_setOffsets(int width, int height, bs_Atlas *atlas) {
 
 void bs_appendToAtlas(unsigned char *atlas_data, int width, int height, bs_Atlas *atlas) {
     for(int i = 0; i < atlas->tex_count; i++) {
-        bs_TextureSlice *tex = &atlas->textures[i];
+        bs_AtlasSlice *tex = &atlas->textures[i];
         cappend_append(atlas_data, width, height, tex->data, tex->w, tex->h, tex->x, tex->y);
         free(tex->data);
         tex->data = NULL;
@@ -94,7 +94,7 @@ void bs_createWhiteSquare(int dim, bs_Atlas *atlas) {
 }
 
 /* TEXTURE INITIALIZATION */
-void bs_initTexture(bs_Texture *texture, int w, int h, unsigned char *data) {
+void bs_initTexture(bs_Tex2D *texture, int w, int h, unsigned char *data) {
     glGenTextures(1, &texture->id);
     glBindTexture(GL_TEXTURE_2D, texture->id);
 
@@ -134,7 +134,7 @@ bs_Atlas *bs_createTextureAtlas(int w, int h, int max_textures) {
     bs_Atlas *atlas = &atlases[atlas_count];
 
     atlas->tex.data = calloc(w * h * 4, sizeof(char));
-    atlas->textures = malloc(sizeof(bs_TextureSlice) * max_textures);
+    atlas->textures = malloc(sizeof(bs_AtlasSlice) * max_textures);
     atlas->tex.w = w;
     atlas->tex.h = h;
     atlas->tex_count = 0;
@@ -158,10 +158,10 @@ void bs_pushAtlas(bs_Atlas *atlas) {
     bs_genTextureMipmaps();
 }
 
-bs_TextureSlice *bs_loadTexture(char *path, int frames) {
+bs_AtlasSlice *bs_loadTexture(char *path, int frames) {
     bs_Atlas *std_atlas = bs_getStdAtlas();
 
-    bs_TextureSlice *tex = std_atlas->textures + std_atlas->tex_count;
+    bs_AtlasSlice *tex = std_atlas->textures + std_atlas->tex_count;
     unsigned char *data;
 
     int success = lodepng_decode32_file(&data, &tex->w, &tex->h, path);
@@ -177,8 +177,8 @@ bs_TextureSlice *bs_loadTexture(char *path, int frames) {
     return tex;
 }
 
-void bs_selectTexture(bs_TextureSlice *texture) {
-    curr_texture_slice = texture;
+void bs_selectTexture(bs_Tex2D *texture) {
+    glBindTexture(GL_TEXTURE_2D, texture->id);
 }
 
 void bs_saveAtlasToFile(bs_Atlas *atlas, char *name) {
@@ -189,11 +189,6 @@ void bs_freeAtlasData(bs_Atlas *atlas) {
     free(atlas->tex.data);
 }
 
-void bs_selectAtlas(bs_Atlas *atlas) {
-    // glActiveTexture(GL_TEXTURE0 + atlas->id);
-    glBindTexture(GL_TEXTURE_2D, atlas->tex.id);
-}
-
-bs_TextureSlice *bs_getSelectedTexture() {
-    return curr_texture_slice;
+bs_AtlasSlice *bs_getSelectedTexture() {
+    return curr_atlas_slice;
 }

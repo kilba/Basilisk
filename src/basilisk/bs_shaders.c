@@ -145,7 +145,7 @@ void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shade
 }
 
 /* COMPUTE SHADERS */
-void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs_Texture *tex) {
+void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs_Tex2D *tex) {
     if(cs_code == NULL)
         return;
 
@@ -161,7 +161,7 @@ void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs
     glBindImageTexture(0, compute_shader->tex->id, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 }
 
-void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Texture *tex) {
+void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Tex2D *tex) {
     int cs_err_code;
     int len;
 
@@ -169,12 +169,20 @@ void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Te
     bs_loadMemComputeShader(cscode, compute_shader, tex);
 }
 
-void bs_getUniformLoc(bs_Shader *shader, char *name, int *result) {
-    *result = glGetUniformLocation(shader->id, name);
+void bs_setMemBarrier(int barrier) {
+    glMemoryBarrier(barrier);
+}
+
+void bs_dispatchComputeShader(int x, int y, int z) {
+    glDispatchCompute(x, y, z);
+}
+
+void bs_getUniformLoc(int id, char *name, int *result) {
+    *result = glGetUniformLocation(id, name);
 }
 
 void bs_setShaderAtlas(bs_Shader *shader, bs_Atlas *atlas, char *uniform_name) {
-    bs_switchShader(shader);
+    bs_switchShader(shader->id);
     int loc = glGetUniformLocation(shader->id, uniform_name);
     glUniform1i(loc, atlas->tex.id);
 }
@@ -191,7 +199,7 @@ void bs_setTimeUniform(bs_Shader *shader, float time) {
 }
 
 void bs_setViewMatrixUniform(bs_Shader *shader, void *cam) {
-    bs_switchShader(shader);
+    bs_switchShader(shader->id);
     bs_Uniform *uniform = &shader->uniforms[UNIFORM_VIEW];
 
     if(!uniform->is_valid)
@@ -201,7 +209,7 @@ void bs_setViewMatrixUniform(bs_Shader *shader, void *cam) {
 }
 
 void bs_setProjMatrixUniform(bs_Shader *shader, void *cam) {
-    bs_switchShader(shader);
+    bs_switchShader(shader->id);
     bs_Uniform *uniform = &shader->uniforms[UNIFORM_PROJ];
 
     if(!uniform->is_valid)
@@ -211,12 +219,12 @@ void bs_setProjMatrixUniform(bs_Shader *shader, void *cam) {
 }
 
 // SHADER ABSTRACTION LAYER
-void bs_switchShader(bs_Shader *shader) {
-    glUseProgram(shader->id);
+void bs_switchShader(int id) {
+    glUseProgram(id);
 }
 
-void bs_switchShaderCompute(bs_ComputeShader *compute_shader) {
-    glUseProgram(compute_shader->id);
+void bs_switchShaderCompute(int id) {
+    glUseProgram(id);
 }
 
 // MATRICES
@@ -233,5 +241,9 @@ void bs_uniform_float(int loc, float val) {
 
 // VECTORS
 // TODO: bvecn, ivecn, uvecn, vecn, dvecn
+
+void bs_uniform_vec3(int loc, bs_vec3 vec) {
+    glUniform3f(loc, vec.x, vec.y, vec.z);
+}
 
 // TODO: Arrays
