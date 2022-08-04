@@ -5,6 +5,8 @@
 
 #include <cglm/cglm.h>
 
+bs_Camera cam;
+
 void bs_print(const int info_type, char *format, ...) {
     va_list argptr;
     va_start(argptr, format);
@@ -12,10 +14,19 @@ void bs_print(const int info_type, char *format, ...) {
     va_end(argptr);
 }
 
-void bs_debugUpdate() {
+bool bs_debugCameraIsActivated() {
+    return true;
+}
 
+bs_Camera *bs_getDebugCamera() {
+    return &cam;
+}
+
+void bs_debugUpdate() {
 }
 
 void bs_debugStart() {
-
+    printf("Debugging\n");
+    bs_setPerspectiveProjection(&cam, (bs_vec2){ 800, 600 }, 90.0, 0.01, -10000.0);
+    bs_setMatrixLookat(&cam, (bs_vec3){ 0.0, 0.0, -1.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
 }

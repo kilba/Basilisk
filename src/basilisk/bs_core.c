@@ -6,9 +6,11 @@
 // Basilisk
 #include <bs_shaders.h>
 #include <bs_textures.h>
-#include <bs_debug.h>
 #include <bs_core.h>
 #include <bs_math.h>
+
+// TODO: Ifdef debug
+#include <bs_debug.h>
 
 // STD
 #include <string.h>
@@ -61,30 +63,20 @@ double delta_time = 0.0;
 double previous_time = 0.0;
 bs_fRGBA clear_color = { 0.0, 0.0, 0.0, 1.0 };
 
+bool key_states[350];
+
 /* --- WINDOW SETTINGS --- */
-void bs_initGLFW(bs_WNDSettings settings) {
+void bs_initGLFW() {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+}
 
-    if(settings != bs_WND_DEFAULT) {
-        if((settings & bs_WND_TRANSPARENT) == bs_WND_TRANSPARENT) {
-            glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
-        }
-        if((settings & bs_WND_NO_TITLE_BAR) == bs_WND_NO_TITLE_BAR) {
-            glfwWindowHint(GLFW_DECORATED, false);
-        }
-        if((settings & bs_WND_TOPMOST) == bs_WND_TOPMOST) {
-            glfwWindowHint(GLFW_FLOATING, true);
-        }
-        if((settings & bs_WND_INVISIBLE) == bs_WND_INVISIBLE) {
-            glfwWindowHint(GLFW_VISIBLE, false);
-        }
-        if((settings & bs_WND_UNCLICKABLE) == bs_WND_UNCLICKABLE) {
-            glfwWindowHint(GLFW_MOUSE_PASSTHROUGH, true);
-        }
-    }
+// 0x00020007
+void bs_initWndSetting(int setting, bool val) {
+    // TODO: Check if setting is applicable
+    glfwSetWindowAttrib(window, setting, val);
 }
 
 void bs_createWindow(int width, int height, char* title) {
@@ -151,20 +143,20 @@ bs_vec2 bs_getWindowDimensions() {
         int height = h;
 
         HBITMAP hbwindow = CreateCompatibleBitmap(hwindowDC, width, height);
-        // BITMAPINFOHEADER bi = createBitmapHeader(width, height);
+        BITMAPINFOHEADER bi = createBitmapHeader(width, height);
 
         SelectObject(hwindowCompatibleDC, hbwindow);
 
         BITMAP bmp;
         GetObject(hbwindow, sizeof(BITMAP), (LPVOID)&bmp);
 
-        // DWORD dwBmpSize = ((width * bi.biBitCount + 31) / 32) * 4 * height;
-        // HANDLE hDIB = GlobalAlloc(GHND, dwBmpSize);
-        // unsigned char* lpbitmap = (unsigned char*)GlobalLock(hDIB);
+        DWORD dwBmpSize = ((width * bi.biBitCount + 31) / 32) * 4 * height;
+        HANDLE hDIB = GlobalAlloc(GHND, dwBmpSize);
+        unsigned char* lpbitmap = (unsigned char*)GlobalLock(hDIB);
  
         // copy from the window device context to the bitmap device context
-        // StretchBlt(hwindowCompatibleDC, 0, 0, width, height, hwindowDC, screenx, screeny, width, height, SRCCOPY);   //change SRCCOPY to NOTSRCCOPY for wacky colors !
-        // GetDIBits(hwindowCompatibleDC, hbwindow, 0, height, lpbitmap, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
+        StretchBlt(hwindowCompatibleDC, 0, 0, width, height, hwindowDC, screenx, screeny, width, height, SRCCOPY);   //change SRCCOPY to NOTSRCCOPY for wacky colors !
+        GetDIBits(hwindowCompatibleDC, hbwindow, 0, height, lpbitmap, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
 
         // GlobalFree(hDIB);
         DeleteDC(hwindowCompatibleDC);
@@ -176,8 +168,6 @@ bs_vec2 bs_getWindowDimensions() {
 #endif
 
 /* --- INPUTS/CALLBACKS --- */
-bool key_states[350];
-
 void bs_onKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if(action == GLFW_PRESS) {
         key_states[key] = true;
@@ -231,19 +221,8 @@ bs_vec2 bs_getCursorPosition() {
 }
 
 /* --- MATRICES --- */
-void bs_setProjMatrixOrtho(bs_Camera *cam, int left, int right, int bottom, int top) {
-    glm_ortho(left, right, bottom, top, 0.1, 10000.0, cam->proj);
-    // glm_translate(cam->view, (vec3){ 0.0, 0.0, -1.0 });
-}
-
-void bs_setViewMatrixOrtho(bs_Camera *cam) {
-    float cpy_matrix[4][4] = GLM_MAT4_IDENTITY_INIT;
-    memcpy(cam->view, cpy_matrix, 4 * 4 * sizeof(float));
-}
-
-void bs_createOrthographicProjection(bs_Camera *cam, int left, int right, int bottom, int top) {
-    // bs_setViewMatrixOrtho(cam);
-    bs_setProjMatrixOrtho(cam, left, right, bottom, top);
+void bs_setOrthographicProjection(bs_Camera *cam, int left, int right, int bottom, int top, float nearZ, float farZ) {
+    glm_ortho(left, right, bottom, top, nearZ, farZ, cam->proj);
 
     int x_res = bs_sign(left - right);
     int y_res = bs_sign(top - bottom);
@@ -294,10 +273,10 @@ void bs_pushVertex(bs_vec3 pos, bs_vec2 tex_coord, bs_vec3 normal, bs_RGBA color
 
     int offset = 0;
     unsigned char data[curr_batch->attrib_size_bytes];
-    bool has_position  = (batch->types & BS_POSITION) == BS_POSITION;
-    bool has_normal    = (batch->types & BS_NORMAL) == BS_NORMAL;
-    bool has_tex_coord = (batch->types & BS_TEX_COORD) == BS_TEX_COORD;
-    bool has_color     = (batch->types & BS_COLOR) == BS_COLOR;
+    bool has_position  = (batch->shader->attribs & BS_POSITION) == BS_POSITION;
+    bool has_normal    = (batch->shader->attribs & BS_NORMAL) == BS_NORMAL;
+    bool has_tex_coord = (batch->shader->attribs & BS_TEX_COORD) == BS_TEX_COORD;
+    bool has_color     = (batch->shader->attribs & BS_COLOR) == BS_COLOR;
 
     memcpy(data + offset, &pos, sizeof(bs_vec3) * has_position);
     offset += sizeof(bs_vec3) * has_position;
@@ -448,17 +427,20 @@ void bs_changeBatchBufferSize(bs_Batch *batch, int index_count) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, batch->indices, GL_STATIC_DRAW);
 }
 
-void bs_createBatch(bs_Batch *batch, int index_count, int batch_size_bytes, int batch_types) {
+void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count, int batch_size_bytes) {
     // Default values
     batch->camera = &std_camera;
-    batch->shader = &texture_shader;
     batch->draw_mode = BS_TRIANGLES;
-    batch->types = batch_types;
     batch->vertex_draw_count = 0;
     batch->index_draw_count = 0;
     batch->attrib_count = 0;
     batch->attrib_offset = 0;
     batch->attrib_size_bytes = batch_size_bytes;
+    batch->shader = shader;
+
+    if(batch->shader == NULL) {
+        batch->shader = &texture_shader;
+    }
 
     // Create buffer/array objects
     glGenVertexArrays(1, &batch->VAO);
@@ -474,23 +456,23 @@ void bs_createBatch(bs_Batch *batch, int index_count, int batch_size_bytes, int 
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, NULL, GL_STATIC_DRAW);
 
     // Attribute setup
-    if((batch_types & BS_POSITION) == BS_POSITION)
+    if((batch->shader->attribs & BS_POSITION) == BS_POSITION)
         bs_addBatchAttrib (BS_FLOAT, 3, sizeof(bs_vec3), false);
 
-    if((batch_types & BS_TEX_COORD) == BS_TEX_COORD)
+    if((batch->shader->attribs & BS_TEX_COORD) == BS_TEX_COORD)
         bs_addBatchAttrib (BS_FLOAT, 2, sizeof(bs_vec2), false);
 
-    if((batch_types & BS_NORMAL) == BS_NORMAL)
+    if((batch->shader->attribs & BS_NORMAL) == BS_NORMAL) 
         bs_addBatchAttrib (BS_FLOAT, 3, sizeof(bs_vec3), false);
     
-    if((batch_types & BS_COLOR) == BS_COLOR)
+    if((batch->shader->attribs & BS_COLOR) == BS_COLOR) 
         bs_addBatchAttrib (BS_UBYTE, 4, sizeof(bs_RGBA), true);
 
     // FIXA GL_INT -> BS_INT
-    if((batch_types & BS_BONE_IDS) == BS_BONE_IDS)
+    if((batch->shader->attribs & BS_BONE_IDS) == BS_BONE_IDS)
         bs_addBatchAttribI(GL_INT  , 4, sizeof(bs_ivec4));
 
-    if((batch_types & BS_WEIGHTS) == BS_WEIGHTS)
+    if((batch->shader->attribs & BS_WEIGHTS) == BS_WEIGHTS)
         bs_addBatchAttrib (BS_FLOAT, 4, sizeof(bs_vec4), false);
 }
 
@@ -538,8 +520,18 @@ void bs_freeBatchData() {
 void bs_renderBatch(int start_index, int draw_count) {
     // Batch should still be bound here
     bs_setTimeUniform(curr_batch->shader, elapsed_time);
-    bs_setViewMatrixUniform(curr_batch->shader, curr_batch->camera);
-    bs_setProjMatrixUniform(curr_batch->shader, curr_batch->camera);
+
+    #ifdef BS_DEBUG
+        bs_Camera *cam = curr_batch->camera;
+        if(bs_debugCameraIsActivated()) {
+            cam = bs_getDebugCamera();
+        }
+        bs_setViewMatrixUniform(curr_batch->shader, cam);
+        bs_setProjMatrixUniform(curr_batch->shader, cam);
+    #else 
+        bs_setViewMatrixUniform(curr_batch->shader, curr_batch->camera);
+        bs_setProjMatrixUniform(curr_batch->shader, curr_batch->camera);
+    #endif
 
     glDrawElements(curr_batch->draw_mode, draw_count, GL_UNSIGNED_INT, (void*)(start_index * 6 * sizeof(GLuint)));
 }
@@ -667,8 +659,6 @@ void bs_checkGLError() {
     }
 }
 
-#include <bs_models.h>
-
 void bs_render() {
     for(int i = 0; i < 350; i++) {
         key_states[i] = false;
@@ -690,11 +680,6 @@ void bs_render() {
             bs_startFramebufferRender(framebuffer);
             bs_selectTexture(&std_atlas->tex);
             framebuffer->render();
-
-            /* TEMP- */
-
-                /* -TEMP */
-
             bs_endFramebufferRender(framebuffer);
         }
 
@@ -712,8 +697,8 @@ void bs_exitGLFW() {
     glfwTerminate();
 }
 
-void bs_init(int width, int height, char *title, bs_WNDSettings settings) {
-    bs_initGLFW(settings);
+void bs_init(int width, int height, char *title) {
+    bs_initGLFW();
 
     // Set default texture to be empty
     empty_texture.w = empty_texture.h = 0;
@@ -734,7 +719,7 @@ void bs_init(int width, int height, char *title, bs_WNDSettings settings) {
     std_camera.pos.y = 0.0;
     std_camera.pos.z = 500.0;
     bs_setMatrixLookat(&std_camera, (bs_vec3){ 0.0, 0.0, -1.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
-    bs_createOrthographicProjection(&std_camera, 0, width, 0, height);
+    bs_setOrthographicProjection(&std_camera, 0, width, 0, height, 0.01, 1000.0);
 
     // Texture Atlas Init
     std_atlas = bs_createTextureAtlas(BS_ATLAS_SIZE, BS_ATLAS_SIZE, BS_MAX_TEXTURES);
@@ -753,6 +738,10 @@ void bs_startRender(void (*render)()) {
     bs_freeAtlasData(std_atlas);
 
     bs_createFramebuffer(&std_framebuffer, bs_window.width, bs_window.height, render, &fbo_shader);
+
+    #ifdef BS_DEBUG
+        bs_debugStart();
+    #endif
 
     bs_render();
     bs_exitGLFW();

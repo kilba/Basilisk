@@ -21,7 +21,7 @@ void bs_pushModel(bs_Model *model);
 void bs_pushModelUnbatched(bs_Model *model, bs_Shader *shader);
 
 /* --- BATCHING --- */
-void bs_createBatch(bs_Batch *batch, int index_count, int batch_size_bytes, int batch_types);
+void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count, int batch_size_bytes);
 void bs_setBatchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size);
 void bs_addBatchAttrib (const int type, unsigned int amount, size_t size_per_type, bool normalized);
 void bs_addBatchAttribI(const int type, unsigned int amount, size_t size_per_type);
@@ -40,10 +40,11 @@ int bs_getBatchSize(bs_Batch *batch);
 bs_Atlas *bs_getStdAtlas();
 
 /* --- WINDOW INITIALIZATION --- */
-void bs_init(int width, int height, char *title, bs_WNDSettings settings);
+void bs_init(int width, int height, char *title);
 void bs_startRender(void (*render)());
 void bs_setBackgroundColor(bs_fRGBA color);
 bs_vec2 bs_getWindowDimensions();
+void bs_initWndSetting(int setting, bool val);
 
 /* --- INPUTS / CALLBACKS --- */
 bool bs_isKeyDown(int key);
@@ -58,7 +59,7 @@ void bs_setMatrices(bs_Shader *shader);
 bs_Camera *bs_getStdCamera();
 void bs_setProjMatrixOrtho(bs_Camera *cam, int left, int right, int bottom, int top);
 void bs_setViewMatrixOrtho(bs_Camera *cam);
-void bs_createOrthographicProjection(bs_Camera *cam, int left, int right, int bottom, int top);
+void bs_setOrthographicProjection(bs_Camera *cam, int left, int right, int bottom, int top, float nearZ, float farZ);
 void bs_setMatrixLookat(bs_Camera *cam, bs_vec3 center, bs_vec3 up);
 void bs_setMatrixLook(bs_Camera *cam, bs_vec3 dir, bs_vec3 up);
 void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float nearZ, float farZ);

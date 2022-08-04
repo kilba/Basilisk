@@ -24,6 +24,7 @@ typedef struct {
 } bs_Atlas;
 
 /* --- SHADERS --- */
+// TODO: Make #define instead
 typedef enum {
 	UNIFORM_PROJ,
 	UNIFORM_VIEW,
@@ -32,16 +33,24 @@ typedef enum {
 	UNIFORM_TYPE_COUNT,
 } bs_STDUniforms;
 
+// TODO: Remove this shit
 typedef struct {
 	bool is_valid;
 	int loc;
 } bs_Uniform;
 
 typedef struct {
+	int type;
+	int loc;
+} bs_Attrib;
+
+typedef struct {
 	// The order in which the shader was loaded (zero-indexed)
+	// TODO: Check if unecessary
 	int index;
 
 	bs_Uniform uniforms[UNIFORM_TYPE_COUNT];
+	int attribs;
 
 	// OpenGL Variables
 	unsigned int id;
@@ -58,15 +67,12 @@ typedef struct {
 } bs_ComputeShader;
 
 /* --- GENERAL --- */
-typedef enum {
-	bs_WND_DEFAULT = 0,
-
-	bs_WND_TRANSPARENT = 1,
-	bs_WND_NO_TITLE_BAR = 2,
-	bs_WND_TOPMOST = 4,
-	bs_WND_INVISIBLE = 8,
-	bs_WND_UNCLICKABLE = 16,
-} bs_WNDSettings;
+// TODO: Make #define instead
+#define BS_WND_TRANSPARENT 0x0002000A
+#define BS_WND_HAS_TITLE_BAR 0x00020005
+#define BS_WND_TOPMOST 0x00020007
+#define BS_WND_VISIBLE 0x00020004
+#define BS_WND_UNCLICKABLE 0x0002000D
 
 typedef mat2 bs_mat2;
 typedef mat3 bs_mat3;
@@ -194,7 +200,6 @@ typedef struct {
 	int vertex_draw_count;
 	int index_draw_count;
 
-	int types;
 	int attrib_count;
 	int attrib_size_bytes;
 	size_t attrib_offset;

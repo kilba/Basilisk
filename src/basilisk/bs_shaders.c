@@ -16,28 +16,58 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+// TODO: Check if this is unnecessary
 int loaded_shader_count = 0;
-const char *std_uniforms[] = { "bs_Proj", "bs_View", "bs_Time" };
 
 // INITIALIZATION
 // Gets all default uniform locations
-void bs_setDefaultUniforms(bs_Shader *shader, char *shader_code){
+void bs_setDefShaderUniforms(bs_Shader *shader, char *shader_code){
+    const char *def_uniforms[] = { "bs_Proj", "bs_View", "bs_Time" };
+
+    // Loop through all the uniform types
     for (int i = 0; i < UNIFORM_TYPE_COUNT; i++) {
         // Check if the shader contains the uniform
-        if(strstr(shader_code, std_uniforms[i])){
+        if(strstr(shader_code, def_uniforms[i])){
             bs_Uniform *uniform = &shader->uniforms[i];
 
             // If uniform already has been set
             if(uniform->is_valid)
                 continue;
 
-            int uniform_loc = glGetUniformLocation(shader->id, std_uniforms[i]);
+            int uniform_loc = glGetUniformLocation(shader->id, def_uniforms[i]);
             // If uniform is unused or non existent
             if(uniform_loc == -1)
                 continue;
 
             uniform->is_valid = true;
             uniform->loc = uniform_loc;
+        }
+    }
+}
+
+void bs_setDefShaderAttribs(bs_Shader *shader, char *vs_code) {
+    const char *def_attribs [] = { 
+        "bs_Pos", 
+        "bs_TexCoord", 
+        "bs_Color", 
+        "bs_Normal",
+        "bs_Bone_Ids",
+        "bs_Weights"
+    };
+
+    int values[] = { 
+        BS_POSITION,
+        BS_TEX_COORD,
+        BS_COLOR,
+        BS_NORMAL,
+        BS_BONE_IDS,
+        BS_WEIGHTS
+    };
+
+    int attrib_count = sizeof(def_attribs) / sizeof(char*);
+    for(int i = 0; i < attrib_count; i++) {
+        if(strstr(vs_code, def_attribs[i])) {
+            shader->attribs |= values[i];
         }
     }
 }
@@ -80,11 +110,13 @@ void bs_setDefaultUniformLocations(bs_Shader *shader, char *vs_code, char *fs_co
         shader->uniforms[i].is_valid = false;
     }
 
-    bs_setDefaultUniforms(shader, (char *)vs_code);
-    bs_setDefaultUniforms(shader, (char *)fs_code);
+    bs_setDefShaderUniforms(shader, (char *)vs_code);
+    bs_setDefShaderUniforms(shader, (char *)fs_code);
+
+    bs_setDefShaderAttribs(shader, (char *)vs_code);
 
     if(gs_code != 0) {
-        bs_setDefaultUniforms(shader, (char *)gs_code);
+        bs_setDefShaderUniforms(shader, (char *)gs_code);
     }
 }
 
@@ -94,6 +126,7 @@ void bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code, bs_Shader *sh
         return;
     }
 
+    shader->attribs = 0;
     shader->id = glCreateProgram();
 
     bs_loadShaderCode(&shader->vs_id, vs_code, GL_VERTEX_SHADER);
