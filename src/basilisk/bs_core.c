@@ -66,11 +66,15 @@ bs_fRGBA clear_color = { 0.0, 0.0, 0.0, 1.0 };
 bool key_states[350];
 
 /* --- WINDOW SETTINGS --- */
-void bs_initGLFW() {
+void bs_initGLFW(int settings) {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    if(settings == GLFW_TRANSPARENT_FRAMEBUFFER) {
+        glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, true);
+    }
 }
 
 // 0x00020007
@@ -699,8 +703,8 @@ void bs_exitGLFW() {
     glfwTerminate();
 }
 
-void bs_init(int width, int height, char *title) {
-    bs_initGLFW();
+void bs_init(int width, int height, char *title, int settings) {
+    bs_initGLFW(settings);
 
     // Set default texture to be empty
     empty_texture.w = empty_texture.h = 0;

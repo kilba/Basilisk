@@ -40,7 +40,7 @@ int bs_getBatchSize(bs_Batch *batch);
 bs_Atlas *bs_getStdAtlas();
 
 /* --- WINDOW INITIALIZATION --- */
-void bs_init(int width, int height, char *title);
+void bs_init(int width, int height, char *title, int settings);
 void bs_startRender(void (*render)());
 void bs_setBackgroundColor(bs_fRGBA color);
 bs_vec2 bs_getWindowDimensions();
