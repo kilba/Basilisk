@@ -373,24 +373,26 @@ void bs_pushPrim(bs_Prim *prim, mat4 model, bs_Mesh *mesh) {
         bs_RVertex vertex;
         void *v_vertex = &vertex;
 
-        memcpy(v_vertex + offsetof(bs_Vertex, color)   , &prim->material.base_color, sizeof(bs_RGBA));
-        memcpy(v_vertex + offsetof(bs_Vertex, normal)  , &prim->vertices[i].normal, sizeof(bs_vec3));
-        memcpy(v_vertex + offsetof(bs_Vertex, position), &prim->vertices[i].position, sizeof(bs_vec3));
+        // memcpy(v_vertex + offsetof(bs_Vertex, normal)  , &prim->vertices[i].normal, sizeof(bs_vec3));
+        // memcpy(v_vertex + offsetof(bs_Vertex, color)   , &prim->material.base_color, sizeof(bs_RGBA));
+        // memcpy(v_vertex + offsetof(bs_Vertex, position), &prim->vertices[i].position, sizeof(bs_vec3));
 
-        vertex.bone_ids = prim->vertices[i].bone_ids;
-        vertex.weights  = prim->vertices[i].weights;
+        // vertex.bone_ids = prim->vertices[i].bone_ids;
+        // vertex.weights  = prim->vertices[i].weights;
 
         // TODO: Figure out why 1.0 causes glitchy rendering
         const float white_tex_coord = 0.9999;
-        vertex.tex_coord = (bs_vec2){ white_tex_coord, white_tex_coord };
+        bs_vec2 tex_coord = (bs_vec2){ white_tex_coord, white_tex_coord };
 
         if(prim->material.tex != NULL) {
             // TODO: These values are constant, unnecessary to set them every frame
-            vertex.tex_coord.x = prim->vertices[i].tex_coord.x + prim->material.tex->tex_x;
-            vertex.tex_coord.y = prim->vertices[i].tex_coord.y + prim->material.tex->tex_y;
+            tex_coord.x = prim->vertices[i].tex_coord.x + prim->material.tex->tex_x;
+            tex_coord.y = prim->vertices[i].tex_coord.y + prim->material.tex->tex_y;
         }
 
-        bs_pushVertexStruct(&vertex);
+        bs_pushVertex(prim->vertices[i].position, tex_coord, prim->vertices[i].normal, prim->material.base_color);
+
+        // bs_pushVertexStruct(&vertex);
     }
 
     curr_batch->index_draw_count += prim->index_count;

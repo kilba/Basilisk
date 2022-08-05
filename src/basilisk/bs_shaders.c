@@ -64,6 +64,20 @@ void bs_setDefShaderAttribs(bs_Shader *shader, char *vs_code) {
         BS_WEIGHTS
     };
 
+   const char s[2] = "";
+   char *token;
+   
+   /* get the first token */
+   token = strtok(vs_code, s);
+   
+   /* walk through other tokens */
+   while( token != NULL ) {
+      printf( " %s\n", token );
+    
+      token = strtok(NULL, s);
+   }
+
+
     int attrib_count = sizeof(def_attribs) / sizeof(char*);
     for(int i = 0; i < attrib_count; i++) {
         if(strstr(vs_code, def_attribs[i])) {
