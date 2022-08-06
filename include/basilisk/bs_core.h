@@ -5,8 +5,6 @@
 #include <bs_types.h>
 
 /* --- RENDERING --- */
-void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height, void (*render)(), bs_Shader *shader);
-void bs_setFramebufferShader(bs_Framebuffer *framebuffer, bs_Shader *shader);
 
 void bs_pushVertexStruct(void *vertex);
 void bs_pushVertex(bs_vec3 pos, bs_vec2 tex_coord, bs_vec3 normal, bs_RGBA color);
@@ -19,6 +17,14 @@ void bs_pushMesh(bs_Mesh *mesh);
 void bs_pushModel(bs_Model *model);
 
 void bs_pushModelUnbatched(bs_Model *model, bs_Shader *shader);
+
+/* --- FRAMEBUFFERS --- */
+void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height);
+void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment);
+void bs_attachRenderbuffer();
+void bs_attachDepthBuffer(bs_Tex2D *tex);
+void bs_startFramebufferRender(bs_Framebuffer *framebuffer);
+void bs_endFramebufferRender(bs_Framebuffer *framebuffer);
 
 /* --- BATCHING --- */
 void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count, int batch_size_bytes);
@@ -37,8 +43,6 @@ void bs_changeBatchBufferSize(bs_Batch *batch, int index_count);
 void bs_setBatchShader(bs_Batch *batch, bs_Shader *shader);
 int bs_getBatchSize(bs_Batch *batch);
 
-bs_Atlas *bs_getStdAtlas();
-
 /* --- WINDOW INITIALIZATION --- */
 void bs_init(int width, int height, char *title, int settings);
 void bs_startRender(void (*render)());
@@ -54,7 +58,7 @@ bool bs_isKeyUpOnce(int key);
 bs_vec2 bs_getCursorPositionReverseY();
 bs_vec2 bs_getCursorPosition();
 
-/* MATRICES */
+/* --- MATRICES --- */
 void bs_setMatrices(bs_Shader *shader);
 bs_Camera *bs_getStdCamera();
 void bs_setProjMatrixOrtho(bs_Camera *cam, int left, int right, int bottom, int top);
@@ -124,6 +128,13 @@ void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float 
 #define BS_CHANNEL_RGB32F 0x8815
 #define BS_CHANNEL_RGBA16F 0x881A
 #define BS_CHANNEL_RGB16F 0x881B
+
+/* DEPTH INTERNAL FORMATS */
+#define BS_CHANNEL_DEPTH 0x1902
+#define BS_CHANNEL_DEPTH_16 0x81A5
+#define BS_CHANNEL_DEPTH_24 0x81A6
+#define BS_CHANNEL_DEPTH_32 0x81A7
+#define BS_CHANNEL_DEPTH_32F 0x8CAC
 
 /* KEY CODES */
 // #define BS_KEY_UNKNOWN   -1

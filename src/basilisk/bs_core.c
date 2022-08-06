@@ -36,27 +36,18 @@ float screen_quad_vertices[] = {
 struct bs_Window {
     int width;
     int height;
-
-    // Pointers to all framebuffers
-    bs_Framebuffer **framebuffers;
-    int allocated_framebuffer_count;
-    int framebuffer_count;
 } bs_window;
 
 GLFWwindow *window;
 
-bs_Framebuffer std_framebuffer;
-
 // Shaders
 bs_Shader fbo_shader;
-bs_Shader model_shader;
 bs_Shader texture_shader;
 
 bs_Camera std_camera;
 bs_Batch *curr_batch;
-bs_AtlasSlice empty_texture;
 
-bs_Atlas *std_atlas;
+bs_Framebuffer *curr_framebuffer = NULL;
 
 double elapsed_time = 0.0;
 double delta_time = 0.0;
@@ -262,10 +253,6 @@ void bs_selectBatch(bs_Batch *batch) {
     bs_switchShader(curr_batch->shader->id);
 }
 
-bs_Atlas *bs_getStdAtlas() {
-    return std_atlas;
-}
-
 void bs_pushVertexStruct(void *vertex) {
     bs_Batch *batch = curr_batch;
     memcpy(curr_batch->vertices + curr_batch->vertex_draw_count * batch->attrib_size_bytes, vertex, batch->attrib_size_bytes);
@@ -374,16 +361,6 @@ void bs_pushPrim(bs_Prim *prim, mat4 model, bs_Mesh *mesh) {
     }
 
     for(int i = 0; i < prim->vertex_count; i++) {
-        bs_RVertex vertex;
-        void *v_vertex = &vertex;
-
-        // memcpy(v_vertex + offsetof(bs_Vertex, normal)  , &prim->vertices[i].normal, sizeof(bs_vec3));
-        // memcpy(v_vertex + offsetof(bs_Vertex, color)   , &prim->material.base_color, sizeof(bs_RGBA));
-        // memcpy(v_vertex + offsetof(bs_Vertex, position), &prim->vertices[i].position, sizeof(bs_vec3));
-
-        // vertex.bone_ids = prim->vertices[i].bone_ids;
-        // vertex.weights  = prim->vertices[i].weights;
-
         // TODO: Figure out why 1.0 causes glitchy rendering
         const float white_tex_coord = 0.9999;
         bs_vec2 tex_coord = (bs_vec2){ white_tex_coord, white_tex_coord };
@@ -532,8 +509,10 @@ void bs_renderBatch(int start_index, int draw_count) {
         if(bs_debugCameraIsActivated()) {
             cam = bs_getDebugCamera();
         }
-        bs_setViewMatrixUniform(curr_batch->shader, cam);
-        bs_setProjMatrixUniform(curr_batch->shader, cam);
+        // bs_setViewMatrixUniform(curr_batch->shader, cam);
+        // bs_setProjMatrixUniform(curr_batch->shader, cam);
+        bs_setViewMatrixUniform(curr_batch->shader, curr_batch->camera);
+        bs_setProjMatrixUniform(curr_batch->shader, curr_batch->camera);
     #else 
         bs_setViewMatrixUniform(curr_batch->shader, curr_batch->camera);
         bs_setProjMatrixUniform(curr_batch->shader, curr_batch->camera);
@@ -552,100 +531,87 @@ int bs_getBatchSize(bs_Batch *batch) {
 }
 
 /* --- FRAMEBUFFERS --- */
-void bs_attachColorbuffer(bs_Framebuffer *framebuffer) {
-    glGenTextures(1, &framebuffer->texture_color_buffer);
-    glBindTexture(GL_TEXTURE_2D, framebuffer->texture_color_buffer);
+void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height) {
+    curr_framebuffer = framebuffer;
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer->render_width, framebuffer->render_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    framebuffer->render_width  = render_width;
+    framebuffer->render_height = render_height;
+    framebuffer->clear = GL_DEPTH_BUFFER_BIT;
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    // Attach it to currently bound framebuffer object
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebuffer->texture_color_buffer, 0);
+    glGenFramebuffers(1, &framebuffer->FBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
 }
 
-void bs_attachRenderbuffer(bs_Framebuffer *framebuffer) {
+void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment) {
+    bs_Framebuffer *framebuffer = curr_framebuffer;
+    #ifdef BS_DEBUG
+        if(framebuffer == NULL) {
+            bs_print(BS_ERR, "COLORBUFFER ATTACH FAILED : Framebuffer is NULL");
+        }
+        if(color_buffer == NULL) {
+            bs_print(BS_ERR, "COLORBUFFER ATTACH FAILED : Texture is NULL");
+        }
+        return;
+    #endif
+
+    framebuffer->texture = color_buffer->id;
+    framebuffer->clear |= GL_COLOR_BUFFER_BIT;
+
+    // Attach it to currently bound framebuffer object
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, GL_TEXTURE_2D, framebuffer->texture, 0);
+}
+
+void bs_attachRenderbuffer() {
+    bs_Framebuffer *framebuffer = curr_framebuffer;
+    #ifdef BS_DEBUG
+        if(framebuffer == NULL) {
+            bs_print(BS_ERR, "RENDERBUFFER ATTACH FAILED : Framebuffer is NULL");
+        }
+        return;
+    #endif
+
     glGenRenderbuffers(1, &framebuffer->RBO);
     glBindRenderbuffer(GL_RENDERBUFFER, framebuffer->RBO);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, framebuffer->render_width, framebuffer->render_height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, framebuffer->RBO); 
 }
 
-void bs_setFramebufferVertices(bs_Framebuffer *framebuffer) {
-    glGenVertexArrays(1, &framebuffer->VAO);
-    glGenBuffers(1, &framebuffer->VBO);
+void bs_attachDepthBuffer(bs_Tex2D *tex) {
+    bs_Framebuffer *framebuffer = curr_framebuffer;
 
-    glBindVertexArray(framebuffer->VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, framebuffer->VBO);
+    #ifdef BS_DEBUG
+        if(framebuffer == NULL) {
+            bs_print(BS_ERR, "DEPTHBUFFER ATTACH FAILED : Framebuffer is NULL");
+        }
+        if(tex == NULL) {
+            bs_print(BS_ERR, "DEPTHBUFFER ATTACH FAILED : Texture is NULL");
+        }
+        return;
+    #endif
+    framebuffer->texture = tex->id;
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(screen_quad_vertices), &screen_quad_vertices, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-}
-
-void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height, void (*render)(), bs_Shader *shader) {
-    framebuffer->render_width  = render_width;
-    framebuffer->render_height = render_height;
-    framebuffer->render = render;
-
-    // Allocate 4 more framebuffers if the framebuffer count goes out of range
-    if((bs_window.framebuffer_count + 1) > bs_window.allocated_framebuffer_count) {
-        bs_window.allocated_framebuffer_count += 4;
-        bs_window.framebuffers = realloc(bs_window.framebuffers, bs_window.allocated_framebuffer_count * sizeof(bs_Framebuffer));
-    }
-
-    bs_window.framebuffers[bs_window.framebuffer_count++] = framebuffer;
-    if(shader == NULL) {
-        bs_setFramebufferShader(framebuffer, &fbo_shader);
-    } else {
-        bs_setFramebufferShader(framebuffer, shader);
-    }
-
-    glGenFramebuffers(1, &framebuffer->FBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
-
-    bs_attachColorbuffer(framebuffer);
-    bs_attachRenderbuffer(framebuffer);
-    bs_setFramebufferVertices(framebuffer);
-}
-
-void bs_setFramebufferShader(bs_Framebuffer *framebuffer, bs_Shader *shader) {
-    framebuffer->shader = shader;
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->id, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
 }
 
 void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
-    // Bind
-    glBindVertexArray(framebuffer->VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, framebuffer->VBO);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
-    
+
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Clear any previous drawing
     glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(framebuffer->clear);
 }
 
 void bs_endFramebufferRender(bs_Framebuffer *framebuffer) {
-    bs_switchShader(framebuffer->shader->id);
-    bs_setTimeUniform(framebuffer->shader, elapsed_time);
-
     // Unbind
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
-
-    glBindVertexArray(framebuffer->VAO);
-
     // Render
-    glBindTexture(GL_TEXTURE_2D, framebuffer->texture_color_buffer);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindTexture(GL_TEXTURE_2D, framebuffer->texture);
 }
 
 void bs_checkGLError() {
@@ -665,13 +631,18 @@ void bs_checkGLError() {
     }
 }
 
-void bs_render() {
+void bs_render(void (*render)()) {
     for(int i = 0; i < 350; i++) {
         key_states[i] = false;
     }
 
     glfwSetKeyCallback(window, bs_onKey);
     glfwSetWindowSizeCallback(window, bs_onResize);
+    glEnable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    const unsigned int SHADOW_WIDTH = 1200, SHADOW_HEIGHT = 900;
 
     while(!glfwWindowShouldClose(window)) {
         elapsed_time = glfwGetTime();
@@ -680,14 +651,7 @@ void bs_render() {
         glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Render all framebuffers
-        for(int i = 0; i < bs_window.framebuffer_count; i++) {
-            bs_Framebuffer *framebuffer = bs_window.framebuffers[i];
-            bs_startFramebufferRender(framebuffer);
-            bs_selectTexture(&std_atlas->tex);
-            framebuffer->render();
-            bs_endFramebufferRender(framebuffer);
-        }
+        render();
 
         bs_checkGLError();
 
@@ -706,20 +670,8 @@ void bs_exitGLFW() {
 void bs_init(int width, int height, char *title, int settings) {
     bs_initGLFW(settings);
 
-    // Set default texture to be empty
-    empty_texture.w = empty_texture.h = 0;
-    empty_texture.x = empty_texture.y = 0;
-    empty_texture.tex_x = empty_texture.tex_y = 0;
-    empty_texture.tex_wx = empty_texture.tex_hy = 0;
-    empty_texture.data = NULL;
-
-    // Allocate 4 framebuffers by default, this auto-increments
-    bs_window.allocated_framebuffer_count = 4;
-    bs_window.framebuffer_count = 0;
-    bs_window.framebuffers = malloc(bs_window.allocated_framebuffer_count * sizeof(bs_Framebuffer*));
-
     bs_createWindow(width, height, title);
-    bs_printHardwareInfo();
+    // bs_printHardwareInfo();
 
     std_camera.pos.x = 0.0;
     std_camera.pos.y = 0.0;
@@ -728,27 +680,20 @@ void bs_init(int width, int height, char *title, int settings) {
     bs_setOrthographicProjection(&std_camera, 0, width, 0, height, 0.01, 1000.0);
 
     // Texture Atlas Init
-    std_atlas = bs_createTextureAtlas(BS_ATLAS_SIZE, BS_ATLAS_SIZE, BS_MAX_TEXTURES);
+    // std_atlas = bs_createTextureAtlas(BS_ATLAS_SIZE, BS_ATLAS_SIZE, BS_MAX_TEXTURES);
 
     // Create the default framebuffer
     bs_loadShader("resources/fbo_shader.vs", "resources/fbo_shader.fs", 0, &fbo_shader);
 
     // Load default shaders
     bs_loadShader("resources/bs_texture_shader.vs", "resources/bs_texture_shader.fs", 0, &texture_shader);
-    bs_loadShader("resources/bs_model_shader.vs"  , "resources/bs_model_shader.fs"  , 0, &model_shader);
 }
 
 void bs_startRender(void (*render)()) {
-    bs_pushAtlas(std_atlas);
+    // bs_pushAtlas(std_atlas);
     // bs_saveAtlasToFile(std_atlas, "test1.png");
-    bs_freeAtlasData(std_atlas);
+    // bs_freeAtlasData(std_atlas);
 
-    bs_createFramebuffer(&std_framebuffer, bs_window.width, bs_window.height, render, &fbo_shader);
-
-    #ifdef BS_DEBUG
-        bs_debugStart();
-    #endif
-
-    bs_render();
+    bs_render(render);
     bs_exitGLFW();
 }

@@ -159,6 +159,7 @@ void bs_pushAtlas(bs_Atlas *atlas) {
 }
 
 bs_AtlasSlice *bs_loadTexture(char *path, int frames) {
+    /*
     bs_Atlas *std_atlas = bs_getStdAtlas();
 
     bs_AtlasSlice *tex = std_atlas->textures + std_atlas->tex_count;
@@ -175,6 +176,9 @@ bs_AtlasSlice *bs_loadTexture(char *path, int frames) {
     std_atlas->tex_count += frames;
 
     return tex;
+
+    */
+    return NULL;
 }
 
 void bs_selectTexture(bs_Tex2D *texture) {

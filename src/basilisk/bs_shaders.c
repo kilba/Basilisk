@@ -72,8 +72,6 @@ void bs_setDefShaderAttribs(bs_Shader *shader, char *vs_code) {
    
    /* walk through other tokens */
    while( token != NULL ) {
-      printf( " %s\n", token );
-    
       token = strtok(NULL, s);
    }
 

@@ -179,13 +179,10 @@ typedef struct {
 	int render_width;
 	int render_height;
 
-	bs_Shader *shader;
-	void (*render)();
-
-	unsigned int VAO, VBO;
-
 	unsigned int FBO, RBO;
-	unsigned int texture_color_buffer;
+	unsigned int texture;
+
+	int clear;
 } bs_Framebuffer;
 
 // Contains all objects queued to render the next frame (unless using multiple batches)
