@@ -152,7 +152,7 @@ void bs_pushAtlas(bs_Atlas *atlas) {
     bs_setOffsets(atlas->tex.w, atlas->tex.h, atlas);
     bs_appendToAtlas(atlas->tex.data, atlas->tex.w, atlas->tex.h, atlas);
 
-    bs_initTexture(&atlas->tex, atlas->tex.w, atlas->tex.h, NULL);
+    // bs_initTexture(&atlas->tex, atlas->tex.w, atlas->tex.h, NULL);
     bs_setTextureSettings(BS_NEAREST_MIPMAP_LINEAR, BS_NEAREST);
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UINT);
     bs_genTextureMipmaps();
@@ -181,7 +181,8 @@ bs_AtlasSlice *bs_loadTexture(char *path, int frames) {
     return NULL;
 }
 
-void bs_selectTexture(bs_Tex2D *texture) {
+void bs_selectTexture(bs_Tex2D *texture, int tex_unit) {
+    glActiveTexture(GL_TEXTURE0 + tex_unit);
     glBindTexture(GL_TEXTURE_2D, texture->id);
 }
 

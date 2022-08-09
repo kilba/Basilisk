@@ -7,7 +7,7 @@
 bs_Atlas *bs_createTextureAtlas(int width, int height, int max_textures);
 bs_AtlasSlice *bs_loadTexture(char *path, int frames);
 bs_AtlasSlice *bs_getSelectedTexture();
-void bs_selectTexture(bs_Tex2D *texture);
+void bs_selectTexture(bs_Tex2D *texture, int tex_unit);
 void bs_pushAtlas(bs_Atlas *atlas);
 void bs_saveAtlasToFile(bs_Atlas *atlas, char *name);
 void bs_freeAtlasData(bs_Atlas *atlas);

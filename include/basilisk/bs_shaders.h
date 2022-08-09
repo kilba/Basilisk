@@ -12,18 +12,24 @@ void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Te
 
 void bs_setShaderAtlas(bs_Shader *shader, bs_Atlas *atlas, char *uniform_name);
 
-// SETTING DEFAULT UNIFORMS
+/* --- DEFAULT UNIFORMS --- */
 void bs_setTimeUniform(bs_Shader *shader, float time);
 void bs_setViewMatrixUniform(bs_Shader *shader, void *cam);
 void bs_setProjMatrixUniform(bs_Shader *shader, void *cam);
 
-// SHADER ABSTRACTION LAYER
+/* --- COMPUTE SHADERS --- */
 void bs_getUniformLoc(int id, char *name, int *result);
 void bs_switchShader(int id);
 void bs_switchShaderCompute(int id);
 
+/* --- UNIFORM BUFFERS --- */
+bs_UniformBuffer bs_initUniformBlock(int block_size, int bind_point);
+void bs_setUniformBlockDataRange(bs_UniformBuffer buf, void *block, int start, int end);
+void bs_setUniformBlockData(bs_UniformBuffer buf, void *block);
+
 void bs_uniform_mat4(int loc, float mat[4][4]);
 void bs_uniform_float(int loc, float val);
+void bs_uniform_int(int loc, int val);
 void bs_uniform_vec3(int loc, bs_vec3 vec);
 
 void bs_setMemBarrier(int barrier);

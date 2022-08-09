@@ -16,9 +16,6 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-// TODO: Check if this is unnecessary
-int loaded_shader_count = 0;
-
 // INITIALIZATION
 // Gets all default uniform locations
 void bs_setDefShaderUniforms(bs_Shader *shader, char *shader_code){
@@ -42,6 +39,23 @@ void bs_setDefShaderUniforms(bs_Shader *shader, char *shader_code){
             uniform->is_valid = true;
             uniform->loc = uniform_loc;
         }
+    }
+
+    // Set all the texture units
+    int texture_unit_count = 0;
+    char uni_texture[] = "bs_Texture0\0\0\0";
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &texture_unit_count);
+    for(int i = 0; i < texture_unit_count; i++) {
+        char buffer[3] = "\0\0\0";
+        int loc;
+
+        itoa(i, buffer, 10);
+        memcpy(uni_texture+10, buffer, 3);
+
+        bs_getUniformLoc(shader->id, uni_texture, &loc);
+        if(loc == -1)
+            continue;
+        bs_uniform_int(loc, i);
     }
 }
 
@@ -74,7 +88,6 @@ void bs_setDefShaderAttribs(bs_Shader *shader, char *vs_code) {
    while( token != NULL ) {
       token = strtok(NULL, s);
    }
-
 
     int attrib_count = sizeof(def_attribs) / sizeof(char*);
     for(int i = 0; i < attrib_count; i++) {
@@ -161,9 +174,6 @@ void bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code, bs_Shader *sh
     bs_setViewMatrixUniform(shader, cam);
     bs_setProjMatrixUniform(shader, cam);
 
-    shader->index = loaded_shader_count;
-    loaded_shader_count++;
-
     return;
 }
 
@@ -173,7 +183,6 @@ void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shade
     int gs_err_code;
 
     // Load shader source code into memory
-    // TODO: Free
     int len;
     char *vscode = bs_readFileToString(vs_path, &len, &vs_err_code);
     char *fscode = bs_readFileToString(fs_path, &len, &fs_err_code);
@@ -187,6 +196,9 @@ void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shade
 
     // Load the shader from memory, compile and return it
     bs_loadMemShader(vscode, fscode, gscode, shader);
+    free(vscode);
+    free(fscode);
+    free(gscode);
 }
 
 /* COMPUTE SHADERS */
@@ -212,6 +224,7 @@ void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Te
 
     char *cscode = bs_readFileToString(cs_path, &len, &cs_err_code);
     bs_loadMemComputeShader(cscode, compute_shader, tex);
+    free(cscode);
 }
 
 void bs_setMemBarrier(int barrier) {
@@ -220,6 +233,28 @@ void bs_setMemBarrier(int barrier) {
 
 void bs_dispatchComputeShader(int x, int y, int z) {
     glDispatchCompute(x, y, z);
+}
+
+/* --- UNIFORM BLOCKS --- */
+bs_UniformBuffer bs_initUniformBlock(int block_size, int bind_point) {
+    bs_UniformBuffer ubo;
+    ubo.block_size = block_size;
+
+    glGenBuffers(1, &ubo.id);
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo.id);
+    glBufferData(GL_UNIFORM_BUFFER, block_size, NULL, GL_STREAM_DRAW);
+    glBindBufferBase(GL_UNIFORM_BUFFER, bind_point, ubo.id); 
+
+    return ubo;
+}
+
+void bs_setUniformBlockDataRange(bs_UniformBuffer buf, void *block, int start, int end) {
+    glBindBuffer(GL_UNIFORM_BUFFER, buf.id);
+    glBufferSubData(GL_UNIFORM_BUFFER, start, end, block); 
+}
+
+void bs_setUniformBlockData(bs_UniformBuffer buf, void *block) {
+    bs_setUniformBlockDataRange(buf, block, 0, buf.block_size);
 }
 
 void bs_getUniformLoc(int id, char *name, int *result) {
@@ -244,26 +279,25 @@ void bs_setTimeUniform(bs_Shader *shader, float time) {
 }
 
 void bs_setViewMatrixUniform(bs_Shader *shader, void *cam) {
-    bs_switchShader(shader->id);
     bs_Uniform *uniform = &shader->uniforms[UNIFORM_VIEW];
 
     if(!uniform->is_valid)
         return;
 
+    bs_switchShader(shader->id);
     bs_uniform_mat4(uniform->loc, ((bs_Camera*)cam)->view);
 }
 
 void bs_setProjMatrixUniform(bs_Shader *shader, void *cam) {
-    bs_switchShader(shader->id);
     bs_Uniform *uniform = &shader->uniforms[UNIFORM_PROJ];
 
     if(!uniform->is_valid)
         return;
 
+    bs_switchShader(shader->id);
     bs_uniform_mat4(uniform->loc, ((bs_Camera*)cam)->proj);
 }
 
-// SHADER ABSTRACTION LAYER
 void bs_switchShader(int id) {
     glUseProgram(id);
 }
@@ -282,6 +316,10 @@ void bs_uniform_mat4(int loc, float mat[4][4]) {
 // TODO: bool, int, uint, double
 void bs_uniform_float(int loc, float val) {
     glUniform1f(loc, val);
+}
+
+void bs_uniform_int(int loc, int val) {
+    glUniform1i(loc, val);
 }
 
 // VECTORS

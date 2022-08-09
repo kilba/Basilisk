@@ -5,6 +5,7 @@
 typedef struct {
     int w, h;
     unsigned int id;
+    unsigned int unit;
     unsigned char *data;
 } bs_Tex2D;
 
@@ -45,10 +46,6 @@ typedef struct {
 } bs_Attrib;
 
 typedef struct {
-	// The order in which the shader was loaded (zero-indexed)
-	// TODO: Check if unecessary
-	int index;
-
 	bs_Uniform uniforms[UNIFORM_TYPE_COUNT];
 	int attribs;
 
@@ -65,6 +62,11 @@ typedef struct {
 	
 	bs_Tex2D *tex;
 } bs_ComputeShader;
+
+typedef struct {
+	unsigned int id;
+	unsigned int block_size;
+} bs_UniformBuffer;
 
 /* --- GENERAL --- */
 // TODO: Make #define instead
@@ -180,7 +182,7 @@ typedef struct {
 	int render_height;
 
 	unsigned int FBO, RBO;
-	unsigned int texture;
+	bs_Tex2D *buffer;
 
 	int clear;
 } bs_Framebuffer;

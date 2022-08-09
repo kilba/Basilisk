@@ -242,7 +242,10 @@ bs_Camera *bs_getStdCamera() {
     return &std_camera;
 }
 
-/* --- BATCHING --- */
+/* --- UNBATCHED RENDERING --- */
+
+
+/* --- BATCHED RENDERING --- */
 void bs_selectBatch(bs_Batch *batch) {
     curr_batch = batch;
 
@@ -451,7 +454,7 @@ void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count, int bat
     if((batch->shader->attribs & BS_COLOR) == BS_COLOR) 
         bs_addBatchAttrib (BS_UBYTE, 4, sizeof(bs_RGBA), true);
 
-    // FIXA GL_INT -> BS_INT
+    // TODO: FIXA GL_INT -> BS_INT
     if((batch->shader->attribs & BS_BONE_IDS) == BS_BONE_IDS)
         bs_addBatchAttribI(GL_INT  , 4, sizeof(bs_ivec4));
 
@@ -554,11 +557,11 @@ void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment) {
         return;
     #endif
 
-    framebuffer->texture = color_buffer->id;
+    framebuffer->buffer = color_buffer;
     framebuffer->clear |= GL_COLOR_BUFFER_BIT;
 
     // Attach it to currently bound framebuffer object
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, GL_TEXTURE_2D, framebuffer->texture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, GL_TEXTURE_2D, framebuffer->buffer->id, 0);
 }
 
 void bs_attachRenderbuffer() {
@@ -588,7 +591,7 @@ void bs_attachDepthBuffer(bs_Tex2D *tex) {
         }
         return;
     #endif
-    framebuffer->texture = tex->id;
+    framebuffer->buffer = tex;
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->id, 0);
     glDrawBuffer(GL_NONE);
@@ -611,7 +614,7 @@ void bs_endFramebufferRender(bs_Framebuffer *framebuffer) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
     // Render
-    glBindTexture(GL_TEXTURE_2D, framebuffer->texture);
+    // glBindTexture(GL_TEXTURE_2D, framebuffer->texture);
 }
 
 void bs_checkGLError() {
