@@ -17,17 +17,16 @@
 #include <stddef.h>
 #include <windows.h>
 
-int atlas_count = 0;
-bs_Atlas *atlases;
-bs_AtlasSlice *curr_atlas_slice;
 bs_Tex2D *curr_texture;
+bs_Atlas *curr_atlas = NULL;
+bs_Atlas *atlases;
 
-void bs_splitTexture(unsigned char *data, int w, int h, int frames, int *curr_tex_count, bs_AtlasSlice **textures) {
+void bs_splitTexture(unsigned char *data, int w, int h, int frames, int *curr_tex_count, bs_Slice **textures) {
     int slice_width = w / frames; // TODO: Check if not an int
 
     // For each frame
     for(int i = 0; i < frames; i++) {
-        bs_AtlasSlice *tex = (*textures) + *curr_tex_count + i;
+        bs_Slice *tex = (*textures) + *curr_tex_count + i;
         tex->w = w;
         tex->h = h;
         tex->x = 0;
@@ -55,17 +54,17 @@ void bs_splitTexture(unsigned char *data, int w, int h, int frames, int *curr_te
 }
 
 void bs_setOffsets(int width, int height, bs_Atlas *atlas) {
-    rectpacker_Rect *rects = malloc(sizeof(rectpacker_Rect) * atlas->tex_count);
-    bs_AtlasSlice *tex = atlas->textures;
+    rectpacker_Rect *rects = malloc(sizeof(rectpacker_Rect) * atlas->slice_count);
+    bs_Slice *tex = atlas->slices;
 
-    for(int i = 0; i < atlas->tex_count; i++) {
+    for(int i = 0; i < atlas->slice_count; i++) {
         rects[i].w = tex[i].w;
         rects[i].h = tex[i].h;
     }
 
-    rectpacker_packRect(rects, atlas->tex_count, width, height);
+    rectpacker_packRect(rects, atlas->slice_count, width, height);
 
-    for(int i = 0; i < atlas->tex_count; i++) {
+    for(int i = 0; i < atlas->slice_count; i++) {
         tex[i].x = rects[i].x;
         tex[i].y = rects[i].y;
         tex[i].tex_x = rects[i].tex_x;
@@ -76,8 +75,8 @@ void bs_setOffsets(int width, int height, bs_Atlas *atlas) {
 }
 
 void bs_appendToAtlas(unsigned char *atlas_data, int width, int height, bs_Atlas *atlas) {
-    for(int i = 0; i < atlas->tex_count; i++) {
-        bs_AtlasSlice *tex = &atlas->textures[i];
+    for(int i = 0; i < atlas->slice_count; i++) {
+        bs_Slice *tex = &atlas->slices[i];
         cappend_append(atlas_data, width, height, tex->data, tex->w, tex->h, tex->x, tex->y);
         free(tex->data);
         tex->data = NULL;
@@ -129,21 +128,18 @@ void bs_genTextureMipmaps() {
     glGenerateMipmap(GL_TEXTURE_2D);
 }
 
-bs_Atlas *bs_createTextureAtlas(int w, int h, int max_textures) {
-    atlases = realloc(atlases, sizeof(bs_Atlas) * (atlas_count+1));
-    bs_Atlas *atlas = &atlases[atlas_count];
+bs_Atlas bs_createTextureAtlas(int w, int h, int max_textures) {
+    bs_Atlas atlas;
 
-    atlas->tex.data = calloc(w * h * 4, sizeof(char));
-    atlas->textures = malloc(sizeof(bs_AtlasSlice) * max_textures);
-    atlas->tex.w = w;
-    atlas->tex.h = h;
-    atlas->tex_count = 0;
+    atlas.tex.data = calloc(w * h * 4, sizeof(char));
+    atlas.slices = malloc(sizeof(bs_Slice) * max_textures);
+    atlas.tex.w = w;
+    atlas.tex.h = h;
+    atlas.slice_count = 0;
 
     // White square can be used as default texture
     // allows multiplication of textures with color-only primitives
-    bs_createWhiteSquare(BS_ATLAS_SIZE / 128, atlas);
-
-    atlas_count++;
+    bs_createWhiteSquare(BS_ATLAS_SIZE / 128, &atlas);
 
     return atlas;
 }
@@ -158,11 +154,23 @@ void bs_pushAtlas(bs_Atlas *atlas) {
     bs_genTextureMipmaps();
 }
 
-bs_AtlasSlice *bs_loadTexture(char *path, int frames) {
+void bs_loadTex2D(bs_Tex2D *tex, char *path) {
+    unsigned char *data;
+    unsigned int w, h;
+    int success = lodepng_decode32_file(&data, &w, &h, path);
+
+    if(success != 0) {
+        printf("Texture wasn't loaded: %d\n", success);
+    }
+
+    bs_initTexture(tex, w, h, data);
+}
+
+bs_Slice *bs_loadTexture(char *path, int frames) {
     /*
     bs_Atlas *std_atlas = bs_getStdAtlas();
 
-    bs_AtlasSlice *tex = std_atlas->textures + std_atlas->tex_count;
+    bs_Slice *tex = std_atlas->slices + std_atlas->slice_count;
     unsigned char *data;
 
     int success = lodepng_decode32_file(&data, &tex->w, &tex->h, path);
@@ -171,9 +179,9 @@ bs_AtlasSlice *bs_loadTexture(char *path, int frames) {
         printf("Texture wasn't loaded: %d\n", success);
     }
 
-    bs_splitTexture(data, tex->w, tex->h, frames, &std_atlas->tex_count, &std_atlas->textures);
+    bs_splitTexture(data, tex->w, tex->h, frames, &std_atlas->slice_count, &std_atlas->slices);
 
-    std_atlas->tex_count += frames;
+    std_atlas->slice_count += frames;
 
     return tex;
 
@@ -182,6 +190,7 @@ bs_AtlasSlice *bs_loadTexture(char *path, int frames) {
 }
 
 void bs_selectTexture(bs_Tex2D *texture, int tex_unit) {
+    curr_texture = texture;
     glActiveTexture(GL_TEXTURE0 + tex_unit);
     glBindTexture(GL_TEXTURE_2D, texture->id);
 }
@@ -192,8 +201,4 @@ void bs_saveAtlasToFile(bs_Atlas *atlas, char *name) {
 
 void bs_freeAtlasData(bs_Atlas *atlas) {
     free(atlas->tex.data);
-}
-
-bs_AtlasSlice *bs_getSelectedTexture() {
-    return curr_atlas_slice;
 }

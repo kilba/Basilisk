@@ -1,14 +1,13 @@
 #ifndef BS_CORE_H
 #define BS_CORE_H
 
-#include <cglm/cglm.h>
 #include <bs_types.h>
 
 /* --- RENDERING --- */
 
 void bs_pushVertexStruct(void *vertex);
 void bs_pushVertex(bs_vec3 pos, bs_vec2 tex_coord, bs_vec3 normal, bs_RGBA color);
-void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_AtlasSlice *tex);
+void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Slice *tex);
 void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
@@ -24,7 +23,7 @@ void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment);
 void bs_attachRenderbuffer();
 void bs_attachDepthBuffer(bs_Tex2D *tex);
 void bs_startFramebufferRender(bs_Framebuffer *framebuffer);
-void bs_endFramebufferRender(bs_Framebuffer *framebuffer);
+void bs_endFramebufferRender();
 
 /* --- BATCHING --- */
 void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count, int batch_size_bytes);
@@ -66,7 +65,7 @@ void bs_setViewMatrixOrtho(bs_Camera *cam);
 void bs_setOrthographicProjection(bs_Camera *cam, int left, int right, int bottom, int top, float nearZ, float farZ);
 void bs_setMatrixLookat(bs_Camera *cam, bs_vec3 center, bs_vec3 up);
 void bs_setMatrixLook(bs_Camera *cam, bs_vec3 dir, bs_vec3 up);
-void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float nearZ, float farZ);
+void bs_setPerspectiveProjection(bs_Camera *cam, float aspect, float fovy, float nearZ, float farZ);
 
 /* --- CONSTANTS --- */
 /* OPENGL FILTERING SETTINGS */
@@ -114,6 +113,8 @@ void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float 
 /* ATLAS SETTINGS */
 #define BS_ATLAS_SIZE 4096 /* Pixels (x, y) */
 #define BS_MAX_TEXTURES 1000
+
+#define BS_FBO_ALLOC_BY 2
 
 /* BASE INTERNAL FORMATS */
 #define BS_CHANNEL_RED 0x1903

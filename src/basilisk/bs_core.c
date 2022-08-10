@@ -221,8 +221,6 @@ void bs_setOrthographicProjection(bs_Camera *cam, int left, int right, int botto
 
     int x_res = bs_sign(left - right);
     int y_res = bs_sign(top - bottom);
-
-    cam->res = (bs_vec2){ x_res, y_res };
 }
 
 void bs_setMatrixLookat(bs_Camera *cam, bs_vec3 center, bs_vec3 up) {
@@ -233,9 +231,8 @@ void bs_setMatrixLook(bs_Camera *cam, bs_vec3 dir, bs_vec3 up) {
     glm_look((vec3){ cam->pos.x, cam->pos.y, cam->pos.z }, (vec3){ dir.x, dir.y, dir.z }, (vec3){ up.x, up.y, up.z }, cam->view);
 }
 
-void bs_setPerspectiveProjection(bs_Camera *cam, bs_vec2 res, float fovy, float nearZ, float farZ) {
-    glm_perspective(glm_rad(fovy), res.x / res.y, nearZ, farZ, cam->proj);
-    cam->res = res;
+void bs_setPerspectiveProjection(bs_Camera *cam, float aspect, float fovy, float nearZ, float farZ) {
+    glm_perspective(glm_rad(fovy), aspect, nearZ, farZ, cam->proj);
 }
 
 bs_Camera *bs_getStdCamera() {
@@ -287,7 +284,7 @@ void bs_pushVertex(bs_vec3 pos, bs_vec2 tex_coord, bs_vec3 normal, bs_RGBA color
     bs_pushVertexStruct(data);
 }
 
-void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_AtlasSlice *slice) {
+void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Slice *slice) {
     bs_vec2 dim_pos = { dim.x + pos.x, dim.y + pos.y };
 
     int indices[] = {
@@ -364,14 +361,13 @@ void bs_pushPrim(bs_Prim *prim, mat4 model, bs_Mesh *mesh) {
     }
 
     for(int i = 0; i < prim->vertex_count; i++) {
-        // TODO: Figure out why 1.0 causes glitchy rendering
         const float white_tex_coord = 0.9999;
         bs_vec2 tex_coord = (bs_vec2){ white_tex_coord, white_tex_coord };
 
         if(prim->material.tex != NULL) {
             // TODO: These values are constant, unnecessary to set them every frame
-            tex_coord.x = prim->vertices[i].tex_coord.x + prim->material.tex->tex_x;
-            tex_coord.y = prim->vertices[i].tex_coord.y + prim->material.tex->tex_y;
+            tex_coord.x = prim->vertices[i].tex_coord.x;/* + prim->material.tex->tex_x;*/
+            tex_coord.y = prim->vertices[i].tex_coord.y;/* + prim->material.tex->tex_y;*/
         }
 
         bs_pushVertex(prim->vertices[i].position, tex_coord, prim->vertices[i].normal, prim->material.base_color);
@@ -557,11 +553,10 @@ void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment) {
         return;
     #endif
 
-    framebuffer->buffer = color_buffer;
     framebuffer->clear |= GL_COLOR_BUFFER_BIT;
 
     // Attach it to currently bound framebuffer object
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, GL_TEXTURE_2D, framebuffer->buffer->id, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, GL_TEXTURE_2D, color_buffer->id, 0);
 }
 
 void bs_attachRenderbuffer() {
@@ -591,7 +586,6 @@ void bs_attachDepthBuffer(bs_Tex2D *tex) {
         }
         return;
     #endif
-    framebuffer->buffer = tex;
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->id, 0);
     glDrawBuffer(GL_NONE);
@@ -609,12 +603,9 @@ void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
     glClear(framebuffer->clear);
 }
 
-void bs_endFramebufferRender(bs_Framebuffer *framebuffer) {
-    // Unbind
+void bs_endFramebufferRender() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
-    // Render
-    // glBindTexture(GL_TEXTURE_2D, framebuffer->texture);
 }
 
 void bs_checkGLError() {

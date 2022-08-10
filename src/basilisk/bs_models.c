@@ -101,13 +101,13 @@ void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
 	mat->base_color.b = mat_color[2] * 255;
 	mat->base_color.a = mat_color[3] * 255;
 
-	// If the primitve has a texture
+	// If the primitive has a texture
 	if(c_mat->pbr_metallic_roughness.base_color_texture.texture != NULL) {
 		int id = (int64_t)c_mat->pbr_metallic_roughness.base_color_texture.texture->image;
 		id -= curr_tex_ptr;
 		id /= sizeof(cgltf_image);
 
-		mat->tex = model->textures[id];
+		mat->tex = &model->textures[0];
 	}
 }
 
@@ -158,20 +158,6 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
 	mesh->vertex_count += prim->vertex_count;
 	model->vertex_count += prim->vertex_count;
 	model->index_count += num_indices;
-}
-
-void bs_printMat4(bs_mat4 matrix) {
-	for(int y = 0; y < 4; y++) {
-		for(int x = 0; x < 4; x++) {
-			printf("%f, ", matrix[x][y]);
-		}
-		printf("\n");
-	}
-	printf("\n");
-}
-
-void bs_printQuat(versor q) {
-	printf("%f, %f, %f, %f\n", q[0], q[1], q[2], q[3]);
 }
 
 void bs_loadJoints(cgltf_data *data, bs_Mesh *mesh, cgltf_mesh *c_mesh) {
@@ -240,11 +226,13 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
 	}
 }
 
+void bs_loadModelTexturesToAtlas() {
+}
+
 void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 	if(data->textures_count == 0)
 		return;
 
-	bs_AtlasSlice *images[data->images_count];
 	int64_t ids[data->textures_count];
 
 	for(int i = 0; i < data->textures_count; i++) {
@@ -252,22 +240,26 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 		ids[i] = (int64_t)data->textures[i].image;
 	}
 
-	for(int i = 0; i < data->images_count; i++) {
-		char texture_path[256] = "resources/models/textures/";
+ 	model->textures = malloc(data->textures_count * sizeof(bs_Tex2D));
+	for(int i = 0; i < data->textures_count; i++) {
+		char texture_path[256] = "resources/models/";
 		strcat(texture_path, data->images[i].name);
 		strcat(texture_path, ".png");
-		images[i] = bs_loadTexture(texture_path, 1);
+
+		bs_loadTex2D(model->textures+i, texture_path);
+		bs_setTextureSettings(BS_LINEAR, BS_LINEAR);
+		bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
 	}
 
  	curr_tex_ptr = ids[0];
- 	model->textures = malloc(data->textures_count * sizeof(bs_AtlasSlice*));
 
-	for(int i = 0; i < data->textures_count; i++) {
-		ids[i] -= curr_tex_ptr;
-		// Divide by sizeof image so that stride between indices in ids is at most 1
-		ids[i] /= sizeof(cgltf_image);
-		model->textures[i] = images[ids[i]];
-	}
+
+	// for(int i = 0; i < data->textures_count; i++) {
+	// 	ids[i] -= curr_tex_ptr;
+	// 	// Divide by sizeof image so that stride between indices in ids is at most 1
+	// 	ids[i] /= sizeof(cgltf_image);
+	// 	model->textures[i] = images[ids[i]];
+	// }
 }
 
 void bs_loadAnim(cgltf_data* data, int index) {

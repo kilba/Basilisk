@@ -27,6 +27,4 @@ void bs_debugUpdate() {
 
 void bs_debugStart() {
     printf("Debugging\n");
-    bs_setPerspectiveProjection(&cam, (bs_vec2){ 800, 600 }, 90.0, 0.01, -10000.0);
-    bs_setMatrixLookat(&cam, (bs_vec3){ 0.0, 0.0, -1.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
 }

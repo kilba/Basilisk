@@ -1,6 +1,8 @@
 #ifndef BS_TYPES_H
 #define BS_TYPES_H
 
+#include <cglm/cglm.h>
+
 /* --- TEXTURES --- */
 typedef struct {
     int w, h;
@@ -15,13 +17,13 @@ typedef struct {
     float tex_x, tex_y;
     float tex_wx, tex_hy;
     unsigned char *data;
-} bs_AtlasSlice;
+} bs_Slice;
 
 typedef struct {
     bs_Tex2D tex;
-    bs_AtlasSlice *textures;
+    int slice_count;
 
-    int tex_count;
+    bs_Slice *slices;
 } bs_Atlas;
 
 /* --- SHADERS --- */
@@ -157,7 +159,6 @@ typedef struct {
 	bs_mat4 view;
 	bs_mat4 proj;
 	bs_vec3 pos;
-	bs_vec2 res;
 } bs_Camera;
 
 typedef struct {
@@ -182,7 +183,7 @@ typedef struct {
 	int render_height;
 
 	unsigned int FBO, RBO;
-	bs_Tex2D *buffer;
+	int buffer_count;
 
 	int clear;
 } bs_Framebuffer;
@@ -214,7 +215,7 @@ typedef struct {
 
 typedef struct {
 	bs_RGBA base_color;
-	bs_AtlasSlice *tex;
+	bs_Tex2D *tex;
 
 	bs_vec3 specular;
 } bs_Material;
@@ -258,7 +259,7 @@ typedef struct {
 
 typedef struct {
 	bs_Mesh *meshes;
-	bs_AtlasSlice **textures;
+	bs_Tex2D *textures;
 
 	int mesh_count;
 	int vertex_count;
