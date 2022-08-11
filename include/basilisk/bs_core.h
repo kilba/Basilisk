@@ -22,6 +22,7 @@ void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int ren
 void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment);
 void bs_attachRenderbuffer();
 void bs_attachDepthBuffer(bs_Tex2D *tex);
+void bs_setDrawBufs(int n, ...);
 void bs_startFramebufferRender(bs_Framebuffer *framebuffer);
 void bs_endFramebufferRender();
 

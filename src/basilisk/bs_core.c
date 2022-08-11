@@ -588,8 +588,19 @@ void bs_attachDepthBuffer(bs_Tex2D *tex) {
     #endif
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->id, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
+}
+
+void bs_setDrawBufs(int n, ...) {
+    int values[n];
+
+    va_list ptr;
+    va_start(ptr, n);
+    for(int i = 0; i < n; i++) {
+        values[i] = GL_COLOR_ATTACHMENT0 + va_arg(ptr, int);
+    }
+    va_end(ptr);
+
+    glDrawBuffers(n, values);
 }
 
 void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
@@ -636,7 +647,34 @@ void bs_render(void (*render)()) {
     glEnable(GL_DEPTH_TEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    const unsigned int SHADOW_WIDTH = 1200, SHADOW_HEIGHT = 900;
+    // unsigned FBO0;
+    // unsigned TEX0, TEX1;
+    // glGenFramebuffers(1, &FBO0);
+    // glBindFramebuffer(GL_FRAMEBUFFER, FBO0);
+    // GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+
+    // glDrawBuffers(2, buffers);
+
+    // glGenTextures(1, &TEX0);
+    // glBindTexture(GL_TEXTURE_2D, TEX0);
+    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1200, 900, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, TEX0, 0);
+
+    // glGenTextures(1, &TEX1);
+    // glBindTexture(GL_TEXTURE_2D, TEX1);
+    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1200, 900, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, TEX1, 0);
+
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // bs_Shader shader;
+    // bs_loadShader("resources/fbo_shader.vs", "resources/fbo_shader.fs", 0, &shader);
+
+    // bs_Batch batch0;
+    // bs_createBatch(&batch0, &shader, 6, sizeof(bs_vec4) + sizeof(bs_vec3) + sizeof(bs_vec2));
+
+    // bs_Batch batch1;
+    // bs_createBatch(&batch1, NULL, 6, sizeof(bs_vec4) + sizeof(bs_vec3) + sizeof(bs_vec2));
 
     while(!glfwWindowShouldClose(window)) {
         elapsed_time = glfwGetTime();
@@ -647,7 +685,27 @@ void bs_render(void (*render)()) {
 
         render();
 
-        bs_checkGLError();
+        // glBindFramebuffer(GL_FRAMEBUFFER, FBO0);
+
+        // glClearColor(0.0, 0.0, 0.0, 0.0);
+        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // bs_selectBatch(&batch1);
+        // bs_pushRect((bs_vec3){ 0, 0, 0 }, (bs_vec2){ 400, 400 }, (bs_RGBA){ 255, 0, 0, 255 });
+
+        // bs_pushBatch();
+        // bs_renderBatch(0, bs_getBatchSize(&batch1));
+        // bs_clearBatch();
+        // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, TEX0);
+        // bs_selectBatch(&batch0);
+        // bs_pushTex2D((bs_vec3){ 450, 0, 0 }, (bs_vec2){ 400, 400 }, (bs_RGBA){ 255, 0, 0, 255 });
+        // bs_pushBatch();
+        // bs_renderBatch(0, bs_getBatchSize(&batch0));
+        // bs_clearBatch();
+
 
         glfwPollEvents();
         glfwSwapBuffers(window);
