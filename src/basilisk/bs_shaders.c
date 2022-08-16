@@ -1,6 +1,5 @@
 // GL
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <cglm/cglm.h>
 
 // Basilisk
@@ -93,6 +92,7 @@ void bs_setDefShaderAttribs(bs_Shader *shader, char *vs_code) {
     for(int i = 0; i < attrib_count; i++) {
         if(strstr(vs_code, def_attribs[i])) {
             shader->attribs |= values[i];
+            shader->attrib_count++;
         }
     }
 }
@@ -152,6 +152,7 @@ void bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code, bs_Shader *sh
     }
 
     shader->attribs = 0;
+    shader->attrib_count = 0;
     shader->id = glCreateProgram();
 
     bs_loadShaderCode(&shader->vs_id, vs_code, GL_VERTEX_SHADER);

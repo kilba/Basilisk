@@ -50,6 +50,7 @@ typedef struct {
 typedef struct {
 	bs_Uniform uniforms[UNIFORM_TYPE_COUNT];
 	int attribs;
+	int attrib_count;
 
 	// OpenGL Variables
 	unsigned int id;

@@ -1,6 +1,5 @@
 // GL
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <cglm/cglm.h>
 
 // Basilisk
@@ -8,6 +7,7 @@
 #include <bs_textures.h>
 #include <bs_core.h>
 #include <bs_math.h>
+#include <bs_wnd.h>
 
 // TODO: Ifdef debug
 #include <bs_debug.h>
@@ -22,26 +22,12 @@
     #include <objidl.h>
 #endif
 
-float screen_quad_vertices[] = {
-    // positions   // texCoords
-    -1.0f,  1.0f,  0.0f, 1.0f,
-    -1.0f, -1.0f,  0.0f, 0.0f,
-     1.0f, -1.0f,  1.0f, 0.0f,
-
-    -1.0f,  1.0f,  0.0f, 1.0f,
-     1.0f, -1.0f,  1.0f, 0.0f,
-     1.0f,  1.0f,  1.0f, 1.0f
-};
-
 struct bs_Window {
     int width;
     int height;
 } bs_window;
 
-GLFWwindow *window;
-
 // Shaders
-bs_Shader fbo_shader;
 bs_Shader texture_shader;
 
 bs_Camera std_camera;
@@ -52,38 +38,6 @@ bs_Framebuffer *curr_framebuffer = NULL;
 double elapsed_time = 0.0;
 double delta_time = 0.0;
 double previous_time = 0.0;
-bs_fRGBA clear_color = { 0.0, 0.0, 0.0, 1.0 };
-
-bool key_states[350];
-
-/* --- WINDOW SETTINGS --- */
-void bs_initGLFW(int settings) {
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    if(settings == GLFW_TRANSPARENT_FRAMEBUFFER) {
-        glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, true);
-    }
-}
-
-// 0x00020007
-void bs_initWndSetting(int setting, bool val) {
-    // TODO: Check if setting is applicable
-    glfwSetWindowAttrib(window, setting, val);
-}
-
-void bs_createWindow(int width, int height, char* title) {
-    bs_window.width = width;
-    bs_window.height = height;
-
-    window = glfwCreateWindow(width, height, title, NULL, NULL);
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
-    gladLoadGL();
-    glViewport(0, 0, width, height);
-}
 
 // TODO: Extract to bs_debug.c
 void bs_printHardwareInfo() {
@@ -93,21 +47,13 @@ void bs_printHardwareInfo() {
     bs_print(BS_CLE, "%s\n", renderer);
 }
 
-void bs_setBackgroundColor(bs_fRGBA color) {
-    clear_color = color;
-    clear_color.r /= 255.0;
-    clear_color.g /= 255.0;
-    clear_color.b /= 255.0;
-    clear_color.a /= 255.0;
-}
-
 bs_vec2 bs_getWindowDimensions() {
     return (bs_vec2){ bs_window.width, bs_window.height };
 }
 
 #ifdef _WIN32
     BITMAPINFOHEADER createBitmapHeader(int width, int height) {
-        BITMAPINFOHEADER  bi;
+        BITMAPINFOHEADER bi;
 
         // create a bitmap
         bi.biSize = sizeof(BITMAPINFOHEADER);
@@ -162,59 +108,6 @@ bs_vec2 bs_getWindowDimensions() {
     }
 #endif
 
-/* --- INPUTS/CALLBACKS --- */
-void bs_onKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if(action == GLFW_PRESS) {
-        key_states[key] = true;
-        return;
-    }
-    if (action == GLFW_RELEASE) {
-        key_states[key] = false;
-        return;
-    }
-}
-
-bool bs_isKeyDown(int key) {
-    return key_states[key];
-}
-
-bool bs_isKeyUp(int key) {
-    return !key_states[key];
-}
-
-bool bs_isKeyDownOnce(int key) {
-    bool result = key_states[key] != false;
-    key_states[key] = false;
-
-    return result;
-}
-
-bool bs_isKeyUpOnce(int key) {
-    bool result = key_states[key] != true;
-    key_states[key] = true;
-
-    return result;
-}
-
-void bs_onResize(GLFWwindow* window, int width, int height) {
-    // glfwSetWindowSize(window, width, height);
-    // glViewport(0, 0, width, height);
-    // bs_window.width  = width;
-    // bs_window.height = height;
-}
-
-bs_vec2 bs_getCursorPositionReverseY() {
-    double xpos, ypos;
-    glfwGetCursorPos(window, &xpos, &ypos);
-    return (bs_vec2){ xpos, ypos };
-}
-
-bs_vec2 bs_getCursorPosition() {
-    double xpos, ypos;
-    glfwGetCursorPos(window, &xpos, &ypos);
-    return (bs_vec2){ xpos, bs_window.height - ypos };
-}
-
 /* --- MATRICES --- */
 void bs_setOrthographicProjection(bs_Camera *cam, int left, int right, int bottom, int top, float nearZ, float farZ) {
     glm_ortho(left, right, bottom, top, nearZ, farZ, cam->proj);
@@ -240,7 +133,6 @@ bs_Camera *bs_getStdCamera() {
 }
 
 /* --- UNBATCHED RENDERING --- */
-
 
 /* --- BATCHED RENDERING --- */
 void bs_selectBatch(bs_Batch *batch) {
@@ -275,11 +167,11 @@ void bs_pushVertex(bs_vec3 pos, bs_vec2 tex_coord, bs_vec3 normal, bs_RGBA color
     memcpy(data + offset, &tex_coord, sizeof(bs_vec2) * has_tex_coord);
     offset += sizeof(bs_vec2) * has_tex_coord;
 
-    memcpy(data + offset, &normal, sizeof(bs_vec3) * has_normal); 
-    offset += sizeof(bs_vec3) * has_normal;
-
     memcpy(data + offset, &color, sizeof(bs_RGBA));
     offset += sizeof(bs_RGBA);
+
+    memcpy(data + offset, &normal, sizeof(bs_vec3) * has_normal); 
+    offset += sizeof(bs_vec3) * has_normal;
 
     bs_pushVertexStruct(data);
 }
@@ -355,7 +247,7 @@ void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
     bs_pushTriangle(start, end, end, color);
 }
 
-void bs_pushPrim(bs_Prim *prim, mat4 model, bs_Mesh *mesh) {
+void bs_pushPrim(bs_Prim *prim, bs_Mesh *mesh) {
     for(int i = 0; i < prim->index_count; i++) {
         curr_batch->indices[curr_batch->index_draw_count+i] = prim->indices[i] + curr_batch->vertex_draw_count;
     }
@@ -379,19 +271,9 @@ void bs_pushPrim(bs_Prim *prim, mat4 model, bs_Mesh *mesh) {
 }
 
 void bs_pushMesh(bs_Mesh *mesh) {
-    mat4 model = GLM_MAT4_IDENTITY_INIT;
-
-    vec3 glm_pos = { mesh->pos.x, mesh->pos.y, mesh->pos.z };
-    vec3 glm_sca = { mesh->sca.x, mesh->sca.y, mesh->sca.z };
-    versor glm_rot = { mesh->rot.x, mesh->rot.y, mesh->rot.z, mesh->rot.w }; 
-
-    glm_translate(model, glm_pos);
-    glm_quat_rotate(model, glm_rot, model);
-    glm_scale(model, glm_sca);
-
     for(int i = 0; i < mesh->prim_count; i++) {
         bs_Prim *prim = &mesh->prims[i];
-        bs_pushPrim(prim, model, mesh);
+        bs_pushPrim(prim, mesh);
     }
 }
 
@@ -409,7 +291,7 @@ void bs_changeBatchBufferSize(bs_Batch *batch, int index_count) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, batch->indices, GL_STATIC_DRAW);
 }
 
-void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count, int batch_size_bytes) {
+void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count) {
     // Default values
     batch->camera = &std_camera;
     batch->draw_mode = BS_TRIANGLES;
@@ -417,7 +299,7 @@ void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count, int bat
     batch->index_draw_count = 0;
     batch->attrib_count = 0;
     batch->attrib_offset = 0;
-    batch->attrib_size_bytes = batch_size_bytes;
+    batch->attrib_size_bytes = 0;
     batch->shader = shader;
 
     if(batch->shader == NULL) {
@@ -431,31 +313,46 @@ void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count, int bat
 
     bs_selectBatch(batch);
 
+    // Attribute setup
+    struct Attrib_Data {
+        int type;
+        int count;
+        int size;
+        bool normalized;
+    } attrib_data[] = {
+        { BS_FLOAT, 3, sizeof(bs_vec3) , false }, /* Position */
+        { BS_FLOAT, 2, sizeof(bs_vec2) , false }, /* Tex Coord */
+        { BS_UBYTE, 4, sizeof(bs_RGBA) , true  }, /* Color */
+        { BS_FLOAT, 3, sizeof(bs_vec3) , false }, /* Normal */
+        { BS_INT  , 4, sizeof(bs_ivec4), false }, /* Bone Ids */
+        { BS_FLOAT, 4, sizeof(bs_vec4) , false }, /* Weights */
+    };
+    int total_attrib_count = sizeof(attrib_data) / sizeof(struct Attrib_Data);
+
+    // Calculate attrib sizes
+    int i = 0, j = 1;
+    for(; i < total_attrib_count; i++, j*=2) {
+        struct Attrib_Data *data = &attrib_data[i];
+
+        if((batch->shader->attribs & j) == j) {
+            batch->attrib_size_bytes += data->size;
+        }
+    }
+    // Add attributes
+    i = 0; j = 1;
+    for(; i < total_attrib_count; i++, j*=2) {
+        struct Attrib_Data *data = &attrib_data[i];
+
+        if((batch->shader->attribs & j) == j) {
+            bs_addBatchAttrib(data->type, data->count, data->size, data->normalized);
+        }
+    }
+
     // Allocate buffer spaces
     batch->indices = malloc(sizeof(int) * index_count);
     batch->vertices = malloc(batch->attrib_size_bytes * index_count);
     glBufferData(GL_ARRAY_BUFFER, batch->attrib_size_bytes * index_count, NULL, GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, NULL, GL_STATIC_DRAW);
-
-    // Attribute setup
-    if((batch->shader->attribs & BS_POSITION) == BS_POSITION)
-        bs_addBatchAttrib (BS_FLOAT, 3, sizeof(bs_vec3), false);
-
-    if((batch->shader->attribs & BS_TEX_COORD) == BS_TEX_COORD)
-        bs_addBatchAttrib (BS_FLOAT, 2, sizeof(bs_vec2), false);
-
-    if((batch->shader->attribs & BS_NORMAL) == BS_NORMAL) 
-        bs_addBatchAttrib (BS_FLOAT, 3, sizeof(bs_vec3), false);
-    
-    if((batch->shader->attribs & BS_COLOR) == BS_COLOR) 
-        bs_addBatchAttrib (BS_UBYTE, 4, sizeof(bs_RGBA), true);
-
-    // TODO: FIXA GL_INT -> BS_INT
-    if((batch->shader->attribs & BS_BONE_IDS) == BS_BONE_IDS)
-        bs_addBatchAttribI(GL_INT  , 4, sizeof(bs_ivec4));
-
-    if((batch->shader->attribs & BS_WEIGHTS) == BS_WEIGHTS)
-        bs_addBatchAttrib (BS_FLOAT, 4, sizeof(bs_vec4), false);
 }
 
 void bs_setBatchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size) {
@@ -463,20 +360,25 @@ void bs_setBatchRawData(void *vertex_data, void *index_data, int vertex_size, in
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_size, index_data, GL_STATIC_DRAW);
 }
 
-void bs_addBatchAttrib(const int type, unsigned int amount, size_t size_per_type, bool normalized) {
-    bs_Batch *batch = curr_batch;
-
-    glEnableVertexAttribArray(batch->attrib_count);
-    glVertexAttribPointer(batch->attrib_count++, amount, type, normalized, batch->attrib_size_bytes, (void*)batch->attrib_offset);
-
-    batch->attrib_offset += size_per_type;
-}
-
 void bs_addBatchAttribI(const int type, unsigned int amount, size_t size_per_type) {
     bs_Batch *batch = curr_batch;
 
     glEnableVertexAttribArray(batch->attrib_count);
     glVertexAttribIPointer(batch->attrib_count++, amount, type, batch->attrib_size_bytes, (void*)batch->attrib_offset);
+
+    batch->attrib_offset += size_per_type;
+}
+
+void bs_addBatchAttrib(const int type, unsigned int amount, size_t size_per_type, bool normalized) {
+    if((type >= BS_SHORT) && (type <= BS_INT)) {
+        bs_addBatchAttribI(type, amount, size_per_type);
+        return;
+    }
+
+    bs_Batch *batch = curr_batch;
+
+    glEnableVertexAttribArray(batch->attrib_count);
+    glVertexAttribPointer(batch->attrib_count++, amount, type, normalized, batch->attrib_size_bytes, (void*)batch->attrib_offset);
 
     batch->attrib_offset += size_per_type;
 }
@@ -636,93 +538,8 @@ void bs_checkGLError() {
     }
 }
 
-void bs_render(void (*render)()) {
-    for(int i = 0; i < 350; i++) {
-        key_states[i] = false;
-    }
-
-    glfwSetKeyCallback(window, bs_onKey);
-    glfwSetWindowSizeCallback(window, bs_onResize);
-    glEnable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    // unsigned FBO0;
-    // unsigned TEX0, TEX1;
-    // glGenFramebuffers(1, &FBO0);
-    // glBindFramebuffer(GL_FRAMEBUFFER, FBO0);
-    // GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-
-    // glDrawBuffers(2, buffers);
-
-    // glGenTextures(1, &TEX0);
-    // glBindTexture(GL_TEXTURE_2D, TEX0);
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1200, 900, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, TEX0, 0);
-
-    // glGenTextures(1, &TEX1);
-    // glBindTexture(GL_TEXTURE_2D, TEX1);
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1200, 900, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, TEX1, 0);
-
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // bs_Shader shader;
-    // bs_loadShader("resources/fbo_shader.vs", "resources/fbo_shader.fs", 0, &shader);
-
-    // bs_Batch batch0;
-    // bs_createBatch(&batch0, &shader, 6, sizeof(bs_vec4) + sizeof(bs_vec3) + sizeof(bs_vec2));
-
-    // bs_Batch batch1;
-    // bs_createBatch(&batch1, NULL, 6, sizeof(bs_vec4) + sizeof(bs_vec3) + sizeof(bs_vec2));
-
-    while(!glfwWindowShouldClose(window)) {
-        elapsed_time = glfwGetTime();
-        delta_time = elapsed_time - previous_time;
-
-        glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        render();
-
-        // glBindFramebuffer(GL_FRAMEBUFFER, FBO0);
-
-        // glClearColor(0.0, 0.0, 0.0, 0.0);
-        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // bs_selectBatch(&batch1);
-        // bs_pushRect((bs_vec3){ 0, 0, 0 }, (bs_vec2){ 400, 400 }, (bs_RGBA){ 255, 0, 0, 255 });
-
-        // bs_pushBatch();
-        // bs_renderBatch(0, bs_getBatchSize(&batch1));
-        // bs_clearBatch();
-        // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        // glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, TEX0);
-        // bs_selectBatch(&batch0);
-        // bs_pushTex2D((bs_vec3){ 450, 0, 0 }, (bs_vec2){ 400, 400 }, (bs_RGBA){ 255, 0, 0, 255 });
-        // bs_pushBatch();
-        // bs_renderBatch(0, bs_getBatchSize(&batch0));
-        // bs_clearBatch();
-
-
-        glfwPollEvents();
-        glfwSwapBuffers(window);
-
-        previous_time = elapsed_time;
-    }
-}
-
-void bs_exitGLFW() {
-    glfwDestroyWindow(window);
-    glfwTerminate();
-}
-
-void bs_init(int width, int height, char *title, int settings) {
-    bs_initGLFW(settings);
-
-    bs_createWindow(width, height, title);
+void bs_init(int width, int height, char *title) {
+    bs_initWnd(width, height, title);
     // bs_printHardwareInfo();
 
     std_camera.pos.x = 0.0;
@@ -734,18 +551,14 @@ void bs_init(int width, int height, char *title, int settings) {
     // Texture Atlas Init
     // std_atlas = bs_createTextureAtlas(BS_ATLAS_SIZE, BS_ATLAS_SIZE, BS_MAX_TEXTURES);
 
-    // Create the default framebuffer
-    bs_loadShader("resources/fbo_shader.vs", "resources/fbo_shader.fs", 0, &fbo_shader);
-
     // Load default shaders
     bs_loadShader("resources/bs_texture_shader.vs", "resources/bs_texture_shader.fs", 0, &texture_shader);
 }
 
 void bs_startRender(void (*render)()) {
-    // bs_pushAtlas(std_atlas);
-    // bs_saveAtlasToFile(std_atlas, "test1.png");
-    // bs_freeAtlasData(std_atlas);
+    glEnable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    bs_render(render);
-    bs_exitGLFW();
+    bs_wndTick(render);
 }

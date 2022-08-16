@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.23.2)
 project(basilisk)
 
 add_library(${PROJECT_NAME}
+	src/basilisk/bs_wnd.c
 	src/basilisk/bs_core.c
 	src/basilisk/bs_math.c
 	src/basilisk/bs_debug.c
@@ -15,7 +16,6 @@ add_library(${PROJECT_NAME}
 	external/lodepng/lodepng.c
 )
 
-add_subdirectory(external/glfw)
 add_subdirectory(external/cglm)
 
 target_include_directories(${PROJECT_NAME}
@@ -23,17 +23,14 @@ target_include_directories(${PROJECT_NAME}
 	PUBLIC include/gl
 	PUBLIC include/basilisk
 	PUBLIC external/lodepng
-	PUBLIC external/glfw/include
 	PUBLIC external/cglm/include
 )
 
 target_link_directories(${PROJECT_NAME}
 	PRIVATE lib
-	PRIVATE external/glfw/src
 	PRIVATE external/cglm/src
 )
 
 target_link_libraries(${PROJECT_NAME}
 	cglm
-	glfw
 )
