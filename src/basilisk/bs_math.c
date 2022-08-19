@@ -23,3 +23,27 @@ void bs_eul2quat(bs_quat q, bs_vec3 eul) {
     q[1] = cr * sp * cy + sr * cp * sy;
     q[2] = cr * cp * sy - sr * sp * cy;
 }
+
+void bs_normv3(bs_vec3 *v) {
+    float w = sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
+    v->x /= w;
+    v->y /= w;
+    v->z /= w;
+}
+
+bs_vec3 bs_normv3ret(bs_vec3 v) {
+    float w = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    v.x /= w;
+    v.y /= w;
+    v.z /= w;
+
+    return v;
+}
+
+bs_vec3 bs_crossv3(bs_vec3 v0, bs_vec3 v1) {
+	bs_vec3 cross;
+    cross.x = v0.y * v1.z - v0.z * v1.y;
+    cross.y = v0.z * v1.x - v0.x * v1.z;
+    cross.z = v0.x * v1.y - v0.y * v1.x;
+    return cross;
+}

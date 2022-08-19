@@ -10,4 +10,8 @@ bool bs_isKeyOnce(int key_code);
 bool bs_isKeyDownOnce(int key_code);
 bool bs_isKeyUpOnce(int key_code);
 
+float bs_elapsedTimef();
+double bs_elapsedTime();
+bs_ivec2 bs_resolution();
+
 #endif /* BS_WND_H */

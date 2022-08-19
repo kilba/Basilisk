@@ -4,9 +4,15 @@
 #include <bs_types.h>
 
 /* --- RENDERING --- */
-
 void bs_pushVertexStruct(void *vertex);
-void bs_pushVertex(bs_vec3 pos, bs_vec2 tex_coord, bs_vec3 normal, bs_RGBA color);
+void bs_pushVertex(
+    bs_vec3 pos, 
+    bs_vec2 tex_coord, 
+    bs_vec3 normal, 
+    bs_RGBA color, 
+    bs_vec4 attrib_vec4
+);
+
 void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Slice *tex);
 void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
@@ -43,10 +49,10 @@ void bs_changeBatchBufferSize(bs_Batch *batch, int index_count);
 void bs_setBatchShader(bs_Batch *batch, bs_Shader *shader);
 int bs_getBatchSize(bs_Batch *batch);
 
-/* --- WINDOW INITIALIZATION --- */
+/* --- INITIALIZATION --- */
 void bs_init(int width, int height, char *title);
 void bs_startRender(void (*render)());
-bs_vec2 bs_getWindowDimensions();
+void bs_setGlobalVars();
 
 /* --- INPUTS / CALLBACKS --- */
 bs_vec2 bs_getCursorPositionReverseY();
@@ -54,7 +60,6 @@ bs_vec2 bs_getCursorPosition();
 
 /* --- MATRICES --- */
 void bs_setMatrices(bs_Shader *shader);
-bs_Camera *bs_getStdCamera();
 void bs_setProjMatrixOrtho(bs_Camera *cam, int left, int right, int bottom, int top);
 void bs_setViewMatrixOrtho(bs_Camera *cam);
 void bs_setOrthographicProjection(bs_Camera *cam, int left, int right, int bottom, int top, float nearZ, float farZ);
@@ -82,6 +87,7 @@ void bs_setPerspectiveProjection(bs_Camera *cam, float aspect, float fovy, float
 #define BS_NORMAL 8
 #define BS_BONE_IDS 16
 #define BS_WEIGHTS 32
+#define BS_ATTR_VEC4 64
 
 /* RENDER MODES */
 #define BS_POINTS 0x0000

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include <bs_types.h>
+#include <bs_core.h>
 
 // Zero-initialised array of every key's state
 bool keys[256] = { 0 };
@@ -13,12 +14,8 @@ HWND hwnd;
 HDC dc;
 HGLRC rc;
 
-struct bs_Globals {
-    /* RAM / VRAM */
-    float elapsed;
-
-    /* RAM */
-} bs_globals;
+int w, h;
+double elapsed;
 
 // Step 4: the Window Procedure
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -36,6 +33,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 void bs_initWnd(int width, int height, char *title) {
+    w = width;
+    h = height;
+
     const char g_szClassName[] = "myWindowClass";
     WNDCLASSEX wc;
 
@@ -146,37 +146,71 @@ void bs_setBackgroundColor(bs_RGBA color) {
     clear_color.a = (float)color.a / 255.0;
 }
 
+void bs_checkGLError() {
+    GLenum err = glGetError();
+    if(err != GL_NO_ERROR) {
+        switch(err) {
+            case GL_INVALID_ENUM                 : printf("INVALID_ENUM"); break;
+            case GL_INVALID_VALUE                : printf("INVALID_VALUE"); break;
+            case GL_INVALID_OPERATION            : printf("GL_INVALID_OPERATION"); break;
+            case GL_STACK_OVERFLOW               : printf("GL_STACK_OVERFLOW"); break;
+            case GL_STACK_UNDERFLOW              : printf("GL_STACK_UNDERFLOW"); break;
+            case GL_OUT_OF_MEMORY                : printf("OUT_OF_MEMORY"); break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION: printf("INVALID_FRAMEBUFFER_OPERATION"); break;
+        }
+
+        printf(" | 0x0%x\n", err);
+    }
+}
+
 void bs_wndTick(void (*render)()) {
     MSG msg;
 
     double start;
     start = (double)GetTickCount64() / 1000.0;
 
-    while(1) {
+    SetTimer(hwnd, 999, 16, NULL);
+    while(GetMessage(&msg, NULL, 0, 0)) {
         glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        render();
-        SwapBuffers(dc);
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
 
-        double curr;
-        curr = (double)GetTickCount64() / 1000.0;
-        // printf("%f\n", curr - start);
+        switch(msg.message) {
+            case WM_QUIT:
+                PostQuitMessage(0); 
+                return;
+            case WM_TIMER:
+                break;
 
-        // Check for inputs
-        if (PeekMessage(&msg, NULL, 0, 255, PM_REMOVE) > 0) {
-            switch(msg.message) {
-                case WM_QUIT:
-                    PostQuitMessage(0); return;
-            }
-
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-
-            continue;
+            /* Skip scene update on non-timed events */
+            default:
+                goto pass;
         }
 
-        PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
+        bs_setGlobalVars();
+        render();
+        bs_checkGLError();
+        SwapBuffers(dc);
+
+        elapsed = (double)GetTickCount64() / 1000.0;
+        elapsed -= start;
+
+        pass:
     }
     return;
+}
+
+/* --- GET VARIABLES --- */
+float bs_elapsedTimef() {
+    return (float)elapsed;
+}
+
+double bs_elapsedTime() {
+    return elapsed;
+}
+
+bs_ivec2 bs_resolution() {
+    return (bs_ivec2){ w, h };
 }

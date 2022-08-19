@@ -31,9 +31,8 @@ typedef struct {
 typedef enum {
 	UNIFORM_PROJ,
 	UNIFORM_VIEW,
-	UNIFORM_TIME,
 
-	UNIFORM_TYPE_COUNT,
+	BS_UNIFORM_TYPE_COUNT,
 } bs_STDUniforms;
 
 // TODO: Remove this shit
@@ -48,7 +47,7 @@ typedef struct {
 } bs_Attrib;
 
 typedef struct {
-	bs_Uniform uniforms[UNIFORM_TYPE_COUNT];
+	bs_Uniform uniforms[BS_UNIFORM_TYPE_COUNT];
 	int attribs;
 	int attrib_count;
 

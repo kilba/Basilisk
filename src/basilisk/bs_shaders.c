@@ -18,10 +18,13 @@
 // INITIALIZATION
 // Gets all default uniform locations
 void bs_setDefShaderUniforms(bs_Shader *shader, char *shader_code){
-    const char *def_uniforms[] = { "bs_Proj", "bs_View", "bs_Time" };
+    const char *def_uniforms[] = { 
+        "bs_Proj", 
+        "bs_View", 
+    };
 
     // Loop through all the uniform types
-    for (int i = 0; i < UNIFORM_TYPE_COUNT; i++) {
+    for (int i = 0; i < BS_UNIFORM_TYPE_COUNT; i++) {
         // Check if the shader contains the uniform
         if(strstr(shader_code, def_uniforms[i])){
             bs_Uniform *uniform = &shader->uniforms[i];
@@ -65,7 +68,8 @@ void bs_setDefShaderAttribs(bs_Shader *shader, char *vs_code) {
         "bs_Color", 
         "bs_Normal",
         "bs_Bone_Ids",
-        "bs_Weights"
+        "bs_Weights",
+        "bs_Attr_Vec4"
     };
 
     int values[] = { 
@@ -74,7 +78,8 @@ void bs_setDefShaderAttribs(bs_Shader *shader, char *vs_code) {
         BS_COLOR,
         BS_NORMAL,
         BS_BONE_IDS,
-        BS_WEIGHTS
+        BS_WEIGHTS,
+        BS_ATTR_VEC4,
     };
 
    const char s[2] = "";
@@ -131,7 +136,7 @@ void bs_loadShaderCode(GLuint *shader, const GLchar *shader_code, int type) {
 }
 
 void bs_setDefaultUniformLocations(bs_Shader *shader, char *vs_code, char *fs_code, char *gs_code) {
-    for(int i = 0; i < UNIFORM_TYPE_COUNT; i++) {
+    for(int i = 0; i < BS_UNIFORM_TYPE_COUNT; i++) {
         shader->uniforms[i].is_valid = false;
     }
 
@@ -170,10 +175,10 @@ void bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code, bs_Shader *sh
     glLinkProgram(shader->id);
     glUseProgram(shader->id);
 
-    bs_Camera *cam = bs_getStdCamera();
+    // bs_Camera *cam = bs_getStdCamera();
     bs_setDefaultUniformLocations(shader, vs_code, fs_code, gs_code);
-    bs_setViewMatrixUniform(shader, cam);
-    bs_setProjMatrixUniform(shader, cam);
+    // bs_setViewMatrixUniform(shader, cam);
+    // bs_setProjMatrixUniform(shader, cam);
 
     return;
 }
@@ -238,6 +243,13 @@ void bs_dispatchComputeShader(int x, int y, int z) {
 
 /* --- UNIFORM BLOCKS --- */
 bs_UniformBuffer bs_initUniformBlock(int block_size, int bind_point) {
+    if(bind_point == 0) {
+        // bs_print(BS_WAR, 
+            // "You have set the uniform block bind point to 0, "
+            // "which is also the bind point for the engine's global uniforms."
+        // );
+    }
+
     bs_UniformBuffer ubo;
     ubo.block_size = block_size;
 
@@ -269,16 +281,6 @@ void bs_setShaderAtlas(bs_Shader *shader, bs_Atlas *atlas, char *uniform_name) {
 }
 
 // SETTING DEFAULT UNIFORMS
-void bs_setTimeUniform(bs_Shader *shader, float time) {
-    bs_Uniform *uniform = &shader->uniforms[UNIFORM_TIME];
-
-    // Don't set the uniform if it doesn't exist
-    if(!uniform->is_valid)
-        return;
-
-    bs_uniform_float(uniform->loc, time);
-}
-
 void bs_setViewMatrixUniform(bs_Shader *shader, void *cam) {
     bs_Uniform *uniform = &shader->uniforms[UNIFORM_VIEW];
 

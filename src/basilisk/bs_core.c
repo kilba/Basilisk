@@ -22,22 +22,14 @@
     #include <objidl.h>
 #endif
 
-struct bs_Window {
-    int width;
-    int height;
-} bs_window;
-
 // Shaders
 bs_Shader texture_shader;
 
-bs_Camera std_camera;
+bs_Camera def_camera;
 bs_Batch *curr_batch;
 
 bs_Framebuffer *curr_framebuffer = NULL;
-
-double elapsed_time = 0.0;
-double delta_time = 0.0;
-double previous_time = 0.0;
+bs_UniformBuffer global_unifs;
 
 // TODO: Extract to bs_debug.c
 void bs_printHardwareInfo() {
@@ -45,10 +37,6 @@ void bs_printHardwareInfo() {
     const GLubyte* renderer = glGetString(GL_RENDERER);
     bs_print(BS_CLE, "%s\n", vendor);
     bs_print(BS_CLE, "%s\n", renderer);
-}
-
-bs_vec2 bs_getWindowDimensions() {
-    return (bs_vec2){ bs_window.width, bs_window.height };
 }
 
 #ifdef _WIN32
@@ -128,10 +116,6 @@ void bs_setPerspectiveProjection(bs_Camera *cam, float aspect, float fovy, float
     glm_perspective(glm_rad(fovy), aspect, nearZ, farZ, cam->proj);
 }
 
-bs_Camera *bs_getStdCamera() {
-    return &std_camera;
-}
-
 /* --- UNBATCHED RENDERING --- */
 
 /* --- BATCHED RENDERING --- */
@@ -151,7 +135,13 @@ void bs_pushVertexStruct(void *vertex) {
     curr_batch->vertex_draw_count++;
 }
 
-void bs_pushVertex(bs_vec3 pos, bs_vec2 tex_coord, bs_vec3 normal, bs_RGBA color) {
+void bs_pushVertex(
+    bs_vec3 pos, 
+    bs_vec2 tex_coord, 
+    bs_vec3 normal, 
+    bs_RGBA color, 
+    bs_vec4 attrib_vec4
+) {
     bs_Batch *batch = curr_batch;
 
     int offset = 0;
@@ -160,6 +150,7 @@ void bs_pushVertex(bs_vec3 pos, bs_vec2 tex_coord, bs_vec3 normal, bs_RGBA color
     bool has_normal    = (batch->shader->attribs & BS_NORMAL) == BS_NORMAL;
     bool has_tex_coord = (batch->shader->attribs & BS_TEX_COORD) == BS_TEX_COORD;
     bool has_color     = (batch->shader->attribs & BS_COLOR) == BS_COLOR;
+    bool has_attr_vec4 = (batch->shader->attribs & BS_ATTR_VEC4) == BS_ATTR_VEC4;
 
     memcpy(data + offset, &pos, sizeof(bs_vec3) * has_position);
     offset += sizeof(bs_vec3) * has_position;
@@ -167,14 +158,20 @@ void bs_pushVertex(bs_vec3 pos, bs_vec2 tex_coord, bs_vec3 normal, bs_RGBA color
     memcpy(data + offset, &tex_coord, sizeof(bs_vec2) * has_tex_coord);
     offset += sizeof(bs_vec2) * has_tex_coord;
 
-    memcpy(data + offset, &color, sizeof(bs_RGBA));
-    offset += sizeof(bs_RGBA);
+    memcpy(data + offset, &color, sizeof(bs_RGBA) * has_color);
+    offset += sizeof(bs_RGBA) * has_color;
 
     memcpy(data + offset, &normal, sizeof(bs_vec3) * has_normal); 
     offset += sizeof(bs_vec3) * has_normal;
 
+    memcpy(data + offset, &attrib_vec4, sizeof(bs_vec4) * has_attr_vec4); 
+    offset += sizeof(bs_vec4) * has_attr_vec4;
+
     bs_pushVertexStruct(data);
 }
+
+// void bs_pushTesselatedRect(, int polys_per_side) {
+// }
 
 void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Slice *slice) {
     bs_vec2 dim_pos = { dim.x + pos.x, dim.y + pos.y };
@@ -185,10 +182,10 @@ void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Slice *slice) {
     };
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
 
-    bs_pushVertex((bs_vec3){ pos.x    , pos.y    , pos.z }, (bs_vec2){ slice->tex_x , slice->tex_hy }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim_pos.x, pos.y    , pos.z }, (bs_vec2){ slice->tex_wx, slice->tex_hy }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Bottom right
-    bs_pushVertex((bs_vec3){ pos.x    , dim_pos.y, pos.z }, (bs_vec2){ slice->tex_x , slice->tex_y  }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Top Left
-    bs_pushVertex((bs_vec3){ dim_pos.x, dim_pos.y, pos.z }, (bs_vec2){ slice->tex_wx, slice->tex_y  }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Top Right
+    bs_pushVertex((bs_vec3){ pos.x    , pos.y    , pos.z }, (bs_vec2){ slice->tex_x , slice->tex_hy }, (bs_vec3){ 0.0, 0.0, 0.0 }, col, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim_pos.x, pos.y    , pos.z }, (bs_vec2){ slice->tex_wx, slice->tex_hy }, (bs_vec3){ 0.0, 0.0, 0.0 }, col, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x    , dim_pos.y, pos.z }, (bs_vec2){ slice->tex_x , slice->tex_y  }, (bs_vec3){ 0.0, 0.0, 0.0 }, col, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }); // Top Left
+    bs_pushVertex((bs_vec3){ dim_pos.x, dim_pos.y, pos.z }, (bs_vec2){ slice->tex_wx, slice->tex_y  }, (bs_vec3){ 0.0, 0.0, 0.0 }, col, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
@@ -203,10 +200,10 @@ void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
 
-    bs_pushVertex((bs_vec3){ pos.x    , pos.y    , pos.z }, (bs_vec2){ 0.0, 0.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim_pos.x, pos.y    , pos.z }, (bs_vec2){ 1.0, 0.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Bottom right
-    bs_pushVertex((bs_vec3){ pos.x    , dim_pos.y, pos.z }, (bs_vec2){ 0.0, 1.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Top Left
-    bs_pushVertex((bs_vec3){ dim_pos.x, dim_pos.y, pos.z }, (bs_vec2){ 1.0, 1.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Top Right
+    bs_pushVertex((bs_vec3){ pos.x    , pos.y    , pos.z }, (bs_vec2){ 0.0, 0.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, col, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim_pos.x, pos.y    , pos.z }, (bs_vec2){ 1.0, 0.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, col, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x    , dim_pos.y, pos.z }, (bs_vec2){ 0.0, 1.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, col, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }); // Top Left
+    bs_pushVertex((bs_vec3){ dim_pos.x, dim_pos.y, pos.z }, (bs_vec2){ 1.0, 1.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, col, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
@@ -222,10 +219,10 @@ void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
 
     const float white_tex_coord = 0.9999;
-    bs_pushVertex((bs_vec3){ pos.x    , pos.y    , pos.z }, (bs_vec2){ white_tex_coord, white_tex_coord }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim_pos.x, pos.y    , pos.z }, (bs_vec2){ white_tex_coord, white_tex_coord }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Bottom right
-    bs_pushVertex((bs_vec3){ pos.x    , dim_pos.y, pos.z }, (bs_vec2){ white_tex_coord, white_tex_coord }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Top Left
-    bs_pushVertex((bs_vec3){ dim_pos.x, dim_pos.y, pos.z }, (bs_vec2){ white_tex_coord, white_tex_coord }, (bs_vec3){ 0.0, 0.0, 0.0 }, col); // Top Right
+    bs_pushVertex((bs_vec3){ pos.x    , pos.y    , pos.z }, (bs_vec2){ white_tex_coord, white_tex_coord }, (bs_vec3){ 0.0, 0.0, 0.0 }, col, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim_pos.x, pos.y    , pos.z }, (bs_vec2){ white_tex_coord, white_tex_coord }, (bs_vec3){ 0.0, 0.0, 0.0 }, col, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x    , dim_pos.y, pos.z }, (bs_vec2){ white_tex_coord, white_tex_coord }, (bs_vec3){ 0.0, 0.0, 0.0 }, col, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }); // Top Left
+    bs_pushVertex((bs_vec3){ dim_pos.x, dim_pos.y, pos.z }, (bs_vec2){ white_tex_coord, white_tex_coord }, (bs_vec3){ 0.0, 0.0, 0.0 }, col, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
@@ -236,9 +233,9 @@ void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     };
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 3 * sizeof(int));
 
-    bs_pushVertex(pos1, (bs_vec2){ 0.0, 0.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, color);
-    bs_pushVertex(pos2, (bs_vec2){ 1.0, 0.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, color);
-    bs_pushVertex(pos3, (bs_vec2){ 0.0, 1.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, color);
+    bs_pushVertex(pos1, (bs_vec2){ 0.0, 0.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, color, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 });
+    bs_pushVertex(pos2, (bs_vec2){ 1.0, 0.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, color, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 });
+    bs_pushVertex(pos3, (bs_vec2){ 0.0, 1.0 }, (bs_vec3){ 0.0, 0.0, 0.0 }, color, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 });
 
     curr_batch->index_draw_count += 3;
 }
@@ -262,7 +259,7 @@ void bs_pushPrim(bs_Prim *prim, bs_Mesh *mesh) {
             tex_coord.y = prim->vertices[i].tex_coord.y;/* + prim->material.tex->tex_y;*/
         }
 
-        bs_pushVertex(prim->vertices[i].position, tex_coord, prim->vertices[i].normal, prim->material.base_color);
+        bs_pushVertex(prim->vertices[i].position, tex_coord, prim->vertices[i].normal, prim->material.base_color, (bs_vec4){ 0.0, 0.0, 0.0, 0.0 });
 
         // bs_pushVertexStruct(&vertex);
     }
@@ -293,7 +290,7 @@ void bs_changeBatchBufferSize(bs_Batch *batch, int index_count) {
 
 void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count) {
     // Default values
-    batch->camera = &std_camera;
+    batch->camera = &def_camera;
     batch->draw_mode = BS_TRIANGLES;
     batch->vertex_draw_count = 0;
     batch->index_draw_count = 0;
@@ -326,6 +323,7 @@ void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count) {
         { BS_FLOAT, 3, sizeof(bs_vec3) , false }, /* Normal */
         { BS_INT  , 4, sizeof(bs_ivec4), false }, /* Bone Ids */
         { BS_FLOAT, 4, sizeof(bs_vec4) , false }, /* Weights */
+        { BS_FLOAT, 4, sizeof(bs_vec4) , false }, /* Vec4 Attrib */
     };
     int total_attrib_count = sizeof(attrib_data) / sizeof(struct Attrib_Data);
 
@@ -403,17 +401,17 @@ void bs_freeBatchData() {
 
 void bs_renderBatch(int start_index, int draw_count) {
     // Batch should still be bound here
-    bs_setTimeUniform(curr_batch->shader, elapsed_time);
+    // bs_setTimeUniform(curr_batch->shader, 0.0);
 
     #ifdef BS_DEBUG
-        bs_Camera *cam = curr_batch->camera;
-        if(bs_debugCameraIsActivated()) {
-            cam = bs_getDebugCamera();
-        }
+        // bs_Camera *cam = curr_batch->camera;
+        // if(bs_debugCameraIsActivated()) {
+            // cam = bs_getDebugCamera();
+        // }
         // bs_setViewMatrixUniform(curr_batch->shader, cam);
         // bs_setProjMatrixUniform(curr_batch->shader, cam);
-        bs_setViewMatrixUniform(curr_batch->shader, curr_batch->camera);
-        bs_setProjMatrixUniform(curr_batch->shader, curr_batch->camera);
+        // bs_setViewMatrixUniform(curr_batch->shader, curr_batch->camera);
+        // bs_setProjMatrixUniform(curr_batch->shader, curr_batch->camera);
     #else 
         bs_setViewMatrixUniform(curr_batch->shader, curr_batch->camera);
         bs_setProjMatrixUniform(curr_batch->shader, curr_batch->camera);
@@ -427,6 +425,7 @@ void bs_clearBatch() {
     curr_batch->index_draw_count = 0;
 }
 
+// TODO: Gör current_batch
 int bs_getBatchSize(bs_Batch *batch) {
     return batch->index_draw_count;
 }
@@ -521,32 +520,31 @@ void bs_endFramebufferRender() {
     glDisable(GL_DEPTH_TEST);
 }
 
-void bs_checkGLError() {
-    GLenum err = glGetError();
-    if(err != GL_NO_ERROR) {
-        switch(err) {
-            case GL_INVALID_ENUM                 : bs_print(BS_CLE, "INVALID_ENUM"); break;
-            case GL_INVALID_VALUE                : bs_print(BS_CLE, "INVALID_VALUE"); break;
-            case GL_INVALID_OPERATION            : bs_print(BS_CLE, "GL_INVALID_OPERATION"); break;
-            case GL_STACK_OVERFLOW               : bs_print(BS_CLE, "GL_STACK_OVERFLOW"); break;
-            case GL_STACK_UNDERFLOW              : bs_print(BS_CLE, "GL_STACK_UNDERFLOW"); break;
-            case GL_OUT_OF_MEMORY                : bs_print(BS_CLE, "OUT_OF_MEMORY"); break;
-            case GL_INVALID_FRAMEBUFFER_OPERATION: bs_print(BS_CLE, "INVALID_FRAMEBUFFER_OPERATION"); break;
-        }
+typedef struct {
+    float elapsed;
+    bs_ivec2 res;
+} bs_Globals;
 
-        bs_print(BS_CLE, " | 0x0%x\n", err);
-    }
+void bs_setGlobalVars() {
+    bs_Globals globals;
+
+    globals.elapsed  = bs_elapsedTimef();
+    globals.res      = bs_resolution();
+
+    bs_setUniformBlockData(global_unifs, &globals);
 }
 
 void bs_init(int width, int height, char *title) {
     bs_initWnd(width, height, title);
     // bs_printHardwareInfo();
 
-    std_camera.pos.x = 0.0;
-    std_camera.pos.y = 0.0;
-    std_camera.pos.z = 500.0;
-    bs_setMatrixLookat(&std_camera, (bs_vec3){ 0.0, 0.0, -1.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
-    bs_setOrthographicProjection(&std_camera, 0, width, 0, height, 0.01, 1000.0);
+    def_camera.pos.x = 0.0;
+    def_camera.pos.y = 0.0;
+    def_camera.pos.z = 500.0;
+    bs_setMatrixLookat(&def_camera, (bs_vec3){ 0.0, 0.0, -1.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
+    bs_setOrthographicProjection(&def_camera, 0, width, 0, height, 0.01, 1000.0);
+
+    global_unifs = bs_initUniformBlock(sizeof(bs_Globals), 0);
 
     // Texture Atlas Init
     // std_atlas = bs_createTextureAtlas(BS_ATLAS_SIZE, BS_ATLAS_SIZE, BS_MAX_TEXTURES);
