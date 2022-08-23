@@ -16,6 +16,7 @@ HGLRC rc;
 
 int w, h;
 double elapsed;
+double delta_time;
 
 // Step 4: the Window Procedure
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -110,6 +111,10 @@ void bs_initWnd(int width, int height, char *title) {
 
     ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);
+
+    // Default 60 fps
+    // TODO: Get screen refresh rate
+    SetTimer(hwnd, 999, 1000 / 120, NULL);
 }
 
 /* --- INPUTS --- */
@@ -163,13 +168,17 @@ void bs_checkGLError() {
     }
 }
 
+void bs_tickSpeed(int fps) {
+    int fpms = 1000 / fps;
+    SetTimer(hwnd, 999, fpms, NULL);
+}
+
 void bs_wndTick(void (*render)()) {
     MSG msg;
 
-    double start;
+    double start, prev;
     start = (double)GetTickCount64() / 1000.0;
 
-    SetTimer(hwnd, 999, 16, NULL);
     while(GetMessage(&msg, NULL, 0, 0)) {
         glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -189,28 +198,32 @@ void bs_wndTick(void (*render)()) {
                 goto pass;
         }
 
+        prev = elapsed;
+
+        elapsed = (double)GetTickCount64() / 1000.0;
+        elapsed -= start;
+
+        delta_time = elapsed - prev;
+
         bs_setGlobalVars();
         render();
         bs_checkGLError();
         SwapBuffers(dc);
 
-        elapsed = (double)GetTickCount64() / 1000.0;
-        elapsed -= start;
-
         pass:
     }
-    return;
 }
 
 /* --- GET VARIABLES --- */
-float bs_elapsedTimef() {
-    return (float)elapsed;
-}
-
 double bs_elapsedTime() {
     return elapsed;
 }
 
-bs_ivec2 bs_resolution() {
-    return (bs_ivec2){ w, h };
+double bs_deltaTime() {
+    return delta_time;
+}
+
+void bs_resolution(bs_ivec2 ret) {
+    ret[0] = w;
+    ret[1] = h;
 }

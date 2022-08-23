@@ -1,4 +1,5 @@
 #include <bs_math.h>
+#include <string.h>
 #include <math.h>
 
 int bs_sign(float x) {
@@ -11,12 +12,12 @@ double bs_fMap(double input, double input_start, double input_end, double output
 }
 
 void bs_eul2quat(bs_quat q, bs_vec3 eul) {
-    double cy = cos(eul.x * 0.5);
-    double sy = sin(eul.x * 0.5);
-    double cp = cos(eul.y * 0.5);
-    double sp = sin(eul.y * 0.5);
-    double cr = cos(eul.z * 0.5);
-    double sr = sin(eul.z * 0.5);
+    double cy = cos(eul[0] * 0.5);
+    double sy = sin(eul[0] * 0.5);
+    double cp = cos(eul[1] * 0.5);
+    double sp = sin(eul[1] * 0.5);
+    double cr = cos(eul[2] * 0.5);
+    double sr = sin(eul[2] * 0.5);
 
     q[3] = cr * cp * cy + sr * sp * sy;
     q[0] = sr * cp * cy - cr * sp * sy;
@@ -24,26 +25,16 @@ void bs_eul2quat(bs_quat q, bs_vec3 eul) {
     q[2] = cr * cp * sy - sr * sp * cy;
 }
 
-void bs_normv3(bs_vec3 *v) {
-    float w = sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
-    v->x /= w;
-    v->y /= w;
-    v->z /= w;
+void bs_normv3ret(bs_vec3 v, bs_vec3 out) {
+	memcpy(out, v, sizeof(bs_vec3));
+    float w = sqrt(out[0] * out[0] + out[1] * out[1] + out[2] * out[2]);
+    out[0] /= w;
+    out[1] /= w;
+    out[2] /= w;
 }
 
-bs_vec3 bs_normv3ret(bs_vec3 v) {
-    float w = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-    v.x /= w;
-    v.y /= w;
-    v.z /= w;
-
-    return v;
-}
-
-bs_vec3 bs_crossv3(bs_vec3 v0, bs_vec3 v1) {
-	bs_vec3 cross;
-    cross.x = v0.y * v1.z - v0.z * v1.y;
-    cross.y = v0.z * v1.x - v0.x * v1.z;
-    cross.z = v0.x * v1.y - v0.y * v1.x;
-    return cross;
+void bs_crossv3(bs_vec3 v0, bs_vec3 v1, bs_vec3 out) {
+    out[0] = v0[1] * v1[2] - v0[2] * v1[1];
+    out[1] = v0[2] * v1[0] - v0[0] * v1[2];
+    out[2] = v0[0] * v1[1] - v0[1] * v1[0];
 }

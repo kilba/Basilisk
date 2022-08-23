@@ -329,7 +329,7 @@ void bs_uniform_int(int loc, int val) {
 // TODO: bvecn, ivecn, uvecn, vecn, dvecn
 
 void bs_uniform_vec3(int loc, bs_vec3 vec) {
-    glUniform3f(loc, vec.x, vec.y, vec.z);
+    glUniform3f(loc, vec[0], vec[1], vec[2]);
 }
 
 // TODO: Arrays

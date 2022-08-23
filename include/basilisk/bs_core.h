@@ -6,12 +6,13 @@
 /* --- RENDERING --- */
 void bs_pushVertexStruct(void *vertex);
 void bs_pushVertex(
-    bs_vec3 pos, 
-    bs_vec2 tex_coord, 
-    bs_vec3 normal, 
-    bs_RGBA color, 
-    bs_vec4 attrib_vec4
-);
+    bs_vec3 pos,
+    bs_vec2 tex_coord,
+    bs_vec3 normal,
+    bs_RGBA color,
+    bs_ivec4 bone_ids,
+    bs_vec4 weights,
+    bs_vec4 attrib_vec4);
 
 void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Slice *tex);
 void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
@@ -53,10 +54,6 @@ int bs_getBatchSize(bs_Batch *batch);
 void bs_init(int width, int height, char *title);
 void bs_startRender(void (*render)());
 void bs_setGlobalVars();
-
-/* --- INPUTS / CALLBACKS --- */
-bs_vec2 bs_getCursorPositionReverseY();
-bs_vec2 bs_getCursorPosition();
 
 /* --- MATRICES --- */
 void bs_setMatrices(bs_Shader *shader);

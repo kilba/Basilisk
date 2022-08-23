@@ -99,42 +99,14 @@ typedef struct {
 	float a;
 } bs_fRGBA;
 
-typedef struct {
-	float x;
-	float y;
-} bs_vec2;
-
-typedef struct {
-	float x;
-	float y;
-	float z;
-} bs_vec3;
-
-typedef struct {
-	float x;
-	float y;
-	float z;
-	float w;
-} bs_vec4;
+typedef float bs_vec2[2];
+typedef float bs_vec3[3];
+typedef float bs_vec4[4];
 
 /* --- INT TYPES --- */
-typedef struct {
-	int x;
-	int y;
-} bs_ivec2;
-
-typedef struct {
-	int x;
-	int y;
-	int z;
-} bs_ivec3;
-
-typedef struct {
-	int x;
-	int y;
-	int z;
-	int w;
-} bs_ivec4;
+typedef int bs_ivec2[2];
+typedef int bs_ivec3[3];
+typedef int bs_ivec4[4];
 
 /* --- UNSIGNED INT TYPES --- */
 typedef struct {
@@ -265,5 +237,30 @@ typedef struct {
 	int vertex_count;
 	int index_count;
 } bs_Model;
+
+/* --- VECTOR CONSTANTS --- */
+// bs_vec2 Constants
+#define bs_vec2_0 (bs_vec2){ 0.0, 0.0 }
+#define bs_vec2_1 (bs_vec2){ 1.0, 1.0 }
+// bs_vec3 Constants
+#define bs_vec3_0 (bs_vec3){ 0.0, 0.0, 0.0 }
+#define bs_vec3_1 (bs_vec3){ 1.0, 1.0, 1.0 }
+// bs_vec4 Constants
+#define bs_vec4_0 (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }
+#define bs_vec4_1 (bs_vec4){ 1.0, 1.0, 1.0, 1.0 }
+
+/* --- COLOR CONSTANTS --- */
+// bs_RGBA Constants
+#define bs_RGBA_0 (bs_RGBA){ 0, 0, 0, 0 }
+#define bs_RGBA_BLACK (bs_RGBA){ 0, 0, 0, 255 }
+#define bs_RGBA_WHITE (bs_RGBA){ 255, 255, 255, 255 }
+
+#define bs_RGBA_RED     (bs_RGBA){ 255, 0  , 0  , 255 }
+#define bs_RGBA_GREEN   (bs_RGBA){ 0  , 255, 0  , 255 }
+#define bs_RGBA_BLUE    (bs_RGBA){ 0  , 0  , 255, 255 }
+
+#define bs_RGBA_CYAN    (bs_RGBA){ 0  , 255, 255, 255 }
+#define bs_RGBA_YELLOW  (bs_RGBA){ 255, 255, 0  , 255 }
+#define bs_RGBA_MAGENTA (bs_RGBA){ 255, 0  , 255, 255 }
 
 #endif /* BS_TYPES_H */
