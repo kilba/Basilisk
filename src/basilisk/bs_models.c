@@ -4,12 +4,12 @@
 
 #include <stdint.h>
 
-#include <bs_models.h>
+#include <bs_mem.h>
 #include <bs_core.h>
-#include <bs_textures.h>
-#include <bs_shaders.h>
-#include <bs_file_mgmt.h>
 #include <bs_math.h>
+#include <bs_models.h>
+#include <bs_shaders.h>
+#include <bs_textures.h>
 
 bs_Joint identity_joint = { GLM_MAT4_IDENTITY_INIT };
 bs_Anim *anims;
@@ -87,28 +87,31 @@ void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
 	bs_Material *mat = &prim->material;
 
 	if(c_mat == NULL) {
-		mat->base_color.r = 255;
-		mat->base_color.g = 255;
-		mat->base_color.b = 255;
-		mat->base_color.a = 255;		
+		mat->col[0] = 255;
+		mat->col[1] = 255;
+		mat->col[2] = 255;
+		mat->col[3] = 255;		
 		return;
 	}
 
-	cgltf_float *mat_color = c_mat->pbr_metallic_roughness.base_color_factor;
+	cgltf_pbr_metallic_roughness *metallic = &c_mat->pbr_metallic_roughness;
+	cgltf_float *mat_color = metallic->base_color_factor;
 
-	mat->base_color.r = mat_color[0] * 255;
-	mat->base_color.g = mat_color[1] * 255;
-	mat->base_color.b = mat_color[2] * 255;
-	mat->base_color.a = mat_color[3] * 255;
+	mat->col[0] = mat_color[0] * 255;
+	mat->col[1] = mat_color[1] * 255;
+	mat->col[2] = mat_color[2] * 255;
+	mat->col[3] = mat_color[3] * 255;
 
 	// If the primitive has a texture
-	if(c_mat->pbr_metallic_roughness.base_color_texture.texture != NULL) {
-		int id = (int64_t)c_mat->pbr_metallic_roughness.base_color_texture.texture->image;
+	if(metallic->base_color_texture.texture != NULL) {
+		int id = (int64_t)metallic->base_color_texture.texture->image;
 		id -= curr_tex_ptr;
 		id /= sizeof(cgltf_image);
 
 		mat->tex = &model->textures[0];
 	}
+
+	mat->metallic = metallic->metallic_factor;
 }
 
 void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_index, int prim_index) {
@@ -205,6 +208,7 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
 	cgltf_mesh *c_mesh = &data->meshes[mesh_index];
 	cgltf_node *node = &data->nodes[mesh_index];
 
+	model->meshes[mesh_index].joint_count = 0;
 
 	memcpy(&model->meshes[mesh_index].pos, node->translation, sizeof(bs_vec3));
 	memcpy(&model->meshes[mesh_index].rot, node->rotation, sizeof(bs_vec4));
@@ -248,7 +252,7 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 		strcat(texture_path, ".png");
 
 		bs_loadTex2D(model->textures+i, texture_path);
-		bs_setTextureSettings(BS_LINEAR, BS_LINEAR);
+		bs_textureSettings(BS_LINEAR, BS_LINEAR);
 		bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
 	}
 

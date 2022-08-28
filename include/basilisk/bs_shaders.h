@@ -5,6 +5,10 @@
 #include <bs_types.h>
 
 /* --- INITIALIZATION --- */
+void bs_shaderReplaceAlloc(int amount); 
+void bs_replaceInAllShaders(char *old_str, char *new_str);
+void bs_freeReplaceBlock();
+
 void bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code, bs_Shader *shader);
 void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shader);
 void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs_Tex2D *tex);

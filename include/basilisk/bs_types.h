@@ -1,7 +1,8 @@
 #ifndef BS_TYPES_H
 #define BS_TYPES_H
 
-#include <cglm/cglm.h>
+#include <stddef.h>
+#include <stdbool.h>
 
 /* --- TEXTURES --- */
 typedef struct {
@@ -78,18 +79,7 @@ typedef struct {
 #define BS_WND_VISIBLE 0x00020004
 #define BS_WND_UNCLICKABLE 0x0002000D
 
-typedef mat2 bs_mat2;
-typedef mat3 bs_mat3;
-typedef mat4 bs_mat4;
-
-typedef versor bs_quat;
-
-typedef struct {
-	unsigned char r;
-	unsigned char g;
-	unsigned char b;
-	unsigned char a;
-} bs_RGBA;
+typedef unsigned char bs_RGBA[4];
 
 /* --- FLOAT TYPES --- */
 typedef struct {
@@ -102,6 +92,12 @@ typedef struct {
 typedef float bs_vec2[2];
 typedef float bs_vec3[3];
 typedef float bs_vec4[4];
+
+typedef bs_vec2 bs_mat2[2];
+typedef bs_vec3 bs_mat3[3];
+typedef bs_vec4 bs_mat4[4];
+
+typedef bs_vec4 bs_quat;
 
 /* --- INT TYPES --- */
 typedef int bs_ivec2[2];
@@ -140,16 +136,6 @@ typedef struct {
 	bs_RGBA color;
 } bs_Vertex;
 
-// Vertex declaration for rigged models
-typedef struct {
-	bs_vec3 position;
-	bs_vec2 tex_coord;
-	bs_vec3 normal;
-	bs_RGBA color;
-	bs_ivec4 bone_ids;
-	bs_vec4 weights;
-} bs_RVertex;
-
 typedef struct {
 	int render_width;
 	int render_height;
@@ -186,10 +172,10 @@ typedef struct {
 } bs_Anim;
 
 typedef struct {
-	bs_RGBA base_color;
+	bs_RGBA col;
 	bs_Tex2D *tex;
 
-	bs_vec3 specular;
+	float metallic;
 } bs_Material;
 
 struct bs_Joint {
@@ -205,13 +191,20 @@ struct bs_Joint {
 
 typedef struct {
 	bs_Material material;
-	int attrib_count;
 
-	bs_RVertex *vertices;
+	struct bs_mVertex {
+		bs_vec3 position;
+		bs_vec2 tex_coord;
+		bs_vec3 normal;
+		bs_RGBA color;
+		bs_ivec4 bone_ids;
+		bs_vec4 weights;
+	} *vertices;
 	int vertex_count;
 
 	int *indices;
 	int index_count;
+
 } bs_Prim;
 
 typedef struct {

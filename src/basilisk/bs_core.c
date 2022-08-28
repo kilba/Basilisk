@@ -151,7 +151,7 @@ void bs_pushVertex(
     bool has_position  = (pos != 0)         * ((batch->shader->attribs & BS_POSITION)  == BS_POSITION);
     bool has_tex_coord = (tex_coord != 0)   * ((batch->shader->attribs & BS_TEX_COORD) == BS_TEX_COORD);
     bool has_normal    = (normal != 0)      * ((batch->shader->attribs & BS_NORMAL)    == BS_NORMAL);
-    bool has_color     =                      ((batch->shader->attribs & BS_COLOR)     == BS_COLOR);
+    bool has_color     = (color != 0)       * ((batch->shader->attribs & BS_COLOR)     == BS_COLOR);
     bool has_bone_ids  = (bone_ids != 0)    * ((batch->shader->attribs & BS_BONE_IDS)  == BS_BONE_IDS);
     bool has_weights   = (weights != 0)     * ((batch->shader->attribs & BS_WEIGHTS)   == BS_WEIGHTS);
     bool has_attr_vec4 = (attrib_vec4 != 0) * ((batch->shader->attribs & BS_ATTR_VEC4) == BS_ATTR_VEC4);
@@ -162,7 +162,7 @@ void bs_pushVertex(
     memcpy(data_ptr, tex_coord, sizeof(bs_vec2) * has_tex_coord);
     data_ptr += sizeof(bs_vec2) * has_tex_coord;
 
-    memcpy(data_ptr, &color, sizeof(bs_RGBA) * has_color);
+    memcpy(data_ptr, color, sizeof(bs_RGBA) * has_color);
     data_ptr += sizeof(bs_RGBA) * has_color;
 
     memcpy(data_ptr, normal, sizeof(bs_vec3) * has_normal); 
@@ -269,18 +269,15 @@ void bs_pushPrim(bs_Prim *prim, bs_Mesh *mesh) {
             tex_coord[1] = prim->vertices[i].tex_coord[1];/* + prim->material.tex->tex_y;*/
         }
 
-        // printf("%d | { %d, %d, %d, %d }, { %f, %f, %f, %f }\n", i, 
-        //     prim->vertices[i].bone_ids[0],
-        //     prim->vertices[i].bone_ids[1],
-        //     prim->vertices[i].bone_ids[2],
-        //     prim->vertices[i].bone_ids[3],
-
-        //     prim->vertices[i].weights[0],
-        //     prim->vertices[i].weights[1],
-        //     prim->vertices[i].weights[2],
-        //     prim->vertices[i].weights[3]
-        // );
-        bs_pushVertex(prim->vertices[i].position, tex_coord, prim->vertices[i].normal, prim->material.base_color, prim->vertices[i].bone_ids, prim->vertices[i].weights, 0);
+        bs_pushVertex(
+            prim->vertices[i].position, 
+            tex_coord, 
+            prim->vertices[i].normal, 
+            prim->material.col, 
+            prim->vertices[i].bone_ids, 
+            prim->vertices[i].weights, 
+            0
+        );
     }
 
     curr_batch->index_draw_count += prim->index_count;

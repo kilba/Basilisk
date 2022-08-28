@@ -145,10 +145,10 @@ bool bs_isKeyUpOnce(int key_code) {
 
 /* --- WINDOW FUNCTIONS --- */
 void bs_setBackgroundColor(bs_RGBA color) {
-    clear_color.r = (float)color.r / 255.0;
-    clear_color.g = (float)color.g / 255.0;
-    clear_color.b = (float)color.b / 255.0;
-    clear_color.a = (float)color.a / 255.0;
+    clear_color.r = (float)color[0] / 255.0;
+    clear_color.g = (float)color[1] / 255.0;
+    clear_color.b = (float)color[2] / 255.0;
+    clear_color.a = (float)color[3] / 255.0;
 }
 
 void bs_checkGLError() {

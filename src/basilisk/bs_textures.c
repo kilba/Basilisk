@@ -92,17 +92,35 @@ void bs_createWhiteSquare(int dim, bs_Atlas *atlas) {
 }
 
 /* TEXTURE INITIALIZATION */
-void bs_initTexture(bs_Tex2D *texture, int w, int h, unsigned char *data) {
+void bs_initTexture(bs_Tex2D *texture, int w, int h) {
     glGenTextures(1, &texture->id);
     glBindTexture(GL_TEXTURE_2D, texture->id);
 
     curr_texture = texture;
     curr_texture->w = w;
     curr_texture->h = h;
+    curr_texture->data = NULL;
+}
+
+void bs_textureDataRaw(unsigned char *data) {
     curr_texture->data = data;
 }
 
-void bs_setTextureSettings(int min_filter, int mag_filter) {
+void bs_textureDataFile(char *path, bool update_dimensions) {
+    unsigned int w, h;
+    int success = lodepng_decode32_file(&curr_texture->data, &w, &h, path);
+
+    if(success != 0) {
+        return;
+    }
+
+    if(update_dimensions) {
+        curr_texture->w = w;
+        curr_texture->h = h;
+    }
+}
+
+void bs_textureSettings(int min_filter, int mag_filter) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
@@ -148,21 +166,14 @@ void bs_pushAtlas(bs_Atlas *atlas) {
     bs_appendToAtlas(atlas->tex.data, atlas->tex.w, atlas->tex.h, atlas);
 
     // bs_initTexture(&atlas->tex, atlas->tex.w, atlas->tex.h, NULL);
-    bs_setTextureSettings(BS_NEAREST_MIPMAP_LINEAR, BS_NEAREST);
+    bs_textureSettings(BS_NEAREST_MIPMAP_LINEAR, BS_NEAREST);
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UINT);
     bs_genTextureMipmaps();
 }
 
 void bs_loadTex2D(bs_Tex2D *tex, char *path) {
-    unsigned char *data;
-    unsigned int w, h;
-    int success = lodepng_decode32_file(&data, &w, &h, path);
-
-    if(success != 0) {
-        printf("Texture wasn't loaded: %d\n", success);
-    }
-
-    bs_initTexture(tex, w, h, data);
+    bs_initTexture(tex, 0, 0);
+    bs_textureDataFile(path, true);
 }
 
 bs_Slice *bs_loadTexture(char *path, int frames) {

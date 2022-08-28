@@ -4,13 +4,13 @@ project(basilisk)
 
 add_library(${PROJECT_NAME}
 	src/basilisk/bs_wnd.c
+	src/basilisk/bs_mem.c
 	src/basilisk/bs_core.c
 	src/basilisk/bs_math.c
 	src/basilisk/bs_debug.c
 	src/basilisk/bs_models.c
 	src/basilisk/bs_shaders.c
 	src/basilisk/bs_textures.c
-	src/basilisk/bs_file_mgmt.c
 
 	external/glad/glad.c
 	external/lodepng/lodepng.c

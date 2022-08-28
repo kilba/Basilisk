@@ -1,21 +1,52 @@
 // GL
+#include "bs_types.h"
 #include <glad/glad.h>
 #include <cglm/cglm.h>
 
 // Basilisk
-#include <bs_shaders.h>
+#include <bs_mem.h>
 #include <bs_core.h>
 #include <bs_debug.h>
-#include <bs_file_mgmt.h>
+#include <bs_shaders.h>
 #include <bs_textures.h>
 
 // STD
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
 
-// INITIALIZATION
+typedef struct ReplaceBuf ReplaceBuf;
+struct ReplaceBuf {
+    char *old_str;
+    char *new_str;
+} *replace_buf = NULL;
+int replace_buf_size = 0;
+int replace_buf_curr = 0;
+
+/* Not necessary, but prevents multiple calls to realloc() */
+void bs_shaderReplaceAlloc(int amount) {
+    replace_buf = realloc(replace_buf, amount * sizeof(ReplaceBuf));
+    replace_buf_size = amount;
+}
+
+void bs_replaceInAllShaders(char *old_str, char *new_str) {
+    if(replace_buf_curr >= replace_buf_size)
+	bs_shaderReplaceAlloc(replace_buf_size+1);
+
+    replace_buf[replace_buf_curr].old_str = malloc(1+strlen(old_str));
+    replace_buf[replace_buf_curr].new_str = malloc(1+strlen(new_str));
+    strcpy(replace_buf[replace_buf_curr].old_str, old_str);
+    strcpy(replace_buf[replace_buf_curr].new_str, new_str);
+    
+    replace_buf_curr++;
+}
+
+void bs_freeReplaceBlock() {
+    free(replace_buf);
+}
+
 // Gets all default uniform locations
 void bs_setDefShaderUniforms(bs_Shader *shader, char *shader_code){
     const char *def_uniforms[] = { 
@@ -127,12 +158,30 @@ void bs_shaderErrorCheck(GLuint *shader, int shadertype) {
     }
 }
 
-void bs_loadShaderCode(GLuint *shader, const GLchar *shader_code, int type) {
-    *shader = glCreateShader(type);
-    glShaderSource (*shader, 1, &shader_code, NULL);
-    glCompileShader(*shader);
+char *bs_replaceInShader(char *code) {
+    char *new_code = code;
+    for(int i = 0; i < 1; i++) {
+	ReplaceBuf *buf = replace_buf + i;
+	char *repl = bs_replaceFirstSubstring(new_code, buf->old_str, buf->new_str);
+	if(repl != NULL)
+	    new_code = repl;
+    }
+    return new_code;
+}
 
-    bs_shaderErrorCheck(shader, type);
+void bs_loadShaderCode(int program, GLuint *shader_id, char *shader_code, int type) {
+    const GLchar *replaced_shader_code = bs_replaceInShader(shader_code);
+
+    *shader_id = glCreateShader(type);
+    glShaderSource(*shader_id, 1, &replaced_shader_code, NULL);
+
+    glCompileShader(*shader_id);
+    bs_shaderErrorCheck(shader_id, type);
+    glAttachShader(program, *shader_id);
+
+    if((char*)replaced_shader_code != shader_code) {
+	free((char*)replaced_shader_code);
+    }
 }
 
 void bs_setDefaultUniformLocations(bs_Shader *shader, char *vs_code, char *fs_code, char *gs_code) {
@@ -160,26 +209,18 @@ void bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code, bs_Shader *sh
     shader->attrib_count = 0;
     shader->id = glCreateProgram();
 
-    bs_loadShaderCode(&shader->vs_id, vs_code, GL_VERTEX_SHADER);
-    bs_loadShaderCode(&shader->fs_id, fs_code, GL_FRAGMENT_SHADER);
-
-    glAttachShader(shader->id, shader->vs_id);
-    glAttachShader(shader->id, shader->fs_id);
+    bs_loadShaderCode(shader->id, &shader->vs_id, vs_code, GL_VERTEX_SHADER);
+    bs_loadShaderCode(shader->id, &shader->fs_id, fs_code, GL_FRAGMENT_SHADER);
 
     // Geometry shader is not mandatory
     if(gs_code != 0) {
-        bs_loadShaderCode(&shader->gs_id, gs_code, GL_GEOMETRY_SHADER);
-        glAttachShader(shader->id, shader->gs_id);
+        bs_loadShaderCode(shader->id, &shader->gs_id, gs_code, GL_GEOMETRY_SHADER);
     }
 
     glLinkProgram(shader->id);
     glUseProgram(shader->id);
 
-    // bs_Camera *cam = bs_getStdCamera();
     bs_setDefaultUniformLocations(shader, vs_code, fs_code, gs_code);
-    // bs_setViewMatrixUniform(shader, cam);
-    // bs_setProjMatrixUniform(shader, cam);
-
     return;
 }
 
@@ -212,10 +253,9 @@ void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs
     if(cs_code == NULL)
         return;
 
-    bs_loadShaderCode(&compute_shader->cs_id, cs_code, GL_COMPUTE_SHADER);
+    bs_loadShaderCode(compute_shader->id, &compute_shader->cs_id, cs_code, GL_COMPUTE_SHADER);
 
     compute_shader->id = glCreateProgram();
-    glAttachShader(compute_shader->id, compute_shader->cs_id);
     glLinkProgram(compute_shader->id);
     glUseProgram(compute_shader->id);
 
