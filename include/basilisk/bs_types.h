@@ -82,22 +82,19 @@ typedef struct {
 typedef unsigned char bs_RGBA[4];
 
 /* --- FLOAT TYPES --- */
-typedef struct {
-	float r;
-	float g;
-	float b;
-	float a;
-} bs_fRGBA;
-
 typedef float bs_vec2[2];
 typedef float bs_vec3[3];
 typedef float bs_vec4[4];
+typedef bs_vec4 bs_fRGBA;
 
 typedef bs_vec2 bs_mat2[2];
 typedef bs_vec3 bs_mat3[3];
 typedef bs_vec4 bs_mat4[4];
 
 typedef bs_vec4 bs_quat;
+
+#define BS_VEC2(arr) (bs_vec2){ arr[0], arr[1] }
+#define BS_VEC3(arr) (bs_vec3){ arr[0], arr[1], arr[2] }
 
 /* --- INT TYPES --- */
 typedef int bs_ivec2[2];

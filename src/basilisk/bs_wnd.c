@@ -145,10 +145,10 @@ bool bs_isKeyUpOnce(int key_code) {
 
 /* --- WINDOW FUNCTIONS --- */
 void bs_setBackgroundColor(bs_RGBA color) {
-    clear_color.r = (float)color[0] / 255.0;
-    clear_color.g = (float)color[1] / 255.0;
-    clear_color.b = (float)color[2] / 255.0;
-    clear_color.a = (float)color[3] / 255.0;
+    clear_color[0] = (float)color[0] / 255.0;
+    clear_color[1] = (float)color[1] / 255.0;
+    clear_color[2] = (float)color[2] / 255.0;
+    clear_color[3] = (float)color[3] / 255.0;
 }
 
 void bs_checkGLError() {
@@ -180,7 +180,7 @@ void bs_wndTick(void (*render)()) {
     start = (double)GetTickCount64() / 1000.0;
 
     while(GetMessage(&msg, NULL, 0, 0)) {
-        glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+        glClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         TranslateMessage(&msg);

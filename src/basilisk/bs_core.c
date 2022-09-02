@@ -198,6 +198,23 @@ void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Slice *slice) {
     curr_batch->index_draw_count += 6;
 }
 
+void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
+    int indices[] = {
+        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
+        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
+    };
+
+    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
+    
+    const float white = 0.9999;
+    bs_pushVertex(p0, (bs_vec2){ white, white }, 0, col, 0, 0, 0); // Bottom Left
+    bs_pushVertex(p1, (bs_vec2){ white, white }, 0, col, 0, 0, 0); // Bottom right
+    bs_pushVertex(p2, (bs_vec2){ white, white }, 0, col, 0, 0, 0); // Top Left
+    bs_pushVertex(p3, (bs_vec2){ white, white }, 0, col, 0, 0, 0); // Top Right
+
+    curr_batch->index_draw_count += 6;
+}
+
 void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     dim[0] += pos[0];
     dim[1] += pos[1];
@@ -509,7 +526,7 @@ void bs_attachDepthBuffer(bs_Tex2D *tex) {
 }
 
 void bs_setDrawBufs(int n, ...) {
-    int values[n];
+    GLenum values[n];
 
     va_list ptr;
     va_start(ptr, n);

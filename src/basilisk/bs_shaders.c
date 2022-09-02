@@ -35,11 +35,13 @@ void bs_replaceInAllShaders(char *old_str, char *new_str) {
     if(replace_buf_curr >= replace_buf_size)
 	bs_shaderReplaceAlloc(replace_buf_size+1);
 
-    replace_buf[replace_buf_curr].old_str = malloc(1+strlen(old_str));
-    replace_buf[replace_buf_curr].new_str = malloc(1+strlen(new_str));
-    strcpy(replace_buf[replace_buf_curr].old_str, old_str);
-    strcpy(replace_buf[replace_buf_curr].new_str, new_str);
-    
+    //replace_buf[replace_buf_curr].old_str = malloc(1+strlen(old_str));
+    //replace_buf[replace_buf_curr].new_str = malloc(1+strlen(new_str));
+    //strcpy(replace_buf[replace_buf_curr].old_str, old_str);
+    //strcpy(replace_buf[replace_buf_curr].new_str, new_str);
+
+    replace_buf[replace_buf_curr].old_str = old_str;
+    replace_buf[replace_buf_curr].new_str = new_str;
     replace_buf_curr++;
 }
 
@@ -160,7 +162,7 @@ void bs_shaderErrorCheck(GLuint *shader, int shadertype) {
 
 char *bs_replaceInShader(char *code) {
     char *new_code = code;
-    for(int i = 0; i < 1; i++) {
+    for(int i = 0; i < replace_buf_curr; i++) {
 	ReplaceBuf *buf = replace_buf + i;
 	char *repl = bs_replaceFirstSubstring(new_code, buf->old_str, buf->new_str);
 	if(repl != NULL)
