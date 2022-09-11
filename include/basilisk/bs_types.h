@@ -7,6 +7,7 @@
 /* --- TEXTURES --- */
 typedef struct {
     int w, h;
+
     unsigned int id;
     unsigned int unit;
     unsigned char *data;
@@ -30,45 +31,45 @@ typedef struct {
 /* --- SHADERS --- */
 // TODO: Make #define instead
 typedef enum {
-	UNIFORM_PROJ,
-	UNIFORM_VIEW,
+    UNIFORM_PROJ,
+    UNIFORM_VIEW,
 
-	BS_UNIFORM_TYPE_COUNT,
+    BS_UNIFORM_TYPE_COUNT,
 } bs_STDUniforms;
 
 // TODO: Remove this shit
 typedef struct {
-	bool is_valid;
-	int loc;
+    bool is_valid;
+    int loc;
 } bs_Uniform;
 
 typedef struct {
-	int type;
-	int loc;
+    int type;
+    int loc;
 } bs_Attrib;
 
 typedef struct {
-	bs_Uniform uniforms[BS_UNIFORM_TYPE_COUNT];
-	int attribs;
-	int attrib_count;
+    bs_Uniform uniforms[BS_UNIFORM_TYPE_COUNT];
+    int attribs;
+    int attrib_count;
 
-	// OpenGL Variables
-	unsigned int id;
-	unsigned int vs_id;
-	unsigned int fs_id;
-	unsigned int gs_id;
+    // OpenGL Variables
+    unsigned int id;
+    unsigned int vs_id;
+    unsigned int fs_id;
+    unsigned int gs_id;
 } bs_Shader;
 
 typedef struct {
-	unsigned int id;
-	unsigned int cs_id;
-	
-	bs_Tex2D *tex;
+    unsigned int id;
+    unsigned int cs_id;
+    
+    bs_Tex2D *tex;
 } bs_ComputeShader;
 
 typedef struct {
-	unsigned int id;
-	unsigned int block_size;
+    unsigned int id;
+    unsigned int block_size;
 } bs_UniformBuffer;
 
 /* --- GENERAL --- */

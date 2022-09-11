@@ -4,7 +4,6 @@
 #include <bs_types.h>
 
 /* --- RENDERING --- */
-void bs_pushVertexStruct(void *vertex);
 void bs_pushVertex(
     bs_vec3 pos,
     bs_vec2 tex_coord,
@@ -16,6 +15,7 @@ void bs_pushVertex(
 
 void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Slice *tex);
 void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
+void bs_pushTex2DFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
@@ -23,10 +23,8 @@ void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
 void bs_pushMesh(bs_Mesh *mesh);
 void bs_pushModel(bs_Model *model);
 
-void bs_pushModelUnbatched(bs_Model *model, bs_Shader *shader);
-
 /* --- FRAMEBUFFERS --- */
-void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height);
+void bs_framebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height);
 void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment);
 void bs_attachRenderbuffer();
 void bs_attachDepthBuffer(bs_Tex2D *tex);
@@ -35,11 +33,14 @@ void bs_startFramebufferRender(bs_Framebuffer *framebuffer);
 void bs_endFramebufferRender();
 
 /* --- BATCHING --- */
-void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count);
-void bs_setBatchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size);
-void bs_addBatchAttrib (const int type, unsigned int amount, size_t size_per_type, bool normalized);
-void bs_addBatchAttribI(const int type, unsigned int amount, size_t size_per_type);
-void bs_bindBufferRange(int target, int bind_point, int buffer, int offset, int size);
+void bs_batch(bs_Batch *batch, bs_Shader *shader, int index_count);
+void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size);
+void bs_attrib(const int type, unsigned int amount, size_t size_per_type, bool normalized);
+void bs_attribI(const int type, unsigned int amount, size_t size_per_type);
+void bs_attribDivisor(int attrib_id, int value);
+void bs_attribInstance(int attrib_id);
+
+void bs_bufferRange(int target, int bind_point, int buffer, int offset, int size);
 void bs_selectBatch(bs_Batch *batch);
 void bs_pushBatch();
 void bs_renderBatch(int start_index, int draw_count);
@@ -48,8 +49,8 @@ void bs_freeBatchData();
 void bs_clearBatch();
 void bs_changeBatchBufferSize(bs_Batch *batch, int index_count);
 
-void bs_setBatchShader(bs_Batch *batch, bs_Shader *shader);
-int bs_getBatchSize(bs_Batch *batch);
+void bs_batchShader(bs_Batch *batch, bs_Shader *shader);
+int bs_batchSize();
 
 /* --- INITIALIZATION --- */
 void bs_init(int width, int height, char *title);

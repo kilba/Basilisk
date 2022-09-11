@@ -251,9 +251,9 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 		strcat(texture_path, data->images[i].name);
 		strcat(texture_path, ".png");
 
-		bs_loadTex2D(model->textures+i, texture_path);
-		bs_textureSettings(BS_LINEAR, BS_LINEAR);
-		bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
+		//bs_loadTex2D(model->textures+i, texture_path);
+		//bs_textureSettings(BS_LINEAR, BS_LINEAR);
+		//bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
 	}
 
  	curr_tex_ptr = ids[0];

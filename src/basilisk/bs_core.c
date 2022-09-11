@@ -13,6 +13,7 @@
 #include <bs_debug.h>
 
 // STD
+#include <stdio.h>
 #include <string.h>
 #include <stddef.h>
 #include <lodepng.h>
@@ -21,6 +22,8 @@
     #include <windows.h>
     #include <objidl.h>
 #endif
+
+#include <time.h>
 
 // Shaders
 bs_Shader texture_shader;
@@ -129,12 +132,6 @@ void bs_selectBatch(bs_Batch *batch) {
     bs_switchShader(curr_batch->shader->id);
 }
 
-void bs_pushVertexStruct(void *vertex) {
-    bs_Batch *batch = curr_batch;
-    memcpy(curr_batch->vertices + curr_batch->vertex_draw_count * batch->attrib_size_bytes, vertex, batch->attrib_size_bytes);
-    curr_batch->vertex_draw_count++;
-}
-
 void bs_pushVertex(
     bs_vec3  pos,
     bs_vec2  tex_coord,
@@ -145,8 +142,7 @@ void bs_pushVertex(
     bs_vec4  attrib_vec4) {
     bs_Batch *batch = curr_batch;
 
-    unsigned char data[curr_batch->attrib_size_bytes];
-    unsigned char *data_ptr = data;
+    unsigned char *data_ptr = (unsigned char *)batch->vertices + batch->vertex_draw_count * batch->attrib_size_bytes;
 
     bool has_position  = (pos != 0)         * ((batch->shader->attribs & BS_POSITION)  == BS_POSITION);
     bool has_tex_coord = (tex_coord != 0)   * ((batch->shader->attribs & BS_TEX_COORD) == BS_TEX_COORD);
@@ -177,7 +173,7 @@ void bs_pushVertex(
     memcpy(data_ptr, attrib_vec4, sizeof(bs_vec4) * has_attr_vec4); 
     data_ptr += sizeof(bs_vec4) * has_attr_vec4;
 
-    bs_pushVertexStruct(data);
+    curr_batch->vertex_draw_count++;
 } 
 
 void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Slice *slice) {
@@ -206,11 +202,29 @@ void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
 
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
     
-    const float white = 0.9999;
-    bs_pushVertex(p0, (bs_vec2){ white, white }, 0, col, 0, 0, 0); // Bottom Left
-    bs_pushVertex(p1, (bs_vec2){ white, white }, 0, col, 0, 0, 0); // Bottom right
-    bs_pushVertex(p2, (bs_vec2){ white, white }, 0, col, 0, 0, 0); // Top Left
-    bs_pushVertex(p3, (bs_vec2){ white, white }, 0, col, 0, 0, 0); // Top Right
+    bs_pushVertex(p0, (bs_vec2){ 0.0, 0.0 }, 0, col, 0, 0, 0); // Bottom Left
+    bs_pushVertex(p1, (bs_vec2){ 1.0, 0.0 }, 0, col, 0, 0, 0); // Bottom right
+    bs_pushVertex(p2, (bs_vec2){ 0.0, 1.0 }, 0, col, 0, 0, 0); // Top Left
+    bs_pushVertex(p3, (bs_vec2){ 1.0, 1.0 }, 0, col, 0, 0, 0); // Top Right
+
+    curr_batch->index_draw_count += 6;
+}
+
+void bs_pushTex2DFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
+    dim[0] += pos[0];
+    dim[1] += pos[1];
+
+    int indices[] = {
+        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
+        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
+    };
+
+    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
+
+    bs_pushVertex((bs_vec3){ pos[0], pos[1], pos[2] }, (bs_vec2){ 0.0, 1.0 }, 0, col, 0, 0, 0); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim[0], pos[1], pos[2] }, (bs_vec2){ 1.0, 1.0 }, 0, col, 0, 0, 0); // Bottom right
+    bs_pushVertex((bs_vec3){ pos[0], dim[1], pos[2] }, (bs_vec2){ 0.0, 0.0 }, 0, col, 0, 0, 0); // Top Left
+    bs_pushVertex((bs_vec3){ dim[0], dim[1], pos[2] }, (bs_vec2){ 1.0, 0.0 }, 0, col, 0, 0, 0); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
@@ -321,7 +335,7 @@ void bs_changeBatchBufferSize(bs_Batch *batch, int index_count) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, batch->indices, GL_STATIC_DRAW);
 }
 
-void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count) {
+void bs_batch(bs_Batch *batch, bs_Shader *shader, int index_count) {
     // Default values
     batch->camera = &def_camera;
     batch->draw_mode = BS_TRIANGLES;
@@ -376,7 +390,7 @@ void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count) {
         struct Attrib_Data *data = &attrib_data[i];
 
         if((batch->shader->attribs & j) == j) {
-            bs_addBatchAttrib(data->type, data->count, data->size, data->normalized);
+            bs_attrib(data->type, data->count, data->size, data->normalized);
         }
     }
 
@@ -387,12 +401,12 @@ void bs_createBatch(bs_Batch *batch, bs_Shader *shader, int index_count) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, NULL, GL_STATIC_DRAW);
 }
 
-void bs_setBatchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size) {
+void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size) {
     glBufferData(GL_ARRAY_BUFFER, vertex_size, vertex_data, GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_size, index_data, GL_STATIC_DRAW);
 }
 
-void bs_addBatchAttribI(const int type, unsigned int amount, size_t size_per_type) {
+void bs_attribI(const int type, unsigned int amount, size_t size_per_type) {
     bs_Batch *batch = curr_batch;
 
     glEnableVertexAttribArray(batch->attrib_count);
@@ -401,9 +415,9 @@ void bs_addBatchAttribI(const int type, unsigned int amount, size_t size_per_typ
     batch->attrib_offset += size_per_type;
 }
 
-void bs_addBatchAttrib(const int type, unsigned int amount, size_t size_per_type, bool normalized) {
+void bs_attrib(const int type, unsigned int amount, size_t size_per_type, bool normalized) {
     if((type >= BS_SHORT) && (type <= BS_INT)) {
-        bs_addBatchAttribI(type, amount, size_per_type);
+        bs_attribI(type, amount, size_per_type);
         return;
     }
 
@@ -415,7 +429,15 @@ void bs_addBatchAttrib(const int type, unsigned int amount, size_t size_per_type
     batch->attrib_offset += size_per_type;
 }
 
-void bs_bindBufferRange(int target, int bind_point, int buffer, int offset, int size) {
+void bs_attribDivisor(int attrib_id, int value) {
+    glVertexAttribDivisor(attrib_id, value);
+}
+
+void bs_attribInstance(int attrib_id) {
+    bs_attribDivisor(attrib_id, 1);
+}
+
+void bs_bufferRange(int target, int bind_point, int buffer, int offset, int size) {
     glBindBufferRange(target, bind_point, buffer, offset, size);
 }
 
@@ -459,13 +481,12 @@ void bs_clearBatch() {
     curr_batch->index_draw_count = 0;
 }
 
-// TODO: Gör current_batch
-int bs_getBatchSize(bs_Batch *batch) {
-    return batch->index_draw_count;
+int bs_batchSize() {
+    return curr_batch->index_draw_count;
 }
 
 /* --- FRAMEBUFFERS --- */
-void bs_createFramebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height) {
+void bs_framebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height) {
     curr_framebuffer = framebuffer;
 
     framebuffer->render_width  = render_width;
@@ -542,18 +563,20 @@ void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
 
     glEnable(GL_DEPTH_TEST);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Clear any previous drawing
-    glClearColor(0.0, 0.0, 0.0, 0.0);
+   // glClearColor(1.0, 0.0, 1.0, 0.0);
     glClear(framebuffer->clear);
 }
 
 void bs_endFramebufferRender() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
+// TODO: Remove this
 typedef struct {
     float elapsed;
     bs_ivec2 res;
@@ -562,7 +585,7 @@ typedef struct {
 void bs_setGlobalVars() {
     bs_Globals globals;
 
-    globals.elapsed  = bs_elapsedTime();
+    globals.elapsed = bs_elapsedTime();
     bs_resolution(globals.res);
 
     bs_setUniformBlockData(global_unifs, &globals);
@@ -580,9 +603,6 @@ void bs_init(int width, int height, char *title) {
 
     global_unifs = bs_initUniformBlock(sizeof(bs_Globals), 0);
 
-    // Texture Atlas Init
-    // std_atlas = bs_createTextureAtlas(BS_ATLAS_SIZE, BS_ATLAS_SIZE, BS_MAX_TEXTURES);
-
     // Load default shaders
     bs_loadShader("resources/bs_texture_shader.vs", "resources/bs_texture_shader.fs", 0, &texture_shader);
 }
@@ -591,6 +611,8 @@ void bs_startRender(void (*render)()) {
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    srand(time(0));
 
     bs_wndTick(render);
 }

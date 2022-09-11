@@ -1,9 +1,22 @@
 #include <bs_math.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
 int bs_sign(float x) {
-	return (x > 0) - (x < 0);
+    return (x > 0) - (x < 0);
+}
+
+int bs_closestDivisible(int val, int div) {
+    int q = val / div;
+     
+    int n1 = div * q;
+    int n2 = (val * div) > 0 ? (div * (q + 1)) : (div * (q - 1));
+     
+    if (abs(val - n1) < abs(val - n2))
+        return n1;
+     
+    return n2;   
 }
 
 double bs_fMap(double input, double input_start, double input_end, double output_start, double output_end) {
@@ -38,3 +51,16 @@ void bs_crossv3(bs_vec3 v0, bs_vec3 v1, bs_vec3 out) {
     out[1] = v0[2] * v1[0] - v0[0] * v1[2];
     out[2] = v0[0] * v1[1] - v0[1] * v1[0];
 }
+
+/* --- RANDOM --- */
+float bs_randRange(float min, float max) {
+    float val = ((float)rand()/RAND_MAX)*max + min;
+    return val;
+}
+
+int bs_randRangeI(int min, int max) {
+    int val = (rand() % (max - min + 1)) + max;
+    return val;
+}
+
+
