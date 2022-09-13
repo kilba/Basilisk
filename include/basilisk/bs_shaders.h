@@ -14,12 +14,6 @@ void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shade
 void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs_Tex2D *tex);
 void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Tex2D *tex);
 
-void bs_setShaderAtlas(bs_Shader *shader, bs_Atlas *atlas, char *uniform_name);
-
-/* --- DEFAULT UNIFORMS --- */
-void bs_setViewMatrixUniform(bs_Shader *shader, void *cam);
-void bs_setProjMatrixUniform(bs_Shader *shader, void *cam);
-
 /* --- COMPUTE SHADERS --- */
 void bs_getUniformLoc(int id, char *name, int *result);
 void bs_switchShader(int id);

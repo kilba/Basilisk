@@ -18,13 +18,13 @@
 bs_Tex2D *curr_texture;
 
 /* TEXTURE INITIALIZATION */
-void bs_texture(bs_Tex2D *texture, int w, int h) {
+void bs_texture(bs_Tex2D *texture, bs_ivec2 dim) {
     glGenTextures(1, &texture->id);
     glBindTexture(GL_TEXTURE_2D, texture->id);
 
     curr_texture = texture;
-    curr_texture->w = w;
-    curr_texture->h = h;
+    curr_texture->w = dim.x;
+    curr_texture->h = dim.y;
     curr_texture->data = NULL;
 }
 
@@ -77,39 +77,39 @@ void bs_selectTexture(bs_Tex2D *texture, int tex_unit) {
 }
 
 /* Functions for easier texture initialization */
-void bs_depth(bs_Tex2D *texture, int w, int h) {
-    bs_texture(texture, w, h);
+void bs_depth(bs_Tex2D *texture, bs_ivec2 dim) {
+    bs_texture(texture, dim);
     bs_textureSettings(BS_NEAREST, BS_NEAREST);
     bs_pushTexture(BS_CHANNEL_DEPTH, BS_CHANNEL_DEPTH, BS_FLOAT);
 }
 
-void bs_depthLin(bs_Tex2D *texture, int w, int h) {
-    bs_texture(texture, w, h);
+void bs_depthLin(bs_Tex2D *texture, bs_ivec2 dim) {
+    bs_texture(texture, dim);
     bs_textureSettings(BS_LINEAR, BS_LINEAR);
     bs_pushTexture(BS_CHANNEL_DEPTH, BS_CHANNEL_DEPTH, BS_FLOAT);
 }
 
-void bs_textureRGBA(bs_Tex2D *texture, int w, int h) {
-    bs_texture(texture, w, h);
+void bs_textureRGBA(bs_Tex2D *texture, bs_ivec2 dim) {
+    bs_texture(texture, dim);
     bs_textureSettings(BS_NEAREST, BS_NEAREST);
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
 }
 
-void bs_textureLinRGBA(bs_Tex2D *texture, int w, int h) {
-    bs_texture(texture, w, h);
+void bs_textureLinRGBA(bs_Tex2D *texture, bs_ivec2 dim) {
+    bs_texture(texture, dim);
     bs_textureSettings(BS_LINEAR, BS_LINEAR);
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
 }
 
 void bs_texturePNG(bs_Tex2D *texture, char *path) {
-    bs_texture(texture, 0, 0);
+    bs_texture(texture, BS_CIVEC2(0, 0));
     bs_textureSettings(BS_NEAREST, BS_NEAREST);
     bs_textureDataFile(path, true);
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
 }
 
 void bs_textureLinPNG(bs_Tex2D *texture, char *path) {
-    bs_texture(texture, 0, 0);
+    bs_texture(texture, BS_CIVEC2(0, 0));
     bs_textureSettings(BS_LINEAR, BS_LINEAR);
     bs_textureDataFile(path, true);
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);

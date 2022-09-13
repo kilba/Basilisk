@@ -13,7 +13,6 @@ void bs_pushVertex(
     bs_vec4 weights,
     bs_vec4 attrib_vec4);
 
-void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Slice *tex);
 void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
 void bs_pushTex2DFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
@@ -24,7 +23,7 @@ void bs_pushMesh(bs_Mesh *mesh);
 void bs_pushModel(bs_Model *model);
 
 /* --- FRAMEBUFFERS --- */
-void bs_framebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height);
+void bs_framebuffer(bs_Framebuffer *framebuffer, bs_ivec2 dim);
 void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment);
 void bs_attachRenderbuffer();
 void bs_attachDepthBuffer(bs_Tex2D *tex);

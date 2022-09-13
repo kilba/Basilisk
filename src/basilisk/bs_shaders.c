@@ -316,33 +316,6 @@ void bs_getUniformLoc(int id, char *name, int *result) {
     *result = glGetUniformLocation(id, name);
 }
 
-void bs_setShaderAtlas(bs_Shader *shader, bs_Atlas *atlas, char *uniform_name) {
-    bs_switchShader(shader->id);
-    int loc = glGetUniformLocation(shader->id, uniform_name);
-    glUniform1i(loc, atlas->tex.id);
-}
-
-// SETTING DEFAULT UNIFORMS
-void bs_setViewMatrixUniform(bs_Shader *shader, void *cam) {
-    bs_Uniform *uniform = &shader->uniforms[UNIFORM_VIEW];
-
-    if(!uniform->is_valid)
-        return;
-
-    bs_switchShader(shader->id);
-    bs_uniform_mat4(uniform->loc, ((bs_Camera*)cam)->view);
-}
-
-void bs_setProjMatrixUniform(bs_Shader *shader, void *cam) {
-    bs_Uniform *uniform = &shader->uniforms[UNIFORM_PROJ];
-
-    if(!uniform->is_valid)
-        return;
-
-    bs_switchShader(shader->id);
-    bs_uniform_mat4(uniform->loc, ((bs_Camera*)cam)->proj);
-}
-
 void bs_switchShader(int id) {
     glUseProgram(id);
 }
@@ -371,7 +344,7 @@ void bs_uniform_int(int loc, int val) {
 // TODO: bvecn, ivecn, uvecn, vecn, dvecn
 
 void bs_uniform_vec3(int loc, bs_vec3 vec) {
-    glUniform3f(loc, vec[0], vec[1], vec[2]);
+    glUniform3f(loc, vec.x, vec.y, vec.z);
 }
 
 // TODO: Arrays

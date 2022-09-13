@@ -24,7 +24,7 @@ void bs_readPositionVertices(int accessor_index, bs_Prim *prim, bs_Mesh *mesh, c
 	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
 	for(int i = 0; i < num_floats / num_comps; i++) {
-		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].position[0], num_comps);
+		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].position.x, num_comps);
 		vec3 *pos = (vec3*)&prim->vertices[i].position;
 		glm_mat4_mulv3(mesh->mat, *pos, 1.0, *pos);
 	}
@@ -35,7 +35,7 @@ void bs_readNormalVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) 
 	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
 	for(int i = 0; i < num_floats / num_comps; i++) {
-		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].normal[0], num_comps);
+		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].normal.x, num_comps);
 	}
 }
 
@@ -44,7 +44,7 @@ void bs_readTexCoordVertices(int accessor_index, bs_Prim *prim, cgltf_data *data
 	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
 	for(int i = 0; i < num_floats / num_comps; i++) {
-		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].tex_coord[0], num_comps);
+		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].tex_coord.x, num_comps);
 	}
 
 	if(prim->material.tex != NULL) {
@@ -52,8 +52,8 @@ void bs_readTexCoordVertices(int accessor_index, bs_Prim *prim, cgltf_data *data
 		float y_range = (float)prim->material.tex->h / BS_ATLAS_SIZE;
 
 		for(int i = 0; i < num_floats; i+=2) {
-			prim->vertices[i/2].tex_coord[0] = bs_fMap(prim->vertices[i/2].tex_coord[0], 0.0, 1.0, 0.0, x_range);
-			prim->vertices[i/2].tex_coord[1] = bs_fMap(prim->vertices[i/2].tex_coord[1], 0.0, 1.0, 0.0, y_range);
+			prim->vertices[i/2].tex_coord.x = bs_fMap(prim->vertices[i/2].tex_coord.x, 0.0, 1.0, 0.0, x_range);
+			prim->vertices[i/2].tex_coord.y = bs_fMap(prim->vertices[i/2].tex_coord.y, 0.0, 1.0, 0.0, y_range);
 		}
 	}
 }
@@ -66,10 +66,10 @@ void bs_readJointIndices(int accessor_index, bs_Prim *prim, cgltf_data *data) {
 		unsigned int xyzw[4];
 
 		cgltf_accessor_read_uint(&data->accessors[accessor_index], i, xyzw, num_comps);
-		prim->vertices[i].bone_ids[0] = xyzw[0];
-		prim->vertices[i].bone_ids[1] = xyzw[1];
-		prim->vertices[i].bone_ids[2] = xyzw[2];
-		prim->vertices[i].bone_ids[3] = xyzw[3];
+		prim->vertices[i].bone_ids.x = xyzw[0];
+		prim->vertices[i].bone_ids.y = xyzw[1];
+		prim->vertices[i].bone_ids.z = xyzw[2];
+		prim->vertices[i].bone_ids.w = xyzw[3];
 	}
 }
 
@@ -78,7 +78,7 @@ void bs_readWeights(int accessor_index, bs_Prim *prim, cgltf_data *data) {
 	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
 	for(int i = 0; i < num_floats / num_comps; i++) {
-		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].weights[0], num_comps);
+		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].weights.x, num_comps);
 	}
 }
 
@@ -87,20 +87,20 @@ void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
 	bs_Material *mat = &prim->material;
 
 	if(c_mat == NULL) {
-		mat->col[0] = 255;
-		mat->col[1] = 255;
-		mat->col[2] = 255;
-		mat->col[3] = 255;		
+		mat->col.r = 255;
+		mat->col.g = 255;
+		mat->col.b = 255;
+		mat->col.a = 255;
 		return;
 	}
 
 	cgltf_pbr_metallic_roughness *metallic = &c_mat->pbr_metallic_roughness;
 	cgltf_float *mat_color = metallic->base_color_factor;
 
-	mat->col[0] = mat_color[0] * 255;
-	mat->col[1] = mat_color[1] * 255;
-	mat->col[2] = mat_color[2] * 255;
-	mat->col[3] = mat_color[3] * 255;
+	mat->col.r = mat_color[0] * 255;
+	mat->col.g = mat_color[1] * 255;
+	mat->col.b = mat_color[2] * 255;
+	mat->col.a = mat_color[3] * 255;
 
 	// If the primitive has a texture
 	if(metallic->base_color_texture.texture != NULL) {

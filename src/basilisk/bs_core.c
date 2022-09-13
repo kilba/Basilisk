@@ -1,4 +1,5 @@
 // GL
+#include "bs_types.h"
 #include <glad/glad.h>
 #include <cglm/cglm.h>
 
@@ -108,11 +109,11 @@ void bs_setOrthographicProjection(bs_Camera *cam, int left, int right, int botto
 }
 
 void bs_setMatrixLookat(bs_Camera *cam, bs_vec3 center, bs_vec3 up) {
-    glm_lookat((vec3){ cam->pos[0], cam->pos[1], cam->pos[2] }, (vec3){ center[0], center[1], center[2] }, (vec3){ up[0], up[1], up[2] }, cam->view);
+    glm_lookat((vec3){ cam->pos.x, cam->pos.y, cam->pos.z }, (vec3){ center.x, center.y, center.z }, (vec3){ up.x, up.y, up.z }, cam->view);
 }
 
 void bs_setMatrixLook(bs_Camera *cam, bs_vec3 dir, bs_vec3 up) {
-    glm_look((vec3){ cam->pos[0], cam->pos[1], cam->pos[2] }, (vec3){ dir[0], dir[1], dir[2] }, (vec3){ up[0], up[1], up[2] }, cam->view);
+    glm_look((vec3){ cam->pos.x, cam->pos.y, cam->pos.z }, (vec3){ dir.x, dir.y, dir.z }, (vec3){ up.x, up.y, up.z }, cam->view);
 }
 
 void bs_setPerspectiveProjection(bs_Camera *cam, float aspect, float fovy, float nearZ, float farZ) {
@@ -144,55 +145,37 @@ void bs_pushVertex(
 
     unsigned char *data_ptr = (unsigned char *)batch->vertices + batch->vertex_draw_count * batch->attrib_size_bytes;
 
-    bool has_position  = (pos != 0)         * ((batch->shader->attribs & BS_POSITION)  == BS_POSITION);
-    bool has_tex_coord = (tex_coord != 0)   * ((batch->shader->attribs & BS_TEX_COORD) == BS_TEX_COORD);
-    bool has_normal    = (normal != 0)      * ((batch->shader->attribs & BS_NORMAL)    == BS_NORMAL);
-    bool has_color     = (color != 0)       * ((batch->shader->attribs & BS_COLOR)     == BS_COLOR);
-    bool has_bone_ids  = (bone_ids != 0)    * ((batch->shader->attribs & BS_BONE_IDS)  == BS_BONE_IDS);
-    bool has_weights   = (weights != 0)     * ((batch->shader->attribs & BS_WEIGHTS)   == BS_WEIGHTS);
-    bool has_attr_vec4 = (attrib_vec4 != 0) * ((batch->shader->attribs & BS_ATTR_VEC4) == BS_ATTR_VEC4);
+    bool has_position  = ((batch->shader->attribs & BS_POSITION)  == BS_POSITION);
+    bool has_tex_coord = /*(tex_coord != 0)   * */((batch->shader->attribs & BS_TEX_COORD) == BS_TEX_COORD);
+    bool has_normal    = ((batch->shader->attribs & BS_NORMAL)    == BS_NORMAL);
+    bool has_color     = ((batch->shader->attribs & BS_COLOR)     == BS_COLOR);
+    bool has_bone_ids  = ((batch->shader->attribs & BS_BONE_IDS)  == BS_BONE_IDS);
+    bool has_weights   = ((batch->shader->attribs & BS_WEIGHTS)   == BS_WEIGHTS);
+    bool has_attr_vec4 = ((batch->shader->attribs & BS_ATTR_VEC4) == BS_ATTR_VEC4);
 
-    memcpy(data_ptr, pos, sizeof(bs_vec3) * has_position);
+    memcpy(data_ptr, &pos, sizeof(bs_vec3) * has_position);
     data_ptr += sizeof(bs_vec3) * has_position;
 
-    memcpy(data_ptr, tex_coord, sizeof(bs_vec2) * has_tex_coord);
+    memcpy(data_ptr, &tex_coord, sizeof(bs_vec2) * has_tex_coord);
     data_ptr += sizeof(bs_vec2) * has_tex_coord;
 
-    memcpy(data_ptr, color, sizeof(bs_RGBA) * has_color);
+    memcpy(data_ptr, &color, sizeof(bs_RGBA) * has_color);
     data_ptr += sizeof(bs_RGBA) * has_color;
 
-    memcpy(data_ptr, normal, sizeof(bs_vec3) * has_normal); 
+    memcpy(data_ptr, &normal, sizeof(bs_vec3) * has_normal); 
     data_ptr += sizeof(bs_vec3) * has_normal;
 
-    memcpy(data_ptr, bone_ids, sizeof(bs_ivec4) * has_bone_ids); 
+    memcpy(data_ptr, &bone_ids, sizeof(bs_ivec4) * has_bone_ids); 
     data_ptr += sizeof(bs_ivec4) * has_bone_ids;
 
-    memcpy(data_ptr, weights, sizeof(bs_vec4) * has_weights); 
+    memcpy(data_ptr, &weights, sizeof(bs_vec4) * has_weights); 
     data_ptr += sizeof(bs_vec4) * has_weights;
 
-    memcpy(data_ptr, attrib_vec4, sizeof(bs_vec4) * has_attr_vec4); 
+    memcpy(data_ptr, &attrib_vec4, sizeof(bs_vec4) * has_attr_vec4); 
     data_ptr += sizeof(bs_vec4) * has_attr_vec4;
 
     curr_batch->vertex_draw_count++;
 } 
-
-void bs_pushAtlasSlice(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Slice *slice) {
-    dim[0] += pos[0];
-    dim[1] += pos[1];
-
-    int indices[] = {
-        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
-        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
-    };
-    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
-
-    bs_pushVertex((bs_vec3){ pos[0], pos[1], pos[2] }, (bs_vec2){ slice->tex_x , slice->tex_hy }, 0, col, 0, 0, 0); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim[0], pos[1], pos[2] }, (bs_vec2){ slice->tex_wx, slice->tex_hy }, 0, col, 0, 0, 0); // Bottom right
-    bs_pushVertex((bs_vec3){ pos[0], dim[1], pos[2] }, (bs_vec2){ slice->tex_x , slice->tex_y  }, 0, col, 0, 0, 0); // Top Left
-    bs_pushVertex((bs_vec3){ dim[0], dim[1], pos[2] }, (bs_vec2){ slice->tex_wx, slice->tex_y  }, 0, col, 0, 0, 0); // Top Right
-
-    curr_batch->index_draw_count += 6;
-}
 
 void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
     int indices[] = {
@@ -202,17 +185,17 @@ void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
 
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
     
-    bs_pushVertex(p0, (bs_vec2){ 0.0, 0.0 }, 0, col, 0, 0, 0); // Bottom Left
-    bs_pushVertex(p1, (bs_vec2){ 1.0, 0.0 }, 0, col, 0, 0, 0); // Bottom right
-    bs_pushVertex(p2, (bs_vec2){ 0.0, 1.0 }, 0, col, 0, 0, 0); // Top Left
-    bs_pushVertex(p3, (bs_vec2){ 1.0, 1.0 }, 0, col, 0, 0, 0); // Top Right
+    bs_pushVertex(p0, (bs_vec2){ 0.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
+    bs_pushVertex(p1, (bs_vec2){ 1.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
+    bs_pushVertex(p2, (bs_vec2){ 0.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
+    bs_pushVertex(p3, (bs_vec2){ 1.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
 
 void bs_pushTex2DFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
-    dim[0] += pos[0];
-    dim[1] += pos[1];
+    dim.x += pos.x;
+    dim.y += pos.y;
 
     int indices[] = {
         curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
@@ -221,17 +204,17 @@ void bs_pushTex2DFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
 
-    bs_pushVertex((bs_vec3){ pos[0], pos[1], pos[2] }, (bs_vec2){ 0.0, 1.0 }, 0, col, 0, 0, 0); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim[0], pos[1], pos[2] }, (bs_vec2){ 1.0, 1.0 }, 0, col, 0, 0, 0); // Bottom right
-    bs_pushVertex((bs_vec3){ pos[0], dim[1], pos[2] }, (bs_vec2){ 0.0, 0.0 }, 0, col, 0, 0, 0); // Top Left
-    bs_pushVertex((bs_vec3){ dim[0], dim[1], pos[2] }, (bs_vec2){ 1.0, 0.0 }, 0, col, 0, 0, 0); // Top Right
+    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ 0.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ 1.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ 0.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
+    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ 1.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
 
 void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
-    dim[0] += pos[0];
-    dim[1] += pos[1];
+    dim.x += pos.x;
+    dim.y += pos.y;
 
     int indices[] = {
         curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
@@ -240,17 +223,17 @@ void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
 
-    bs_pushVertex((bs_vec3){ pos[0], pos[1], pos[2] }, (bs_vec2){ 0.0, 0.0 }, 0, col, 0, 0, 0); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim[0], pos[1], pos[2] }, (bs_vec2){ 1.0, 0.0 }, 0, col, 0, 0, 0); // Bottom right
-    bs_pushVertex((bs_vec3){ pos[0], dim[1], pos[2] }, (bs_vec2){ 0.0, 1.0 }, 0, col, 0, 0, 0); // Top Left
-    bs_pushVertex((bs_vec3){ dim[0], dim[1], pos[2] }, (bs_vec2){ 1.0, 1.0 }, 0, col, 0, 0, 0); // Top Right
+    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ 0.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ 1.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ 0.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
+    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ 1.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
 
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
-    dim[0] += pos[0];
-    dim[1] += pos[1];
+    dim.x += pos.x;
+    dim.y += pos.y;
 
     int indices[] = {
         curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
@@ -260,10 +243,10 @@ void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
 
     const float white = 0.9999;
-    bs_pushVertex((bs_vec3){ pos[0], pos[1], pos[2] }, (bs_vec2){ white, white }, 0, col, 0, 0, 0); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim[0], pos[1], pos[2] }, (bs_vec2){ white, white }, 0, col, 0, 0, 0); // Bottom right
-    bs_pushVertex((bs_vec3){ pos[0], dim[1], pos[2] }, (bs_vec2){ white, white }, 0, col, 0, 0, 0); // Top Left
-    bs_pushVertex((bs_vec3){ dim[0], dim[1], pos[2] }, (bs_vec2){ white, white }, 0, col, 0, 0, 0); // Top Right
+    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ white, white }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ white, white }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ white, white }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
+    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ white, white }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
@@ -274,9 +257,9 @@ void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     };
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 3 * sizeof(int));
 
-    bs_pushVertex(pos1, (bs_vec2){ 0.0, 0.0 }, 0, color, 0, 0, 0);
-    bs_pushVertex(pos2, (bs_vec2){ 1.0, 0.0 }, 0, color, 0, 0, 0);
-    bs_pushVertex(pos3, (bs_vec2){ 0.0, 1.0 }, 0, color, 0, 0, 0);
+    bs_pushVertex(pos1, (bs_vec2){ 0.0, 0.0 }, bs_vec3_0, color, bs_ivec4_0, bs_vec4_0, bs_vec4_0);
+    bs_pushVertex(pos2, (bs_vec2){ 1.0, 0.0 }, bs_vec3_0, color, bs_ivec4_0, bs_vec4_0, bs_vec4_0);
+    bs_pushVertex(pos3, (bs_vec2){ 0.0, 1.0 }, bs_vec3_0, color, bs_ivec4_0, bs_vec4_0, bs_vec4_0);
 
     curr_batch->index_draw_count += 3;
 }
@@ -296,8 +279,8 @@ void bs_pushPrim(bs_Prim *prim, bs_Mesh *mesh) {
 
         if(prim->material.tex != NULL) {
             // TODO: These values are constant, unnecessary to set them every frame
-            tex_coord[0] = prim->vertices[i].tex_coord[0];/* + prim->material.tex->tex_x;*/
-            tex_coord[1] = prim->vertices[i].tex_coord[1];/* + prim->material.tex->tex_y;*/
+            tex_coord.x = prim->vertices[i].tex_coord.x;/* + prim->material.tex->tex_x;*/
+            tex_coord.y = prim->vertices[i].tex_coord.y;/* + prim->material.tex->tex_y;*/
         }
 
         bs_pushVertex(
@@ -307,7 +290,7 @@ void bs_pushPrim(bs_Prim *prim, bs_Mesh *mesh) {
             prim->material.col, 
             prim->vertices[i].bone_ids, 
             prim->vertices[i].weights, 
-            0
+            bs_vec4_0
         );
     }
 
@@ -457,21 +440,10 @@ void bs_freeBatchData() {
 
 void bs_renderBatch(int start_index, int draw_count) {
     // Batch should still be bound here
-    // bs_setTimeUniform(curr_batch->shader, 0.0);
+    bs_switchShader(curr_batch->shader->id);
 
-    #ifdef BS_DEBUG
-        // bs_Camera *cam = curr_batch->camera;
-        // if(bs_debugCameraIsActivated()) {
-            // cam = bs_getDebugCamera();
-        // }
-        // bs_setViewMatrixUniform(curr_batch->shader, cam);
-        // bs_setProjMatrixUniform(curr_batch->shader, cam);
-        // bs_setViewMatrixUniform(curr_batch->shader, curr_batch->camera);
-        // bs_setProjMatrixUniform(curr_batch->shader, curr_batch->camera);
-    #else 
-        bs_setViewMatrixUniform(curr_batch->shader, curr_batch->camera);
-        bs_setProjMatrixUniform(curr_batch->shader, curr_batch->camera);
-    #endif
+    bs_uniform_mat4(curr_batch->shader->uniforms[UNIFORM_VIEW].loc, curr_batch->camera->view);
+    bs_uniform_mat4(curr_batch->shader->uniforms[UNIFORM_PROJ].loc, curr_batch->camera->proj);
 
     glDrawElements(curr_batch->draw_mode, draw_count, GL_UNSIGNED_INT, (void*)(start_index * 6 * sizeof(GLuint)));
 }
@@ -486,11 +458,11 @@ int bs_batchSize() {
 }
 
 /* --- FRAMEBUFFERS --- */
-void bs_framebuffer(bs_Framebuffer *framebuffer, int render_width, int render_height) {
+void bs_framebuffer(bs_Framebuffer *framebuffer, bs_ivec2 dim) {
     curr_framebuffer = framebuffer;
 
-    framebuffer->render_width  = render_width;
-    framebuffer->render_height = render_height;
+    framebuffer->render_width  = dim.x;
+    framebuffer->render_height = dim.y;
     framebuffer->clear = GL_DEPTH_BUFFER_BIT;
 
     glGenFramebuffers(1, &framebuffer->FBO);
@@ -595,9 +567,9 @@ void bs_init(int width, int height, char *title) {
     bs_initWnd(width, height, title);
     // bs_printHardwareInfo();
 
-    def_camera.pos[0] = 0.0;
-    def_camera.pos[1] = 0.0;
-    def_camera.pos[2] = 500.0;
+    def_camera.pos.x = 0.0;
+    def_camera.pos.y = 0.0;
+    def_camera.pos.z = 500.0;
     bs_setMatrixLookat(&def_camera, (bs_vec3){ 0.0, 0.0, -1.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
     bs_setOrthographicProjection(&def_camera, 0, width, 0, height, 0.01, 1000.0);
 
