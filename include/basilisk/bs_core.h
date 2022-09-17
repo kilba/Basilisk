@@ -19,6 +19,7 @@ void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
 void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
+void bs_pushPrim(bs_Prim *prim); 
 void bs_pushMesh(bs_Mesh *mesh);
 void bs_pushModel(bs_Model *model);
 
@@ -30,6 +31,8 @@ void bs_attachDepthBuffer(bs_Tex2D *tex);
 void bs_setDrawBufs(int n, ...);
 void bs_startFramebufferRender(bs_Framebuffer *framebuffer);
 void bs_endFramebufferRender();
+void bs_noDrawBuf();
+void bs_noReadBuf();
 
 /* --- BATCHING --- */
 void bs_batch(bs_Batch *batch, bs_Shader *shader, int index_count);
@@ -40,8 +43,10 @@ void bs_attribDivisor(int attrib_id, int value);
 void bs_attribInstance(int attrib_id);
 
 void bs_bufferRange(int target, int bind_point, int buffer, int offset, int size);
+void bs_selectBatchNoShader(bs_Batch *batch);
 void bs_selectBatch(bs_Batch *batch);
 void bs_pushBatch();
+void bs_renderBatchNoShader(int start_index, int draw_count);
 void bs_renderBatch(int start_index, int draw_count);
 
 void bs_freeBatchData();
@@ -58,12 +63,10 @@ void bs_setGlobalVars();
 
 /* --- MATRICES --- */
 void bs_setMatrices(bs_Shader *shader);
-void bs_setProjMatrixOrtho(bs_Camera *cam, int left, int right, int bottom, int top);
-void bs_setViewMatrixOrtho(bs_Camera *cam);
-void bs_setOrthographicProjection(bs_Camera *cam, int left, int right, int bottom, int top, float nearZ, float farZ);
-void bs_setMatrixLookat(bs_Camera *cam, bs_vec3 center, bs_vec3 up);
-void bs_setMatrixLook(bs_Camera *cam, bs_vec3 dir, bs_vec3 up);
-void bs_setPerspectiveProjection(bs_Camera *cam, float aspect, float fovy, float nearZ, float farZ);
+void bs_ortho(bs_mat4 mat, int left, int right, int bottom, int top, float nearZ, float farZ);
+void bs_persp(bs_mat4 mat, float aspect, float fovy, float nearZ, float farZ);
+void bs_lookat(bs_mat4 mat, bs_vec3 eye, bs_vec3 center, bs_vec3 up);
+void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up);
 
 /* --- CONSTANTS --- */
 /* OPENGL FILTERING SETTINGS */
@@ -75,10 +78,20 @@ void bs_setPerspectiveProjection(bs_Camera *cam, float aspect, float fovy, float
 #define BS_LINEAR_MIPMAP_LINEAR 0x2703
 #define BS_LINEAR_MIPMAP_NEAREST 0x2701
 
-/* BATCH ATTRIBUTE TYPES  */
-#define BS_STD_BATCH 0
-#define BS_RIG_BATCH 1
+#define BS_TEXTURE_WRAP_S 0x2802
+#define BS_TEXTURE_WRAP_T 0x2803
+#define BS_TEXTURE_WRAP_R 0x8072
+#define BS_TEXTURE_WRAP_ST 0x1000
+#define BS_TEXTURE_WRAP_STR 0x2000
 
+#define BS_CLAMP_TO_EDGE 0x812F
+
+/* TEXTURE TYPES */
+#define BS_TEX1D 0x0DE0
+#define BS_TEX2D 0x0DE1
+#define BS_CUBEMAP 0x8513
+
+/* BATCH ATTRIBUTE TYPES  */
 #define BS_POSITION 1
 #define BS_TEX_COORD 2
 #define BS_COLOR 4
@@ -108,12 +121,6 @@ void bs_setPerspectiveProjection(bs_Camera *cam, float aspect, float fovy, float
 #define BS_INT 0x1404
 #define BS_UINT 0x1405
 #define BS_FLOAT 0x1406
-
-/* ATLAS SETTINGS */
-#define BS_ATLAS_SIZE 4096 /* Pixels (x, y) */
-#define BS_MAX_TEXTURES 1000
-
-#define BS_FBO_ALLOC_BY 2
 
 /* BASE INTERNAL FORMATS */
 #define BS_CHANNEL_RED 0x1903

@@ -8,6 +8,7 @@
 typedef struct {
     int w, h;
 
+    int type;
     unsigned int id;
     unsigned int unit;
     unsigned char *data;
@@ -160,26 +161,26 @@ typedef struct {
 } bs_uivec4;
 
 typedef struct {
-	bs_mat4 view;
-	bs_mat4 proj;
-	bs_vec3 pos;
+    bs_mat4 view;
+    bs_mat4 proj;
+    bs_vec3 pos;
 } bs_Camera;
 
 typedef struct {
-	bs_vec3 position;
-	bs_vec2 tex_coord;
-	bs_vec3 normal;
-	bs_RGBA color;
+    bs_vec3 position;
+    bs_vec2 tex_coord;
+    bs_vec3 normal;
+    bs_RGBA color;
 } bs_Vertex;
 
 typedef struct {
-	int render_width;
-	int render_height;
+    int render_width;
+    int render_height;
 
-	unsigned int FBO, RBO;
-	int buffer_count;
+    unsigned int FBO, RBO;
+    int buffer_count;
 
-	int clear;
+    int clear;
 } bs_Framebuffer;
 
 // Contains all objects queued to render the next frame (unless using multiple batches)
@@ -243,18 +244,18 @@ typedef struct {
 } bs_Prim;
 
 typedef struct {
-	int vertex_count;
+    int vertex_count;
 
-	bs_vec3 pos;
-	bs_vec4 rot;
-	bs_vec3 sca;
-	bs_mat4 mat;
+    bs_vec3 pos;
+    bs_vec4 rot;
+    bs_vec3 sca;
+    bs_mat4 mat;
 
-	bs_Prim *prims;
-	int prim_count;
+    bs_Prim *prims;
+    int prim_count;
 
-	bs_Joint *joints;
-	int joint_count;
+    bs_Joint *joints;
+    int joint_count;
 } bs_Mesh;
 
 typedef struct {

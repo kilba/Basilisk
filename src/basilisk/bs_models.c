@@ -12,7 +12,7 @@
 #include <bs_textures.h>
 
 bs_Joint identity_joint = { GLM_MAT4_IDENTITY_INIT };
-bs_Anim *anims;
+bs_Anim *anims = NULL;
 int anim_count;
 
 int64_t curr_tex_ptr = 0;
@@ -40,22 +40,22 @@ void bs_readNormalVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) 
 }
 
 void bs_readTexCoordVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) {
-	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
+    int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
+    int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
-	for(int i = 0; i < num_floats / num_comps; i++) {
-		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].tex_coord.x, num_comps);
+    for(int i = 0; i < num_floats / num_comps; i++) {
+	cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].tex_coord.x, num_comps);
+    }
+
+    if(prim->material.tex != NULL) {
+	float x_range = (float)prim->material.tex->w / 1024.0;
+	float y_range = (float)prim->material.tex->h / 1024.0;
+
+	for(int i = 0; i < num_floats; i+=2) {
+		prim->vertices[i/2].tex_coord.x = bs_fMap(prim->vertices[i/2].tex_coord.x, 0.0, 1.0, 0.0, x_range);
+		prim->vertices[i/2].tex_coord.y = bs_fMap(prim->vertices[i/2].tex_coord.y, 0.0, 1.0, 0.0, y_range);
 	}
-
-	if(prim->material.tex != NULL) {
-		float x_range = (float)prim->material.tex->w / BS_ATLAS_SIZE;
-		float y_range = (float)prim->material.tex->h / BS_ATLAS_SIZE;
-
-		for(int i = 0; i < num_floats; i+=2) {
-			prim->vertices[i/2].tex_coord.x = bs_fMap(prim->vertices[i/2].tex_coord.x, 0.0, 1.0, 0.0, x_range);
-			prim->vertices[i/2].tex_coord.y = bs_fMap(prim->vertices[i/2].tex_coord.y, 0.0, 1.0, 0.0, y_range);
-		}
-	}
+    }
 }
 
 void bs_readJointIndices(int accessor_index, bs_Prim *prim, cgltf_data *data) {

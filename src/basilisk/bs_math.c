@@ -67,4 +67,36 @@ int bs_randRangeI(int min, int max) {
     return val;
 }
 
+bs_vec3 bs_randTrianglePt(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2) {
+    float a = bs_randRange(0, 1), b = bs_randRange(0, 1);
+    if((a+b)>1.0) {
+	a = 1.0 - a;
+	b = 1.0 - b;
+    }
 
+    bs_vec3 v, v0;
+    v.x = p1.x - p0.x;
+    v.y = p1.y - p0.y;
+    v.z = p1.z - p0.z;
+
+    v.x *= a;
+    v.y *= a;
+    v.z *= a;
+
+    v0.x = p2.x - p0.x;
+    v0.y = p2.y - p0.y;
+    v0.z = p2.z - p0.z;
+    v0.x *= b;
+    v0.y *= b;
+    v0.z *= b;
+
+    bs_vec3 val = p0;
+    val.x += v.x;
+    val.y += v.y;
+    val.z += v.z;
+    val.x += v0.x;
+    val.y += v0.y;
+    val.z += v0.z;
+
+    return val;
+}

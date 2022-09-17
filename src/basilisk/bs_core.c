@@ -101,35 +101,38 @@ void bs_printHardwareInfo() {
 #endif
 
 /* --- MATRICES --- */
-void bs_setOrthographicProjection(bs_Camera *cam, int left, int right, int bottom, int top, float nearZ, float farZ) {
-    glm_ortho(left, right, bottom, top, nearZ, farZ, cam->proj);
+void bs_ortho(bs_mat4 mat, int left, int right, int bottom, int top, float nearZ, float farZ) {
+    glm_ortho(left, right, bottom, top, nearZ, farZ, mat);
 
     int x_res = bs_sign(left - right);
     int y_res = bs_sign(top - bottom);
 }
 
-void bs_setMatrixLookat(bs_Camera *cam, bs_vec3 center, bs_vec3 up) {
-    glm_lookat((vec3){ cam->pos.x, cam->pos.y, cam->pos.z }, (vec3){ center.x, center.y, center.z }, (vec3){ up.x, up.y, up.z }, cam->view);
+void bs_lookat(bs_mat4 mat, bs_vec3 eye, bs_vec3 center, bs_vec3 up) {
+    glm_lookat((vec3){ eye.x, eye.y, eye.z }, (vec3){ center.x, center.y, center.z }, (vec3){ up.x, up.y, up.z }, mat);
 }
 
-void bs_setMatrixLook(bs_Camera *cam, bs_vec3 dir, bs_vec3 up) {
-    glm_look((vec3){ cam->pos.x, cam->pos.y, cam->pos.z }, (vec3){ dir.x, dir.y, dir.z }, (vec3){ up.x, up.y, up.z }, cam->view);
+void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up) {
+    glm_look((vec3){ eye.x, eye.y, eye.z }, (vec3){ dir.x, dir.y, dir.z }, (vec3){ up.x, up.y, up.z }, mat);
 }
 
-void bs_setPerspectiveProjection(bs_Camera *cam, float aspect, float fovy, float nearZ, float farZ) {
-    glm_perspective(glm_rad(fovy), aspect, nearZ, farZ, cam->proj);
+void bs_persp(bs_mat4 mat, float aspect, float fovy, float nearZ, float farZ) {
+    glm_perspective(glm_rad(fovy), aspect, nearZ, farZ, mat);
 }
 
 /* --- UNBATCHED RENDERING --- */
 
 /* --- BATCHED RENDERING --- */
-void bs_selectBatch(bs_Batch *batch) {
+void bs_selectBatchNoShader(bs_Batch *batch) {
     curr_batch = batch;
 
     glBindVertexArray(batch->VAO);
     glBindBuffer(GL_ARRAY_BUFFER, batch->VBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch->EBO);
+}
 
+void bs_selectBatch(bs_Batch *batch) {
+    bs_selectBatchNoShader(batch);
     bs_switchShader(curr_batch->shader->id);
 }
 
@@ -268,7 +271,7 @@ void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
     bs_pushTriangle(start, end, end, color);
 }
 
-void bs_pushPrim(bs_Prim *prim, bs_Mesh *mesh) {
+void bs_pushPrim(bs_Prim *prim) {
     for(int i = 0; i < prim->index_count; i++) {
         curr_batch->indices[curr_batch->index_draw_count+i] = prim->indices[i] + curr_batch->vertex_draw_count;
     }
@@ -300,7 +303,7 @@ void bs_pushPrim(bs_Prim *prim, bs_Mesh *mesh) {
 void bs_pushMesh(bs_Mesh *mesh) {
     for(int i = 0; i < mesh->prim_count; i++) {
         bs_Prim *prim = &mesh->prims[i];
-        bs_pushPrim(prim, mesh);
+        bs_pushPrim(prim);
     }
 }
 
@@ -438,14 +441,16 @@ void bs_freeBatchData() {
     curr_batch->indices = NULL;
 }
 
-void bs_renderBatch(int start_index, int draw_count) {
-    // Batch should still be bound here
-    bs_switchShader(curr_batch->shader->id);
-
+void bs_renderBatchNoShader(int start_index, int draw_count) {
     bs_uniform_mat4(curr_batch->shader->uniforms[UNIFORM_VIEW].loc, curr_batch->camera->view);
     bs_uniform_mat4(curr_batch->shader->uniforms[UNIFORM_PROJ].loc, curr_batch->camera->proj);
 
-    glDrawElements(curr_batch->draw_mode, draw_count, GL_UNSIGNED_INT, (void*)(start_index * 6 * sizeof(GLuint)));
+    glDrawElements(curr_batch->draw_mode, draw_count, BS_UINT, (void*)(start_index * 6 * sizeof(GLuint)));
+}
+
+void bs_renderBatch(int start_index, int draw_count) {
+    bs_switchShader(curr_batch->shader->id);
+    bs_renderBatchNoShader(start_index, draw_count);
 }
 
 void bs_clearBatch() {
@@ -515,6 +520,11 @@ void bs_attachDepthBuffer(bs_Tex2D *tex) {
         return;
     #endif
 
+    if(tex->type == BS_CUBEMAP) {
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tex->id, 0);
+	return;
+    }
+
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->id, 0);
 }
 
@@ -529,6 +539,14 @@ void bs_setDrawBufs(int n, ...) {
     va_end(ptr);
 
     glDrawBuffers(n, values);
+}
+
+void bs_noDrawBuf() {
+    glDrawBuffer(GL_NONE);
+}
+
+void bs_noReadBuf() {
+    glDrawBuffer(GL_NONE);
 }
 
 void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
@@ -570,8 +588,8 @@ void bs_init(int width, int height, char *title) {
     def_camera.pos.x = 0.0;
     def_camera.pos.y = 0.0;
     def_camera.pos.z = 500.0;
-    bs_setMatrixLookat(&def_camera, (bs_vec3){ 0.0, 0.0, -1.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
-    bs_setOrthographicProjection(&def_camera, 0, width, 0, height, 0.01, 1000.0);
+    bs_lookat(def_camera.view, def_camera.pos, (bs_vec3){ 0.0, 0.0, -1.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
+    bs_ortho(def_camera.proj, 0, width, 0, height, 0.01, 1000.0);
 
     global_unifs = bs_initUniformBlock(sizeof(bs_Globals), 0);
 

@@ -87,7 +87,7 @@ void bs_setDefShaderUniforms(bs_Shader *shader, char *shader_code){
         itoa(i, buffer, 10);
         memcpy(uni_texture+10, buffer, 3);
 
-        bs_getUniformLoc(shader->id, uni_texture, &loc);
+        loc = bs_uniformLoc(shader->id, uni_texture);
         if(loc == -1)
             continue;
         bs_uniform_int(loc, i);
@@ -312,8 +312,8 @@ void bs_setUniformBlockData(bs_UniformBuffer buf, void *block) {
     bs_setUniformBlockDataRange(buf, block, 0, buf.block_size);
 }
 
-void bs_getUniformLoc(int id, char *name, int *result) {
-    *result = glGetUniformLocation(id, name);
+int bs_uniformLoc(int id, char *name) {
+    return glGetUniformLocation(id, name);
 }
 
 void bs_switchShader(int id) {

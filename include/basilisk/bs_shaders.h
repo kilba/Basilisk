@@ -15,7 +15,7 @@ void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs
 void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Tex2D *tex);
 
 /* --- COMPUTE SHADERS --- */
-void bs_getUniformLoc(int id, char *name, int *result);
+int bs_uniformLoc(int id, char *name);
 void bs_switchShader(int id);
 void bs_switchShaderCompute(int id);
 

@@ -15,5 +15,6 @@ void bs_crossv3(bs_vec3 v0, bs_vec3 v1, bs_vec3 out);
 /* --- RANDOM --- */
 float bs_randRange(float min, float max);
 int bs_randRangeI(int min, int max);
+bs_vec3 bs_randTrianglePt(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2);
 
 #endif /* BS_MATH_H */
