@@ -148,7 +148,7 @@ void bs_depthCube(bs_Tex2D *texture, int dim) {
     }
 
     bs_textureMinMag(BS_NEAREST, BS_NEAREST);
-    bs_textureWrap(BS_TEXTURE_WRAP_STR, BS_CLAMP_TO_EDGE);
+    bs_textureWrap(BS_TEXTURE_WRAP_STR, GL_REPEAT);
 }
 
 void bs_textureCube(bs_Tex2D *texture, int dim, char *paths[6]) {
@@ -160,5 +160,5 @@ void bs_textureCube(bs_Tex2D *texture, int dim, char *paths[6]) {
     }
 
     bs_textureMinMag(BS_NEAREST, BS_NEAREST);
-    bs_textureWrap(BS_TEXTURE_WRAP_STR, BS_CLAMP_TO_EDGE);
+    bs_textureWrap(BS_TEXTURE_WRAP_STR, GL_REPEAT);
 }
