@@ -555,6 +555,7 @@ void bs_noReadBuf() {
 }
 
 void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
+    glViewport(0, 0, framebuffer->render_width, framebuffer->render_height);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
 
     glEnable(GL_DEPTH_TEST);
@@ -569,6 +570,9 @@ void bs_endFramebufferRender() {
     glDisable(GL_DEPTH_TEST);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    bs_ivec2 res = bs_resolution();
+    glViewport(0, 0, res.x, res.y);
 }
 
 // TODO: Remove this
@@ -581,7 +585,7 @@ void bs_setGlobalVars() {
     bs_Globals globals;
 
     globals.elapsed = bs_elapsedTime();
-    bs_resolution(globals.res);
+    globals.res = bs_resolution();
 
     bs_setUniformBlockData(global_unifs, &globals);
 }

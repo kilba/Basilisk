@@ -223,7 +223,6 @@ double bs_deltaTime() {
     return delta_time;
 }
 
-void bs_resolution(bs_ivec2 ret) {
-    ret.x = w;
-    ret.y = h;
+bs_ivec2 bs_resolution() {
+    return BS_CIV2(w, h);
 }

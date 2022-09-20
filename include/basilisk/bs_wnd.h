@@ -13,6 +13,6 @@ bool bs_isKeyUpOnce(int key_code);
 
 double bs_elapsedTime();
 double bs_deltaTime();
-void bs_resolution(bs_ivec2 ret);
+bs_ivec2 bs_resolution();
 
 #endif /* BS_WND_H */
