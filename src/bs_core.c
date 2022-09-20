@@ -442,8 +442,13 @@ void bs_freeBatchData() {
 }
 
 void bs_renderBatchNoShader(int start_index, int draw_count) {
-    bs_uniform_mat4(curr_batch->shader->uniforms[UNIFORM_VIEW].loc, curr_batch->camera->view);
-    bs_uniform_mat4(curr_batch->shader->uniforms[UNIFORM_PROJ].loc, curr_batch->camera->proj);
+    bs_Uniform *view = &curr_batch->shader->uniforms[UNIFORM_VIEW];
+    bs_Uniform *proj = &curr_batch->shader->uniforms[UNIFORM_PROJ];
+
+    if(view->is_valid)
+	bs_uniform_mat4(view->loc, curr_batch->camera->view);
+    if(proj->is_valid)
+	bs_uniform_mat4(proj->loc, curr_batch->camera->proj);
 
     glDrawElements(curr_batch->draw_mode, draw_count, BS_UINT, (void*)(start_index * 6 * sizeof(GLuint)));
 }

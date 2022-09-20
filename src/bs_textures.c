@@ -95,10 +95,14 @@ void bs_textureMipmaps() {
     glGenerateMipmap(curr_texture->type);
 }
 
-void bs_selectTexture(bs_Tex2D *texture, int tex_unit) {
+void bs_selectTextureTarget(bs_Tex2D *texture, int tex_unit, int target) {
     curr_texture = texture;
     glActiveTexture(GL_TEXTURE0 + tex_unit);
-    glBindTexture(curr_texture->type, texture->id);
+    glBindTexture(target, texture->id);
+}
+
+void bs_selectTexture(bs_Tex2D *texture, int tex_unit) {
+    bs_selectTextureTarget(texture, tex_unit, texture->type);
 }
 
 /* Functions for easier texture initialization */
