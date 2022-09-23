@@ -1,3 +1,4 @@
+#include <stdio.h>
 #define CGLTF_IMPLEMENTATION
 #include <cgltf/cgltf.h>
 #include <cglm/cglm.h>

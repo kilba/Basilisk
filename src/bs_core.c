@@ -216,6 +216,8 @@ void bs_pushTex2DFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 }
 
 void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
+    bs_Tex2D *tex = bs_selectedTexture();
+
     dim.x += pos.x;
     dim.y += pos.y;
 
@@ -226,10 +228,16 @@ void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
 
-    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ 0.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ 1.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
-    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ 0.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
-    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ 1.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
+    float texx = tex->texw * (float)tex->frame.x;
+    float texy = tex->texh * (float)tex->frame.y;
+    float texw = texx + tex->texw;
+    float texh = texy + tex->texh;
+
+    printf("%f\n", texw);
+    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ texx, texy }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ texw, texy }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ texx, texh }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
+    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ texw, texh }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
 
     curr_batch->index_draw_count += 6;
 }

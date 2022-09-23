@@ -26,8 +26,15 @@ void bs_texture(bs_Tex2D *texture, bs_ivec2 dim, int type) {
     glBindTexture(type, texture->id);
 
     curr_texture = texture;
+    curr_texture->frame.x = 0;
+    curr_texture->frame.y = 0;
+
     curr_texture->w = dim.x;
     curr_texture->h = dim.y;
+
+    curr_texture->texw = 1.0;
+    curr_texture->texh = 1.0;
+
     curr_texture->data = NULL;
     curr_texture->type = type;
 }
@@ -95,6 +102,16 @@ void bs_textureMipmaps() {
     glGenerateMipmap(curr_texture->type);
 }
 
+void bs_texSplit(int frame_count) {
+    bs_Tex2D *tex = curr_texture;
+    tex->texw = 1.0 / (float)frame_count;
+}
+
+void bs_texSplitVert(int frame_count) {
+    bs_Tex2D *tex = curr_texture;
+    tex->texh = 1.0 / (float)frame_count;
+}
+
 void bs_selectTextureTarget(bs_Tex2D *texture, int tex_unit, int target) {
     curr_texture = texture;
     glActiveTexture(GL_TEXTURE0 + tex_unit);
@@ -103,6 +120,10 @@ void bs_selectTextureTarget(bs_Tex2D *texture, int tex_unit, int target) {
 
 void bs_selectTexture(bs_Tex2D *texture, int tex_unit) {
     bs_selectTextureTarget(texture, tex_unit, texture->type);
+}
+
+bs_Tex2D *bs_selectedTexture() {
+    return curr_texture;
 }
 
 /* Functions for easier texture initialization */

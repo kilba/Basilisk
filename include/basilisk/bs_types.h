@@ -4,67 +4,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-/* --- TEXTURES --- */
-typedef struct {
-    int w, h;
-
-    int type;
-    unsigned int id;
-    unsigned int unit;
-    unsigned char *data;
-} bs_Tex2D;
-
-/* --- SHADERS --- */
-// TODO: Make #define instead
-typedef enum {
-    UNIFORM_PROJ,
-    UNIFORM_VIEW,
-
-    BS_UNIFORM_TYPE_COUNT,
-} bs_STDUniforms;
-
-// TODO: Remove this shit
-typedef struct {
-    bool is_valid;
-    int loc;
-} bs_Uniform;
-
-typedef struct {
-    int type;
-    int loc;
-} bs_Attrib;
-
-typedef struct {
-    bs_Uniform uniforms[BS_UNIFORM_TYPE_COUNT];
-    int attribs;
-    int attrib_count;
-
-    // OpenGL Variables
-    unsigned int id;
-    unsigned int vs_id;
-    unsigned int fs_id;
-    unsigned int gs_id;
-} bs_Shader;
-
-typedef struct {
-    unsigned int id;
-    unsigned int cs_id;
-    
-    bs_Tex2D *tex;
-} bs_ComputeShader;
-
-typedef struct {
-    unsigned int id;
-    unsigned int block_size;
-} bs_UniformBuffer;
-
-/* --- GENERAL --- */
-#define BS_WND_TRANSPARENT 0x0002000A
-#define BS_WND_HAS_TITLE_BAR 0x00020005
-#define BS_WND_TOPMOST 0x00020007
-#define BS_WND_VISIBLE 0x00020004
-#define BS_WND_UNCLICKABLE 0x0002000D
-
 /* CGLM Alignment */
 #if defined(_MSC_VER)
 #  if _MSC_VER < 1913 /*  Visual Studio 2017 version 15.6  */
@@ -159,6 +98,72 @@ typedef struct {
 	unsigned int z;
 	unsigned int w;
 } bs_uivec4;
+
+
+
+/* --- TEXTURES --- */
+typedef struct {
+    bs_ivec2 frame;
+
+    int w, h;
+    float texw, texh;
+
+    int type;
+    unsigned int id;
+    unsigned int unit;
+    unsigned char *data;
+} bs_Tex2D;
+
+/* --- SHADERS --- */
+// TODO: Make #define instead
+typedef enum {
+    UNIFORM_PROJ,
+    UNIFORM_VIEW,
+
+    BS_UNIFORM_TYPE_COUNT,
+} bs_STDUniforms;
+
+// TODO: Remove this shit
+typedef struct {
+    bool is_valid;
+    int loc;
+} bs_Uniform;
+
+typedef struct {
+    int type;
+    int loc;
+} bs_Attrib;
+
+typedef struct {
+    bs_Uniform uniforms[BS_UNIFORM_TYPE_COUNT];
+    int attribs;
+    int attrib_count;
+
+    // OpenGL Variables
+    unsigned int id;
+    unsigned int vs_id;
+    unsigned int fs_id;
+    unsigned int gs_id;
+} bs_Shader;
+
+typedef struct {
+    unsigned int id;
+    unsigned int cs_id;
+    
+    bs_Tex2D *tex;
+} bs_ComputeShader;
+
+typedef struct {
+    unsigned int id;
+    unsigned int block_size;
+} bs_UniformBuffer;
+
+/* --- GENERAL --- */
+#define BS_WND_TRANSPARENT 0x0002000A
+#define BS_WND_HAS_TITLE_BAR 0x00020005
+#define BS_WND_TOPMOST 0x00020007
+#define BS_WND_VISIBLE 0x00020004
+#define BS_WND_UNCLICKABLE 0x0002000D
 
 typedef struct {
     bs_mat4 view;

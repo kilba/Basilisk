@@ -12,8 +12,12 @@ void bs_textureSettings(int min_filter, int mag_filter);
 void bs_pushTexture(int internal_format, int format, int type);
 void bs_textureMipmaps();
 
+void bs_texSplit(int frame_count);
+void bs_texSplitVert(int frame_count);
+
 void bs_selectTextureTarget(bs_Tex2D *texture, int tex_unit, int target);
 void bs_selectTexture(bs_Tex2D *texture, int tex_unit);
+bs_Tex2D *bs_selectedTexture();
 
 void bs_depth(bs_Tex2D *texture, bs_ivec2 dim);
 void bs_depthLin(bs_Tex2D *texture, bs_ivec2 dim);
