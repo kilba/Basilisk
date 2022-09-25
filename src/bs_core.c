@@ -233,7 +233,6 @@ void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     float texw = texx + tex->texw;
     float texh = texy + tex->texh;
 
-    printf("%f\n", texw);
     bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ texx, texy }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
     bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ texw, texy }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
     bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ texx, texh }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
@@ -449,6 +448,10 @@ void bs_freeBatchData() {
     curr_batch->indices = NULL;
 }
 
+void bs_renderQuad() {
+
+}
+
 void bs_renderBatchNoShader(int start_index, int draw_count) {
     bs_Uniform *view = &curr_batch->shader->uniforms[UNIFORM_VIEW];
     bs_Uniform *proj = &curr_batch->shader->uniforms[UNIFORM_PROJ];
@@ -585,15 +588,15 @@ void bs_endFramebufferRender() {
 
 // TODO: Remove this
 typedef struct {
-    float elapsed;
     bs_ivec2 res;
+    float elapsed;
 } bs_Globals;
 
 void bs_setGlobalVars() {
     bs_Globals globals;
 
-    globals.elapsed = bs_elapsedTime();
     globals.res = bs_resolution();
+    globals.elapsed = bs_elapsedTime();
 
     bs_setUniformBlockData(global_unifs, &globals);
 }

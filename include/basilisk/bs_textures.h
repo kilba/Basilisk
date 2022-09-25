@@ -29,6 +29,8 @@ void bs_texturePNG(bs_Tex2D *texture, char *path);
 void bs_textureLinPNG(bs_Tex2D *texture, char *path);
 
 void bs_depthCube(bs_Tex2D *texture, int dim);
+void bs_depthCubeLin(bs_Tex2D *texture, int dim);
 void bs_textureCube(bs_Tex2D *texture, int dim, char *paths[6]);
+void bs_textureCubeLin(bs_Tex2D *texture, int dim, char *paths[6]);
 
 #endif /* BS_TEXTURES_H */

@@ -176,6 +176,17 @@ void bs_depthCube(bs_Tex2D *texture, int dim) {
     bs_textureWrap(BS_TEXTURE_WRAP_STR, BS_CLAMP_TO_EDGE);
 }
 
+void bs_depthCubeLin(bs_Tex2D *texture, int dim) {
+    bs_texture(texture, BS_CIVEC2(dim, dim), BS_CUBEMAP);
+
+    for(int i = 0; i < 6; ++i) {
+	bs_pushTextureTarget(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i, BS_CHANNEL_DEPTH, BS_CHANNEL_DEPTH, BS_FLOAT);
+    }
+
+    bs_textureMinMag(BS_LINEAR, BS_LINEAR);
+    bs_textureWrap(BS_TEXTURE_WRAP_STR, BS_CLAMP_TO_EDGE);
+}
+
 void bs_textureCube(bs_Tex2D *texture, int dim, char *paths[6]) {
     bs_texture(texture, BS_CIVEC2(dim, dim), BS_CUBEMAP);
 
@@ -185,5 +196,17 @@ void bs_textureCube(bs_Tex2D *texture, int dim, char *paths[6]) {
     }
 
     bs_textureMinMag(BS_NEAREST, BS_NEAREST);
+    bs_textureWrap(BS_TEXTURE_WRAP_STR, BS_CLAMP_TO_EDGE);
+}
+
+void bs_textureCubeLin(bs_Tex2D *texture, int dim, char *paths[6]) {
+    bs_texture(texture, BS_CIVEC2(dim, dim), BS_CUBEMAP);
+
+    for(int i = 0; i < 6; ++i) {
+	bs_textureDataFile(paths[i], true);
+	bs_pushTextureTarget(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i, BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
+    }
+
+    bs_textureMinMag(BS_LINEAR, BS_LINEAR);
     bs_textureWrap(BS_TEXTURE_WRAP_STR, BS_CLAMP_TO_EDGE);
 }
