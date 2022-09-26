@@ -56,6 +56,8 @@ void bs_changeBatchBufferSize(bs_Batch *batch, int index_count);
 void bs_batchShader(bs_Batch *batch, bs_Shader *shader);
 int bs_batchSize();
 
+bool bs_ptIsOverMesh(bs_ivec2 coord, bs_Mesh *mesh, bs_mat4 model, bs_Camera *cam);
+
 /* --- INITIALIZATION --- */
 void bs_init(int width, int height, char *title);
 void bs_startRender(void (*render)());

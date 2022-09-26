@@ -14,5 +14,8 @@ bool bs_isKeyUpOnce(int key_code);
 double bs_elapsedTime();
 double bs_deltaTime();
 bs_ivec2 bs_resolution();
+bs_ivec2 bs_cursorPos();
+bs_ivec2 bs_cursorPosWnd();
+bs_ivec2 bs_cursorPosWndInv();
 
 #endif /* BS_WND_H */

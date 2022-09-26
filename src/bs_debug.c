@@ -1,11 +1,15 @@
+#include "bs_types.h"
 #include <bs_core.h>
+#include <bs_wnd.h>
+#include <bs_textures.h>
+#include <bs_shaders.h>
 
 #include <stdio.h>
 #include <stdarg.h>
 
+#include <lodepng.h>
 #include <cglm/cglm.h>
-
-bs_Camera cam;
+#include <glad/glad.h>
 
 void bs_print(const int info_type, char *format, ...) {
     va_list argptr;
@@ -14,17 +18,8 @@ void bs_print(const int info_type, char *format, ...) {
     va_end(argptr);
 }
 
-bool bs_debugCameraIsActivated() {
-    return true;
+void bsdbg_tick() {
 }
 
-bs_Camera *bs_getDebugCamera() {
-    return &cam;
-}
-
-void bs_debugUpdate() {
-}
-
-void bs_debugStart() {
-    printf("Debugging\n");
+void bsdbg_init() {
 }

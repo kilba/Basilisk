@@ -18,7 +18,6 @@ int w, h;
 double elapsed;
 double delta_time;
 
-// Step 4: the Window Procedure
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch(msg) {
         case WM_CLOSE:
@@ -112,7 +111,6 @@ void bs_initWnd(int width, int height, char *title) {
     ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);
 
-    // Default 60 fps
     // TODO: Get screen refresh rate
     SetTimer(hwnd, 999, 1000 / 120, NULL);
 }
@@ -192,7 +190,6 @@ void bs_wndTick(void (*render)()) {
                 return;
             case WM_TIMER:
                 break;
-
             /* Skip scene update on non-timed events */
             default:
                 goto pass;
@@ -223,6 +220,41 @@ double bs_deltaTime() {
     return delta_time;
 }
 
+bs_ivec2 bs_wndPosition() {
+    RECT rect;
+    GetWindowRect(hwnd, &rect);
+    return BS_CIV2(rect.left, rect.top);
+}
+
 bs_ivec2 bs_resolution() {
     return BS_CIV2(w, h);
+}
+
+bs_ivec2 bs_cursorPos() {
+    POINT p;
+    GetCursorPos(&p);
+    return BS_CIV2(p.x, p.y);
+}
+
+bs_ivec2 bs_cursorPosWndInv() {
+    bs_ivec2 cur_pos = bs_cursorPos();
+    
+    POINT p;
+    p.x = cur_pos.x;
+    p.y = cur_pos.y;
+
+    // Map to window coords
+    ScreenToClient(hwnd, &p);
+
+    return BS_CIV2(p.x, p.y);
+}
+
+bs_ivec2 bs_cursorPosWnd() {
+    RECT rect;
+    GetClientRect(hwnd, &rect);
+
+    bs_ivec2 pos = bs_cursorPosWndInv();
+    pos.y = rect.bottom - pos.y;
+
+    return pos;
 }

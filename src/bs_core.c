@@ -601,6 +601,64 @@ void bs_setGlobalVars() {
     bs_setUniformBlockData(global_unifs, &globals);
 }
 
+/* --- Mesh Selection --- */
+char *vs_selection = \
+    "#version 430\n" \
+    "layout (location = 0) in vec3 bs_Pos;" \
+
+    "uniform mat4 bs_Proj;" \
+    "uniform mat4 bs_View;" \
+    "uniform mat4 model;" \
+
+    "void main() {" \
+	"gl_Position = bs_Proj * bs_View * model * vec4(bs_Pos, 1.0);" \
+    "}";
+
+char *fs_selection = \
+    "#version 430\n" \
+    "layout (location = 0) out vec4 FragColor;" \
+    "void main() {" \
+	"FragColor = vec4(1.0);" \
+    "}";
+
+struct {
+    int model_loc;
+    int data; /* Hex */
+
+    bs_Batch batch;
+    bs_Shader shader;
+} selection;
+
+bool bs_ptIsOverMesh(bs_ivec2 coord, bs_Mesh *mesh, bs_mat4 model, bs_Camera *cam) {
+    selection.batch.camera = cam;
+
+    glDrawBuffer(GL_BACK);
+    glReadBuffer(GL_BACK);
+    bs_selectBatch(&selection.batch);
+
+    bs_uniform_mat4(selection.model_loc, model);
+
+    bs_pushMesh(mesh);
+    bs_pushBatch();
+
+    bs_renderBatch(0, bs_batchSize());
+    bs_clearBatch();
+
+    glReadPixels(coord.x, coord.y, 1, 1, BS_CHANNEL_RGBA, BS_UBYTE, &selection.data);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+    return (selection.data == 0xFFFFFFFF);
+}
+
+void bs_initMeshSelection() {
+    bs_ivec2 res = bs_resolution();
+
+    bs_loadMemShader(vs_selection, fs_selection, 0, &selection.shader);
+    selection.model_loc = bs_uniformLoc(selection.shader.id, "model");
+
+    bs_batch(&selection.batch, &selection.shader, 10000);
+}
+
 void bs_init(int width, int height, char *title) {
     bs_initWnd(width, height, title);
     // bs_printHardwareInfo();
@@ -615,6 +673,7 @@ void bs_init(int width, int height, char *title) {
 
     // Load default shaders
     bs_loadShader("resources/bs_texture_shader.vs", "resources/bs_texture_shader.fs", 0, &texture_shader);
+    bs_initMeshSelection();
 }
 
 void bs_startRender(void (*render)()) {

@@ -20,8 +20,8 @@ int bs_closestDivisible(int val, int div) {
 }
 
 double bs_fMap(double input, double input_start, double input_end, double output_start, double output_end) {
-	double slope = 1.0 * (output_end - output_start) / (input_end - input_start);
-	return output_start + slope * (input - input_start);
+    double slope = 1.0 * (output_end - output_start) / (input_end - input_start);
+    return output_start + slope * (input - input_start);
 }
 
 void bs_eul2quat(bs_quat q, bs_vec3 eul) {
@@ -50,6 +50,24 @@ void bs_crossv3(bs_vec3 v0, bs_vec3 v1, bs_vec3 out) {
     out.x = v0.y * v1.z - v0.z * v1.y;
     out.y = v0.z * v1.x - v0.x * v1.z;
     out.z = v0.x * v1.y - v0.y * v1.x;
+}
+
+float bs_signv3(bs_vec3 p1, bs_vec3 p2, bs_vec3 p3) {
+    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+}
+
+bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3) {
+    float d1, d2, d3;
+    bool has_neg, has_pos;
+
+    d1 = bs_signv3(pt, v1, v2);
+    d2 = bs_signv3(pt, v2, v3);
+    d3 = bs_signv3(pt, v3, v1);
+
+    has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+    has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+    return !(has_neg && has_pos);
 }
 
 /* --- MATRICES --- */

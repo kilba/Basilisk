@@ -84,49 +84,49 @@ void bs_readWeights(int accessor_index, bs_Prim *prim, cgltf_data *data) {
 }
 
 void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
-	cgltf_material *c_mat = c_prim->material;
-	bs_Material *mat = &prim->material;
+    cgltf_material *c_mat = c_prim->material;
+    bs_Material *mat = &prim->material;
 
-	if(c_mat == NULL) {
-		mat->col.r = 255;
-		mat->col.g = 255;
-		mat->col.b = 255;
-		mat->col.a = 255;
-		return;
-	}
+    if(c_mat == NULL) {
+	mat->col.r = 255;
+	mat->col.g = 255;
+	mat->col.b = 255;
+	mat->col.a = 255;
+	return;
+    }
 
-	cgltf_pbr_metallic_roughness *metallic = &c_mat->pbr_metallic_roughness;
-	cgltf_float *mat_color = metallic->base_color_factor;
+    cgltf_pbr_metallic_roughness *metallic = &c_mat->pbr_metallic_roughness;
+    cgltf_float *mat_color = metallic->base_color_factor;
 
-	mat->col.r = mat_color[0] * 255;
-	mat->col.g = mat_color[1] * 255;
-	mat->col.b = mat_color[2] * 255;
-	mat->col.a = mat_color[3] * 255;
+    mat->col.r = mat_color[0] * 255;
+    mat->col.g = mat_color[1] * 255;
+    mat->col.b = mat_color[2] * 255;
+    mat->col.a = mat_color[3] * 255;
 
-	// If the primitive has a texture
-	if(metallic->base_color_texture.texture != NULL) {
-		int id = (int64_t)metallic->base_color_texture.texture->image;
-		id -= curr_tex_ptr;
-		id /= sizeof(cgltf_image);
+    // If the primitive has a texture
+    if(metallic->base_color_texture.texture != NULL) {
+	int id = (int64_t)metallic->base_color_texture.texture->image;
+	id -= curr_tex_ptr;
+	id /= sizeof(cgltf_image);
 
-		mat->tex = &model->textures[0];
-	}
+	mat->tex = &model->textures[0];
+    }
 
-	mat->metallic = metallic->metallic_factor;
+    mat->metallic = metallic->metallic_factor;
 }
 
 void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_index, int prim_index) {
-	cgltf_mesh *c_mesh = &data->meshes[mesh_index];
-	bs_Prim *prim = &mesh->prims[prim_index];
-	prim->material.tex = NULL;
+    cgltf_mesh *c_mesh = &data->meshes[mesh_index];
+    bs_Prim *prim = &mesh->prims[prim_index];
+    prim->material.tex = NULL;
 
-	int attrib_count = c_mesh->primitives[prim_index].attributes_count;
-	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[c_mesh->primitives[prim_index].attributes[0].index], NULL, 0);
+    int attrib_count = c_mesh->primitives[prim_index].attributes_count;
+    int num_floats = cgltf_accessor_unpack_floats(&data->accessors[c_mesh->primitives[prim_index].attributes[0].index], NULL, 0);
 
-	prim->vertices = malloc(num_floats * sizeof(bs_Vertex));
-	prim->vertex_count = num_floats / 3;
+    prim->vertices = malloc(num_floats * sizeof(bs_Vertex));
+    prim->vertex_count = num_floats / 3;
 
-	bs_loadMaterial(model, &c_mesh->primitives[prim_index], prim);
+    bs_loadMaterial(model, &c_mesh->primitives[prim_index], prim);
 
 	// Read vertices
     for(int i = 0; i < attrib_count; i++) {
@@ -134,102 +134,103 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     	int type = c_mesh->primitives[prim_index].attributes[i].type;
 
     	switch(type) {
-    		case cgltf_attribute_type_position:
-    			bs_readPositionVertices(index, prim, mesh, data); break;
-			case cgltf_attribute_type_normal:
-				bs_readNormalVertices(index, prim, data); break;
-			case cgltf_attribute_type_texcoord:
-				bs_readTexCoordVertices(index, prim, data); break;
-			case cgltf_attribute_type_joints:
-				bs_readJointIndices(index, prim, data); break;
-			case cgltf_attribute_type_weights:
-				bs_readWeights(index, prim, data); break;
+	    case cgltf_attribute_type_position:
+		bs_readPositionVertices(index, prim, mesh, data); break;
+		case cgltf_attribute_type_normal:
+			bs_readNormalVertices(index, prim, data); break;
+		case cgltf_attribute_type_texcoord:
+			bs_readTexCoordVertices(index, prim, data); break;
+		case cgltf_attribute_type_joints:
+			bs_readJointIndices(index, prim, data); break;
+		case cgltf_attribute_type_weights:
+			bs_readWeights(index, prim, data); break;
     	}
     }
 
     // Read indices
-	int num_indices = cgltf_accessor_unpack_floats(c_mesh->primitives[prim_index].indices, NULL, 0);
-	prim->indices = malloc(num_indices * sizeof(int));
-	prim->index_count = num_indices;
-	for(int i = 0; i < num_indices; i++) {
-		cgltf_uint outv;
-		cgltf_accessor_read_uint(c_mesh->primitives[prim_index].indices, i, &outv, 1);
-		prim->indices[i] = outv;
-	}
+    int num_indices = cgltf_accessor_unpack_floats(c_mesh->primitives[prim_index].indices, NULL, 0);
+    prim->indices = malloc(num_indices * sizeof(int));
+    prim->index_count = num_indices;
+    for(int i = 0; i < num_indices; i++) {
+	cgltf_uint outv;
+	cgltf_accessor_read_uint(c_mesh->primitives[prim_index].indices, i, &outv, 1);
+	prim->indices[i] = outv;
+    }
 
-	attrib_offset = c_mesh->primitives[prim_index].index_id + 1;
+    attrib_offset = c_mesh->primitives[prim_index].index_id + 1;
 
-	mesh->vertex_count += prim->vertex_count;
-	model->vertex_count += prim->vertex_count;
-	model->index_count += num_indices;
+    mesh->vertex_count += prim->vertex_count;
+    model->vertex_count += prim->vertex_count;
+    model->index_count += num_indices;
 }
 
 void bs_loadJoints(cgltf_data *data, bs_Mesh *mesh, cgltf_mesh *c_mesh) {
-	cgltf_skin *skin = c_mesh->node->skin;
-	if(skin == NULL)
-		return;
+    cgltf_skin *skin = c_mesh->node->skin;
+    if(skin == NULL)
+	    return;
 
-	mesh->joints = malloc(skin->joints_count * sizeof(bs_Joint));
-	mesh->joint_count = skin->joints_count;
+    mesh->joints = malloc(skin->joints_count * sizeof(bs_Joint));
+    mesh->joint_count = skin->joints_count;
 
-	for(int i = 0; i < skin->joints_count; i++) {
-		cgltf_node *c_joint = skin->joints[i];
-		bs_Joint *joint = &mesh->joints[i];
+    for(int i = 0; i < skin->joints_count; i++) {
+	cgltf_node *c_joint = skin->joints[i];
+	bs_Joint *joint = &mesh->joints[i];
 
-		// Set the local matrix
-		bs_mat4 local = GLM_MAT4_IDENTITY_INIT;
-		glm_translate(local, c_joint->translation);
-		glm_quat_rotate(local, (versor){ c_joint->rotation[0], c_joint->rotation[1], c_joint->rotation[2], c_joint->rotation[3] }, local);
-		glm_scale(local, c_joint->scale);
-		glm_mat4_inv(local, joint->local_inv);
+	// Set the local matrix
+	bs_mat4 local = GLM_MAT4_IDENTITY_INIT;
+	glm_translate(local, c_joint->translation);
+	glm_quat_rotate(local, (versor){ c_joint->rotation[0], c_joint->rotation[1], c_joint->rotation[2], c_joint->rotation[3] }, local);
+	glm_scale(local, c_joint->scale);
+	glm_mat4_inv(local, joint->local_inv);
 
-		// Set the inverse bind matrix and regular bind matrix
-		cgltf_accessor_read_float(skin->inverse_bind_matrices, i, (float*)joint->bind_matrix_inv, 16);
-		glm_mat4_inv(joint->bind_matrix_inv, joint->bind_matrix);
+	// Set the inverse bind matrix and regular bind matrix
+	cgltf_accessor_read_float(skin->inverse_bind_matrices, i, (float*)joint->bind_matrix_inv, 16);
+	glm_mat4_inv(joint->bind_matrix_inv, joint->bind_matrix);
 
-		memcpy(mesh->joints[i].mat, GLM_MAT4_IDENTITY, sizeof(bs_mat4));
+	memcpy(mesh->joints[i].mat, GLM_MAT4_IDENTITY, sizeof(bs_mat4));
 
-		c_joint->id = i;
+	c_joint->id = i;
+    }
+
+    for(int i = 0; i < skin->joints_count; i++) {
+	int parent_id = skin->joints[i]->parent->id;
+
+	// If parent id is the armature
+	if(parent_id == -1) {
+	    mesh->joints[i].parent = &identity_joint;
+	    continue;
 	}
 
-	for(int i = 0; i < skin->joints_count; i++) {
-		int parent_id = skin->joints[i]->parent->id;
-
-		// If parent id is the armature
-		if(parent_id == -1) {
-			mesh->joints[i].parent = &identity_joint;
-			continue;
-		}
-
-		mesh->joints[i].parent = &mesh->joints[parent_id];
-	}
+	mesh->joints[i].parent = &mesh->joints[parent_id];
+    }
 }
 
 void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
-	cgltf_mesh *c_mesh = &data->meshes[mesh_index];
-	cgltf_node *node = &data->nodes[mesh_index];
+    cgltf_mesh *c_mesh = &data->meshes[mesh_index];
+    cgltf_node *node = &data->nodes[mesh_index];
 
-	model->meshes[mesh_index].joint_count = 0;
+    model->meshes[mesh_index].joint_count = 0;
+    model->meshes[mesh_index].name = c_mesh->name;
 
-	memcpy(&model->meshes[mesh_index].pos, node->translation, sizeof(bs_vec3));
-	memcpy(&model->meshes[mesh_index].rot, node->rotation, sizeof(bs_vec4));
-	memcpy(&model->meshes[mesh_index].sca, node->scale, sizeof(bs_vec4));
+    memcpy(&model->meshes[mesh_index].pos, node->translation, sizeof(bs_vec3));
+    memcpy(&model->meshes[mesh_index].rot, node->rotation, sizeof(bs_vec4));
+    memcpy(&model->meshes[mesh_index].sca, node->scale, sizeof(bs_vec4));
 
-	bs_mat4 local = GLM_MAT4_IDENTITY_INIT;
-	glm_translate(local, node->translation);
-	glm_quat_rotate(local, (versor){ node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3] }, local);
-	glm_scale(local, node->scale);
+    bs_mat4 local = GLM_MAT4_IDENTITY_INIT;
+    glm_translate(local, node->translation);
+    glm_quat_rotate(local, (versor){ node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3] }, local);
+    glm_scale(local, node->scale);
 
-	memcpy(&model->meshes[mesh_index].mat, &local, sizeof(bs_mat4));
+    memcpy(&model->meshes[mesh_index].mat, &local, sizeof(bs_mat4));
 
-	model->meshes[mesh_index].prims = malloc(c_mesh->primitives_count * sizeof(bs_Prim));
-	model->meshes[mesh_index].prim_count = c_mesh->primitives_count;
+    model->meshes[mesh_index].prims = malloc(c_mesh->primitives_count * sizeof(bs_Prim));
+    model->meshes[mesh_index].prim_count = c_mesh->primitives_count;
 
-	bs_loadJoints(data, &model->meshes[mesh_index], c_mesh);
+    bs_loadJoints(data, &model->meshes[mesh_index], c_mesh);
 
-	for(int i = 0; i < c_mesh->primitives_count; i++) {
-		bs_loadPrim(data, &model->meshes[mesh_index], model, mesh_index, i);
-	}
+    for(int i = 0; i < c_mesh->primitives_count; i++) {
+	bs_loadPrim(data, &model->meshes[mesh_index], model, mesh_index, i);
+    }
 }
 
 void bs_loadModelTexturesToAtlas() {

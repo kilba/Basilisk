@@ -249,6 +249,7 @@ typedef struct {
 } bs_Prim;
 
 typedef struct {
+    char *name; /* Can be freed */
     int vertex_count;
 
     bs_vec3 pos;
