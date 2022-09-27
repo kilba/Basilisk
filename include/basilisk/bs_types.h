@@ -179,6 +179,11 @@ typedef struct {
 } bs_Vertex;
 
 typedef struct {
+    unsigned int vertex;
+    unsigned int index;
+} bs_Offset;
+
+typedef struct {
     int render_width;
     int render_height;
 

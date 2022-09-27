@@ -586,6 +586,17 @@ void bs_endFramebufferRender() {
     glViewport(0, 0, res.x, res.y);
 }
 
+unsigned char *bs_framebufferData(int x, int y, int w, int h) {
+    unsigned char *data = malloc(w * h);
+    glReadPixels(x, y, w, h, BS_CHANNEL_RGB, BS_UBYTE, data);
+    return data;
+}
+
+unsigned char *bs_screenshot() {
+    bs_ivec2 res = bs_resolution();
+    return bs_framebufferData(0, 0, res.x, res.y);
+}
+
 // TODO: Remove this
 typedef struct {
     bs_ivec2 res;
@@ -605,31 +616,37 @@ void bs_setGlobalVars() {
 char *vs_selection = \
     "#version 430\n" \
     "layout (location = 0) in vec3 bs_Pos;" \
+    "layout (location = 1) in vec4 bs_Color;" \
 
     "uniform mat4 bs_Proj;" \
     "uniform mat4 bs_View;" \
     "uniform mat4 model;" \
 
+    "out vec4 color;" \
+
     "void main() {" \
+	"color = bs_Color;" \
 	"gl_Position = bs_Proj * bs_View * model * vec4(bs_Pos, 1.0);" \
     "}";
 
 char *fs_selection = \
     "#version 430\n" \
     "layout (location = 0) out vec4 FragColor;" \
+    "in vec4 color;" \
+
     "void main() {" \
-	"FragColor = vec4(1.0);" \
+	"FragColor = color;" \
     "}";
 
 struct {
     int model_loc;
-    int data; /* Hex */
+    unsigned int count;
 
     bs_Batch batch;
     bs_Shader shader;
 } selection;
 
-bool bs_ptIsOverMesh(bs_ivec2 coord, bs_Mesh *mesh, bs_mat4 model, bs_Camera *cam) {
+void bs_objRead(bs_mat4 model, bs_Camera *cam) {
     selection.batch.camera = cam;
 
     glDrawBuffer(GL_BACK);
@@ -637,17 +654,49 @@ bool bs_ptIsOverMesh(bs_ivec2 coord, bs_Mesh *mesh, bs_mat4 model, bs_Camera *ca
     bs_selectBatch(&selection.batch);
 
     bs_uniform_mat4(selection.model_loc, model);
+}
+
+void bs_objPushMesh(bs_Mesh *mesh) {
+    bs_Prim *prim = &mesh->prims[0];
+    bs_RGBA old = prim->material.col; 
+
+    prim->material.col = (bs_RGBA){ 0, 0, 0, 255 };
+    int *hex = (int *)&prim->material.col;
+    *hex += selection.count;
 
     bs_pushMesh(mesh);
+    
+    prim->material.col = old;
+    selection.count++;
+}
+
+int bs_objUnderPt(bs_ivec2 pt) {
+    bs_fRGBA background = bs_getBackgroundColorF();
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     bs_pushBatch();
 
     bs_renderBatch(0, bs_batchSize());
     bs_clearBatch();
 
-    glReadPixels(coord.x, coord.y, 1, 1, BS_CHANNEL_RGBA, BS_UBYTE, &selection.data);
+    bs_ivec2 res = bs_wndResolution();
+    pt.x = bs_clamp(pt.x, 0.0, res.x);
+    pt.y = bs_clamp(pt.y, 0.0, res.y);
 
+    int hex;
+    glReadPixels(pt.x, pt.y, 1, 1, BS_CHANNEL_RGBA, BS_UBYTE, &hex); 
+    hex -= 0xFF000000; /* Alpha channel will always be 255, set to 0 */
+
+    // TODO: Detta är shit, gör istället att inget selectas om "pt" är utanför window
+    if(hex > selection.count)
+	hex = 0;
+
+    selection.count = 1;
+
+    glClearColor(background.r, background.g, background.b, background.a);
     glClear(GL_COLOR_BUFFER_BIT);
-    return (selection.data == 0xFFFFFFFF);
+    return hex-1;
 }
 
 void bs_initMeshSelection() {
@@ -655,6 +704,7 @@ void bs_initMeshSelection() {
 
     bs_loadMemShader(vs_selection, fs_selection, 0, &selection.shader);
     selection.model_loc = bs_uniformLoc(selection.shader.id, "model");
+    selection.count = 1;
 
     bs_batch(&selection.batch, &selection.shader, 10000);
 }

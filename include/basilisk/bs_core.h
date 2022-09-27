@@ -34,6 +34,9 @@ void bs_endFramebufferRender();
 void bs_noDrawBuf();
 void bs_noReadBuf();
 
+unsigned char *bs_framebufferData(int x, int y, int w, int h);
+unsigned char *bs_screenshot();
+
 /* --- BATCHING --- */
 void bs_batch(bs_Batch *batch, bs_Shader *shader, int index_count);
 void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size);
@@ -57,7 +60,9 @@ void bs_batchShader(bs_Batch *batch, bs_Shader *shader);
 int bs_batchSize();
 
 bool bs_ptIsOverMesh(bs_ivec2 coord, bs_Mesh *mesh, bs_mat4 model, bs_Camera *cam);
-
+void bs_objRead(bs_mat4 model, bs_Camera *cam);
+int bs_objUnderPt(bs_ivec2 pt);
+void bs_objPushMesh(bs_Mesh *mesh);
 /* --- INITIALIZATION --- */
 void bs_init(int width, int height, char *title);
 void bs_startRender(void (*render)());

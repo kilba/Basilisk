@@ -3,6 +3,7 @@
 
 #include <bs_types.h>
 
+double bs_clamp(double d, double min, double max);
 int bs_sign(float x);
 int bs_closestDivisible(int val, int div);
 double bs_fMap(double input, double input_start, double input_end, double output_start, double output_end);

@@ -149,6 +149,23 @@ void bs_setBackgroundColor(bs_RGBA color) {
     clear_color.a = (float)color.a / 255.0;
 }
 
+void bs_setBackgroundColorF(bs_fRGBA color) {
+    clear_color = color;
+}
+
+bs_RGBA bs_getBackgroundColor() {
+    return (bs_RGBA) {
+	clear_color.r * 255.0,
+	clear_color.g * 255.0,
+	clear_color.b * 255.0,
+	clear_color.a * 255.0
+    };
+}
+
+bs_fRGBA bs_getBackgroundColorF() {
+    return clear_color;
+}
+
 void bs_checkGLError() {
     GLenum err = glGetError();
     if(err != GL_NO_ERROR) {
@@ -228,6 +245,17 @@ bs_ivec2 bs_wndPosition() {
 
 bs_ivec2 bs_resolution() {
     return BS_CIV2(w, h);
+}
+
+bs_ivec2 bs_wndResolution() {
+    RECT rect;
+    GetClientRect(hwnd, &rect);
+
+    bs_ivec2 res;
+    res.x = rect.right - rect.left;
+    res.y = rect.bottom - rect.top;
+    
+    return res;
 }
 
 bs_ivec2 bs_cursorPos() {

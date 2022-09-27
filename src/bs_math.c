@@ -3,6 +3,11 @@
 #include <string.h>
 #include <math.h>
 
+double bs_clamp(double d, double min, double max) {
+  const double t = d < min ? min : d;
+  return t > max ? max : t;
+}
+
 int bs_sign(float x) {
     return (x > 0) - (x < 0);
 }
