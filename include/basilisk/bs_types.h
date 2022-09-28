@@ -274,12 +274,14 @@ typedef struct {
 } bs_Mesh;
 
 typedef struct {
-	bs_Mesh *meshes;
-	bs_Tex2D *textures;
+    char *name;
 
-	int mesh_count;
-	int vertex_count;
-	int index_count;
+    bs_Mesh *meshes;
+    bs_Tex2D *textures;
+
+    int mesh_count;
+    int vertex_count;
+    int index_count;
 } bs_Model;
 
 /* --- VECTOR CONSTANTS --- */

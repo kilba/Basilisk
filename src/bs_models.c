@@ -324,48 +324,51 @@ void bs_loadAnims(cgltf_data* data) {
 }
 
 void bs_loadModel(char *model_path, char *texture_folder_path, bs_Model *model) {
-	cgltf_options options = {0};
-	cgltf_data* data = NULL;
+    cgltf_options options = {0};
+    cgltf_data* data = NULL;
 
-	// Get path to GLTF binary data
-	char bin_path[256];
-	int path_len = strlen(model_path);
-	strncpy(bin_path, model_path, path_len-4);
-	strcat(bin_path, "bin");
+    // Get path to GLTF binary data
+    char bin_path[256];
+    int path_len = strlen(model_path);
+    strncpy(bin_path, model_path, path_len-4);
+    strcat(bin_path, "bin");
 
-	// Load the GLTF json and binary data
-	cgltf_parse_file(&options, model_path, &data);
-	cgltf_load_buffers(&options, data, bin_path);
+    // Load the GLTF json and binary data
+    cgltf_parse_file(&options, model_path, &data);
+    cgltf_load_buffers(&options, data, bin_path);
 
-	int mesh_count = data->meshes_count;
+    int mesh_count = data->meshes_count;
 
-	model->meshes = malloc(mesh_count * sizeof(bs_Mesh));
-	model->mesh_count = mesh_count;
-	model->vertex_count = 0;
-	model->index_count = 0;
+    model->meshes = malloc(mesh_count * sizeof(bs_Mesh));
+    model->mesh_count = mesh_count;
+    model->vertex_count = 0;
+    model->index_count = 0;
 
-	// bs_loadModelTextures(data, model);
-	bs_loadAnims(data);
+   printf("%s\n", data->buffers[0].uri);
 
-	for(int i = 0; i < mesh_count; i++) {
-		bs_loadMesh(data, model, i);
-	}
+    // bs_loadModelTextures(data, model);
+    bs_loadAnims(data);
+
+    for(int i = 0; i < mesh_count; i++) {
+	bs_loadMesh(data, model, i);
+    }
+    cgltf_free(data);
 }
 
 void bs_animate(bs_Mesh *mesh, bs_Anim *anim, int frame) {
-	for(int i = 0; i < anim->joint_count; i++) {
-		bs_Joint *change_joint = &mesh->joints[i];
-		bs_Joint *parent = mesh->joints[i].parent;
+    for(int i = 0; i < anim->joint_count; i++) {
+	bs_Joint *change_joint = &mesh->joints[i];
+	bs_Joint *parent = mesh->joints[i].parent;
 
-		memcpy(change_joint->mat, change_joint->bind_matrix, sizeof(bs_mat4));
+	memcpy(change_joint->mat, change_joint->bind_matrix, sizeof(bs_mat4));
 
-		glm_mat4_mul(change_joint->mat, change_joint->local_inv, change_joint->mat);
-		glm_mat4_mul(change_joint->mat, anim->joints[i + frame * anim->joint_count].mat, change_joint->mat);
-		glm_mat4_mul(change_joint->mat, change_joint->bind_matrix_inv, change_joint->mat);
-		glm_mat4_mul(parent->mat, change_joint->mat, change_joint->mat);
-		
-		bs_uniform_mat4(change_joint->loc, change_joint->mat);
-	}
+	glm_mat4_mul(change_joint->mat, change_joint->local_inv, change_joint->mat);
+	glm_mat4_mul(change_joint->mat, anim->joints[i + frame * anim->joint_count].mat, change_joint->mat);
+	glm_mat4_mul(change_joint->mat, change_joint->bind_matrix_inv, change_joint->mat);
+	glm_mat4_mul(parent->mat, change_joint->mat, change_joint->mat);
+	
+	bs_uniform_mat4(change_joint->loc, change_joint->mat);
+    }
 }
 
 bs_Anim *bs_getAnims() {
