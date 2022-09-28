@@ -38,7 +38,7 @@ unsigned char *bs_framebufferData(int x, int y, int w, int h);
 unsigned char *bs_screenshot();
 
 /* --- BATCHING --- */
-void bs_batch(bs_Batch *batch, bs_Shader *shader, int index_count);
+void bs_batch(bs_Batch *batch, bs_Shader *shader);
 void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size);
 void bs_attrib(const int type, unsigned int amount, size_t size_per_type, bool normalized);
 void bs_attribI(const int type, unsigned int amount, size_t size_per_type);
@@ -46,15 +46,13 @@ void bs_attribDivisor(int attrib_id, int value);
 void bs_attribInstance(int attrib_id);
 
 void bs_bufferRange(int target, int bind_point, int buffer, int offset, int size);
-void bs_selectBatchNoShader(bs_Batch *batch);
 void bs_selectBatch(bs_Batch *batch);
 void bs_pushBatch();
-void bs_renderBatchNoShader(int start_index, int draw_count);
 void bs_renderBatch(int start_index, int draw_count);
 
 void bs_freeBatchData();
 void bs_clearBatch();
-void bs_changeBatchBufferSize(bs_Batch *batch, int index_count);
+void bs_batchBufferSize(int index_count, int vertex_count);
 
 void bs_batchShader(bs_Batch *batch, bs_Shader *shader);
 int bs_batchSize();
@@ -76,6 +74,7 @@ void bs_lookat(bs_mat4 mat, bs_vec3 eye, bs_vec3 center, bs_vec3 up);
 void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up);
 
 /* --- CONSTANTS --- */
+#define BS_BATCH_INCR_BY 1024 
 /* OPENGL FILTERING SETTINGS */
 #define BS_NEAREST 0x2600
 #define BS_NEAREST_MIPMAP_LINEAR 0x2702

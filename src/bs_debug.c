@@ -84,5 +84,5 @@ void bsdbg_init() {
     bs_framebuffer(&selection_data.framebuf, res);
     bs_attachColorbuffer(&selection_data.buf, 0);
 
-    bs_batch(&selection_data.batch, &selection_data.shader, 10000);
+    bs_batch(&selection_data.batch, &selection_data.shader);
 }

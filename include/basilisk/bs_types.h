@@ -38,6 +38,7 @@ typedef struct { int x, y, z, w; } bs_ivec4;
 
 typedef struct { float r, g, b, a; } bs_fRGBA;
 typedef struct { unsigned char r, g, b, a; } bs_RGBA;
+typedef struct { unsigned char r, g, b; } bs_RGB;
 
 /* --- FLOAT TYPES --- */
 
@@ -208,6 +209,9 @@ typedef struct {
     int attrib_count;
     int attrib_size_bytes;
     size_t attrib_offset;
+
+    int allocated_index_count;
+    int allocated_vertex_count;
 
     unsigned int VAO, VBO, EBO;
 } bs_Batch;

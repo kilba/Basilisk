@@ -123,17 +123,26 @@ void bs_persp(bs_mat4 mat, float aspect, float fovy, float nearZ, float farZ) {
 /* --- UNBATCHED RENDERING --- */
 
 /* --- BATCHED RENDERING --- */
-void bs_selectBatchNoShader(bs_Batch *batch) {
+void bs_selectBatch(bs_Batch *batch) {
     curr_batch = batch;
 
     glBindVertexArray(batch->VAO);
     glBindBuffer(GL_ARRAY_BUFFER, batch->VBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch->EBO);
+
+    bs_switchShader(curr_batch->shader->id);
 }
 
-void bs_selectBatch(bs_Batch *batch) {
-    bs_selectBatchNoShader(batch);
-    bs_switchShader(curr_batch->shader->id);
+void bs_batchResizeCheck(int index_count, int vertex_count) {
+    bs_Batch *batch = curr_batch;
+    if(((batch->index_draw_count+index_count) < batch->allocated_index_count) && ((batch->vertex_draw_count+vertex_count) < batch->allocated_vertex_count))
+	return;
+
+    int new_index_count = batch->index_draw_count + BS_BATCH_INCR_BY + index_count;
+    int new_vertex_count = batch->vertex_draw_count + BS_BATCH_INCR_BY + vertex_count;
+    //printf("Allocating:\n    index : %d\n    vertex: %d\n", new_index_count, new_vertex_count);
+
+    bs_batchBufferSize(new_index_count, new_vertex_count);
 }
 
 void bs_pushVertex(
@@ -149,7 +158,7 @@ void bs_pushVertex(
     unsigned char *data_ptr = (unsigned char *)batch->vertices + batch->vertex_draw_count * batch->attrib_size_bytes;
 
     bool has_position  = ((batch->shader->attribs & BS_POSITION)  == BS_POSITION);
-    bool has_tex_coord = /*(tex_coord != 0)   * */((batch->shader->attribs & BS_TEX_COORD) == BS_TEX_COORD);
+    bool has_tex_coord = ((batch->shader->attribs & BS_TEX_COORD) == BS_TEX_COORD);
     bool has_normal    = ((batch->shader->attribs & BS_NORMAL)    == BS_NORMAL);
     bool has_color     = ((batch->shader->attribs & BS_COLOR)     == BS_COLOR);
     bool has_bone_ids  = ((batch->shader->attribs & BS_BONE_IDS)  == BS_BONE_IDS);
@@ -181,6 +190,8 @@ void bs_pushVertex(
 } 
 
 void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
+    bs_batchResizeCheck(6, 4);
+
     int indices[] = {
         curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
         curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
@@ -197,6 +208,8 @@ void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
 }
 
 void bs_pushTex2DFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
+    bs_batchResizeCheck(6, 4);
+    
     dim.x += pos.x;
     dim.y += pos.y;
 
@@ -216,6 +229,7 @@ void bs_pushTex2DFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 }
 
 void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
+    bs_batchResizeCheck(6, 4);
     bs_Tex2D *tex = bs_selectedTexture();
 
     dim.x += pos.x;
@@ -242,6 +256,7 @@ void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 }
 
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
+    bs_batchResizeCheck(6, 4);
     dim.x += pos.x;
     dim.y += pos.y;
 
@@ -262,6 +277,7 @@ void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 }
 
 void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
+    bs_batchResizeCheck(3, 3);
     int indices[] = {
         curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
     };
@@ -279,6 +295,7 @@ void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
 }
 
 void bs_pushPrim(bs_Prim *prim) {
+    bs_batchResizeCheck(prim->index_count, prim->vertex_count);
     for(int i = 0; i < prim->index_count; i++) {
         curr_batch->indices[curr_batch->index_draw_count+i] = prim->indices[i] + curr_batch->vertex_draw_count;
     }
@@ -320,15 +337,20 @@ void bs_pushModel(bs_Model *model) {
     }
 }
 
-void bs_changeBatchBufferSize(bs_Batch *batch, int index_count) {
-    batch->vertices = realloc(batch->vertices, index_count * sizeof(bs_Vertex));    
+void bs_batchBufferSize(int index_count, int vertex_count) {
+    bs_Batch *batch = curr_batch;
+
+    batch->allocated_index_count = index_count;
+    batch->allocated_vertex_count = vertex_count;
+
+    batch->vertices = realloc(batch->vertices, vertex_count * batch->attrib_size_bytes);
     batch->indices  = realloc(batch->indices , index_count * sizeof(int));
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(bs_Vertex)  * index_count, batch->vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertex_count * batch->attrib_size_bytes, batch->vertices, GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, batch->indices, GL_STATIC_DRAW);
 }
 
-void bs_batch(bs_Batch *batch, bs_Shader *shader, int index_count) {
+void bs_batch(bs_Batch *batch, bs_Shader *shader) {
     // Default values
     batch->camera = &def_camera;
     batch->draw_mode = BS_TRIANGLES;
@@ -339,9 +361,8 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader, int index_count) {
     batch->attrib_size_bytes = 0;
     batch->shader = shader;
 
-    if(batch->shader == NULL) {
-        batch->shader = &texture_shader;
-    }
+    if(batch->shader == NULL)
+	batch->shader = &texture_shader;
 
     // Create buffer/array objects
     glGenVertexArrays(1, &batch->VAO);
@@ -386,12 +407,6 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader, int index_count) {
             bs_attrib(data->type, data->count, data->size, data->normalized);
         }
     }
-
-    // Allocate buffer spaces
-    batch->indices = malloc(sizeof(int) * index_count);
-    batch->vertices = malloc(batch->attrib_size_bytes * index_count);
-    glBufferData(GL_ARRAY_BUFFER, batch->attrib_size_bytes * index_count, NULL, GL_STATIC_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, NULL, GL_STATIC_DRAW);
 }
 
 void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size) {
@@ -436,7 +451,7 @@ void bs_bufferRange(int target, int bind_point, int buffer, int offset, int size
 
 // Pushes all vertices to VRAM
 void bs_pushBatch() {
-    // Batch should already be bound at this point so binding it again is wasteful
+
     glBufferSubData(GL_ARRAY_BUFFER, 0, curr_batch->vertex_draw_count * curr_batch->attrib_size_bytes, curr_batch->vertices);
     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, curr_batch->index_draw_count * sizeof(int), curr_batch->indices);
 }
@@ -452,7 +467,9 @@ void bs_renderQuad() {
 
 }
 
-void bs_renderBatchNoShader(int start_index, int draw_count) {
+void bs_renderBatch(int start_index, int draw_count) {
+    bs_switchShader(curr_batch->shader->id);
+
     bs_Uniform *view = &curr_batch->shader->uniforms[UNIFORM_VIEW];
     bs_Uniform *proj = &curr_batch->shader->uniforms[UNIFORM_PROJ];
 
@@ -462,11 +479,6 @@ void bs_renderBatchNoShader(int start_index, int draw_count) {
 	bs_uniform_mat4(proj->loc, curr_batch->camera->proj);
 
     glDrawElements(curr_batch->draw_mode, draw_count, BS_UINT, (void*)(start_index * 6 * sizeof(GLuint)));
-}
-
-void bs_renderBatch(int start_index, int draw_count) {
-    bs_switchShader(curr_batch->shader->id);
-    bs_renderBatchNoShader(start_index, draw_count);
 }
 
 void bs_clearBatch() {
@@ -587,7 +599,8 @@ void bs_endFramebufferRender() {
 }
 
 unsigned char *bs_framebufferData(int x, int y, int w, int h) {
-    unsigned char *data = malloc(w * h);
+    const int rgb_size = 3;
+    unsigned char *data = malloc(w * h * rgb_size);
     glReadPixels(x, y, w, h, BS_CHANNEL_RGB, BS_UBYTE, data);
     return data;
 }
@@ -672,7 +685,7 @@ void bs_objPushMesh(bs_Mesh *mesh) {
 
 int bs_objUnderPt(bs_ivec2 pt) {
     bs_fRGBA background = bs_getBackgroundColorF();
-    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClearColor(0.0, 0.5, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
 
     bs_pushBatch();
@@ -695,7 +708,6 @@ int bs_objUnderPt(bs_ivec2 pt) {
     selection.count = 1;
 
     glClearColor(background.r, background.g, background.b, background.a);
-    glClear(GL_COLOR_BUFFER_BIT);
     return hex-1;
 }
 
@@ -706,7 +718,7 @@ void bs_initMeshSelection() {
     selection.model_loc = bs_uniformLoc(selection.shader.id, "model");
     selection.count = 1;
 
-    bs_batch(&selection.batch, &selection.shader, 10000);
+    bs_batch(&selection.batch, &selection.shader);
 }
 
 void bs_init(int width, int height, char *title) {
