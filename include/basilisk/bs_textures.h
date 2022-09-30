@@ -33,4 +33,7 @@ void bs_depthCubeLin(bs_Tex2D *texture, int dim);
 void bs_textureCube(bs_Tex2D *texture, int dim, char *paths[6]);
 void bs_textureCubeLin(bs_Tex2D *texture, int dim, char *paths[6]);
 
+void bs_textureArray(bs_Tex2D *tex, bs_ivec2 max_dim, int num_textures);
+void bs_textureArrayAppendPNG(char *path);
+
 #endif /* BS_TEXTURES_H */

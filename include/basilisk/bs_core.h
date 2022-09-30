@@ -16,6 +16,7 @@ void bs_pushVertex(
 void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
 void bs_pushTex2DFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
+void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim, bs_RGBA col);
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
 void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);

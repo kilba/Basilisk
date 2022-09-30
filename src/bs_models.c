@@ -210,7 +210,8 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
     cgltf_node *node = &data->nodes[mesh_index];
 
     model->meshes[mesh_index].joint_count = 0;
-    model->meshes[mesh_index].name = c_mesh->name;
+    model->meshes[mesh_index].name = malloc(strlen(c_mesh->name));
+    strcpy(model->meshes[mesh_index].name, c_mesh->name);
 
     memcpy(&model->meshes[mesh_index].pos, node->translation, sizeof(bs_vec3));
     memcpy(&model->meshes[mesh_index].rot, node->rotation, sizeof(bs_vec4));
@@ -344,7 +345,8 @@ void bs_loadModel(char *model_path, char *texture_folder_path, bs_Model *model) 
     model->vertex_count = 0;
     model->index_count = 0;
 
-   printf("%s\n", data->buffers[0].uri);
+    model->name = malloc(path_len);
+    strcpy(model->name, model_path);
 
     // bs_loadModelTextures(data, model);
     bs_loadAnims(data);

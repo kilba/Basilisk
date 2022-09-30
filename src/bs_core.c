@@ -140,7 +140,7 @@ void bs_batchResizeCheck(int index_count, int vertex_count) {
 
     int new_index_count = batch->index_draw_count + BS_BATCH_INCR_BY + index_count;
     int new_vertex_count = batch->vertex_draw_count + BS_BATCH_INCR_BY + vertex_count;
-    //printf("Allocating:\n    index : %d\n    vertex: %d\n", new_index_count, new_vertex_count);
+    printf("Allocating:\n    index : %d\n    vertex: %d\n", new_index_count, new_vertex_count);
 
     bs_batchBufferSize(new_index_count, new_vertex_count);
 }
@@ -203,6 +203,27 @@ void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
     bs_pushVertex(p1, (bs_vec2){ 1.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
     bs_pushVertex(p2, (bs_vec2){ 0.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
     bs_pushVertex(p3, (bs_vec2){ 1.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
+
+    curr_batch->index_draw_count += 6;
+}
+
+void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim, bs_RGBA col) {
+    bs_batchResizeCheck(6, 4);
+
+    dim.x += pos.x;
+    dim.y += pos.y;
+
+    int indices[] = {
+        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
+        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
+    };
+
+    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
+
+    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ 0.0, tex_dim.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex_dim.x, tex_dim.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ 0.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
+    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex_dim.x, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
@@ -343,11 +364,15 @@ void bs_batchBufferSize(int index_count, int vertex_count) {
     batch->allocated_index_count = index_count;
     batch->allocated_vertex_count = vertex_count;
 
+    printf("Crash? %d/4\n", 1);
     batch->vertices = realloc(batch->vertices, vertex_count * batch->attrib_size_bytes);
+    printf("Crash? %d/4\n", 2);
     batch->indices  = realloc(batch->indices , index_count * sizeof(int));
+    printf("Crash? %d/4\n", 3);
 
     glBufferData(GL_ARRAY_BUFFER, vertex_count * batch->attrib_size_bytes, batch->vertices, GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, batch->indices, GL_STATIC_DRAW);
+    printf("Crash? %d/4\n", 4);
 }
 
 void bs_batch(bs_Batch *batch, bs_Shader *shader) {
@@ -360,6 +385,8 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
     batch->attrib_offset = 0;
     batch->attrib_size_bytes = 0;
     batch->shader = shader;
+    batch->vertices = NULL;
+    batch->indices = NULL;
 
     if(batch->shader == NULL)
 	batch->shader = &texture_shader;
@@ -584,7 +611,7 @@ void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
     glEnable(GL_DEPTH_TEST);
 
     // Clear any previous drawing
-   // glClearColor(1.0, 0.0, 1.0, 0.0);
+    glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(framebuffer->clear);
 }
 
@@ -685,7 +712,7 @@ void bs_objPushMesh(bs_Mesh *mesh) {
 
 int bs_objUnderPt(bs_ivec2 pt) {
     bs_fRGBA background = bs_getBackgroundColorF();
-    glClearColor(0.0, 0.5, 0.0, 1.0);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
 
     bs_pushBatch();

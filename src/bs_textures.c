@@ -28,6 +28,7 @@ void bs_texture(bs_Tex2D *texture, bs_ivec2 dim, int type) {
     curr_texture = texture;
     curr_texture->frame.x = 0;
     curr_texture->frame.y = 0;
+    curr_texture->frame.z = 0;
 
     curr_texture->w = dim.x;
     curr_texture->h = dim.y;
@@ -152,6 +153,9 @@ void bs_textureLinRGBA(bs_Tex2D *texture, bs_ivec2 dim) {
 }
 
 void bs_texturePNG(bs_Tex2D *texture, char *path) {
+    if(path == NULL)
+	return;
+
     bs_texture(texture, BS_CIVEC2(0, 0), BS_TEX2D);
     bs_textureMinMag(BS_NEAREST, BS_NEAREST);
     bs_textureDataFile(path, true);
@@ -159,6 +163,9 @@ void bs_texturePNG(bs_Tex2D *texture, char *path) {
 }
 
 void bs_textureLinPNG(bs_Tex2D *texture, char *path) {
+    if(path == NULL)
+	return;
+
     bs_texture(texture, BS_CIVEC2(0, 0), BS_TEX2D);
     bs_textureMinMag(BS_LINEAR, BS_LINEAR);
     bs_textureDataFile(path, true);
@@ -209,4 +216,32 @@ void bs_textureCubeLin(bs_Tex2D *texture, int dim, char *paths[6]) {
 
     bs_textureMinMag(BS_LINEAR, BS_LINEAR);
     bs_textureWrap(BS_TEXTURE_WRAP_STR, BS_CLAMP_TO_EDGE);
+}
+
+void bs_textureArray(bs_Tex2D *tex, bs_ivec2 max_dim, int num_textures) {
+    bs_texture(tex, max_dim, GL_TEXTURE_2D_ARRAY);
+
+    glTexStorage3D(
+	GL_TEXTURE_2D_ARRAY,
+	1,
+	GL_RGBA8,
+	max_dim.x, max_dim.y,
+	num_textures
+    );
+    bs_textureMinMag(BS_NEAREST, BS_NEAREST);
+}
+
+void bs_textureArrayAppendPNG(char *path) {
+    bs_textureDataFile(path, true);
+    glTexSubImage3D(
+	curr_texture->type,
+	0,
+	0, 0, curr_texture->frame.z,
+	curr_texture->w, curr_texture->h, 1,
+	BS_CHANNEL_RGBA,
+	BS_UBYTE,
+	curr_texture->data
+    );
+
+    curr_texture->frame.z++;
 }

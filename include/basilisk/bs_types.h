@@ -104,7 +104,7 @@ typedef struct {
 
 /* --- TEXTURES --- */
 typedef struct {
-    bs_ivec2 frame;
+    bs_ivec3 frame;
 
     int w, h;
     float texw, texh;
