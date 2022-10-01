@@ -218,7 +218,7 @@ void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim, bs_RGBA col) {
         curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
     };
 
-    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
+    memcpy(curr_batch->indices + curr_batch->index_draw_count, indices, 6 * sizeof(int));
 
     bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ 0.0, tex_dim.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
     bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex_dim.x, tex_dim.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
@@ -364,15 +364,11 @@ void bs_batchBufferSize(int index_count, int vertex_count) {
     batch->allocated_index_count = index_count;
     batch->allocated_vertex_count = vertex_count;
 
-    printf("Crash? %d/4\n", 1);
     batch->vertices = realloc(batch->vertices, vertex_count * batch->attrib_size_bytes);
-    printf("Crash? %d/4\n", 2);
     batch->indices  = realloc(batch->indices , index_count * sizeof(int));
-    printf("Crash? %d/4\n", 3);
 
     glBufferData(GL_ARRAY_BUFFER, vertex_count * batch->attrib_size_bytes, batch->vertices, GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, batch->indices, GL_STATIC_DRAW);
-    printf("Crash? %d/4\n", 4);
 }
 
 void bs_batch(bs_Batch *batch, bs_Shader *shader) {
@@ -384,6 +380,8 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
     batch->attrib_count = 0;
     batch->attrib_offset = 0;
     batch->attrib_size_bytes = 0;
+    batch->allocated_vertex_count = 0;
+    batch->allocated_index_count = 0;
     batch->shader = shader;
     batch->vertices = NULL;
     batch->indices = NULL;
