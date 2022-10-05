@@ -5,6 +5,7 @@ project(basilisk)
 add_library(${PROJECT_NAME}
 	src/bs_wnd.c
 	src/bs_mem.c
+	src/bs_ttf.c
 	src/bs_core.c
 	src/bs_math.c
 	src/bs_debug.c

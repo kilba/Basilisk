@@ -1,8 +1,35 @@
-// STD
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+
+uint_least8_t
+bs_memU8(void *data, uint_fast32_t offset) {
+    return *((uint_least8_t*)data + offset);
+}
+
+uint_least16_t
+bs_memU16(void *data, int offset) {
+    const uint8_t *base = data;
+    base += offset;
+
+    uint_least16_t b1 = base[0], b0 = base[1]; 
+    return (uint_least16_t) (b1 << 8 | b0);
+}
+
+uint32_t
+bs_memU32(void *data, uint_fast32_t offset) {
+    const uint8_t *base = data;
+    base += offset;
+
+    uint_least32_t b3 = base[0], b2 = base[1], b1 = base[2], b0 = base[3]; 
+    return (uint_least32_t) (b3 << 24 | b2 << 16 | b1 << 8 | b0);
+}
+
+int bs_memcmpU32(const void *a, const void *b) {
+    return memcmp(a, b, 4);
+}
 
 /* --- STRING FUNCTIONS --- */
 char* 

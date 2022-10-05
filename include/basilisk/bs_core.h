@@ -14,9 +14,8 @@ void bs_pushVertex(
     bs_vec4 attrib_vec4);
 
 void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
-void bs_pushTex2DFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
-void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
-void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim, bs_RGBA col);
+void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col);
+void bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
 void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
@@ -61,7 +60,9 @@ int bs_batchSize();
 bool bs_ptIsOverMesh(bs_ivec2 coord, bs_Mesh *mesh, bs_mat4 model, bs_Camera *cam);
 void bs_objRead(bs_mat4 model, bs_Camera *cam);
 int bs_objUnderPt(bs_ivec2 pt);
+void bs_objEndRead();
 void bs_objPushMesh(bs_Mesh *mesh);
+
 /* --- INITIALIZATION --- */
 void bs_init(int width, int height, char *title);
 void bs_startRender(void (*render)());

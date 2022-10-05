@@ -31,6 +31,7 @@ bs_Shader texture_shader;
 
 bs_Camera def_camera;
 bs_Batch *curr_batch;
+bs_Batch def_batch;
 
 bs_Framebuffer *curr_framebuffer = NULL;
 bs_UniformBuffer global_unifs;
@@ -140,7 +141,7 @@ void bs_batchResizeCheck(int index_count, int vertex_count) {
 
     int new_index_count = batch->index_draw_count + BS_BATCH_INCR_BY + index_count;
     int new_vertex_count = batch->vertex_draw_count + BS_BATCH_INCR_BY + vertex_count;
-    printf("Allocating:\n    index : %d\n    vertex: %d\n", new_index_count, new_vertex_count);
+//    printf("Allocating:\n    index : %d\n    vertex: %d\n", new_index_count, new_vertex_count);
 
     bs_batchBufferSize(new_index_count, new_vertex_count);
 }
@@ -207,7 +208,7 @@ void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
     curr_batch->index_draw_count += 6;
 }
 
-void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim, bs_RGBA col) {
+void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col) {
     bs_batchResizeCheck(6, 4);
 
     dim.x += pos.x;
@@ -220,81 +221,37 @@ void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim, bs_RGBA col) {
 
     memcpy(curr_batch->indices + curr_batch->index_draw_count, indices, 6 * sizeof(int));
 
-    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ 0.0, tex_dim.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex_dim.x, tex_dim.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
-    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ 0.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
-    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex_dim.x, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
+    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim1.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim1.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim0.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
+    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim0.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
 
-void bs_pushTex2DFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
-    bs_batchResizeCheck(6, 4);
-    
-    dim.x += pos.x;
-    dim.y += pos.y;
-
-    int indices[] = {
-        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
-        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
-    };
-
-    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
-
-    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ 0.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ 1.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
-    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ 0.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
-    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ 1.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
-
-    curr_batch->index_draw_count += 6;
-}
-
-void bs_pushTex2D(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
-    bs_batchResizeCheck(6, 4);
+void bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     bs_Tex2D *tex = bs_selectedTexture();
 
-    dim.x += pos.x;
-    dim.y += pos.y;
+    bs_vec2 tex_dim0, tex_dim1;
+    tex_dim0.x = tex->texw * (float)tex->frame.x;
+    tex_dim0.y = tex->texh * (float)tex->frame.y;
+    tex_dim1.x = tex_dim0.x + tex->texw;
+    tex_dim1.y = tex_dim0.y + tex->texh;
 
-    int indices[] = {
-        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
-        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
-    };
-
-    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
-
-    float texx = tex->texw * (float)tex->frame.x;
-    float texy = tex->texh * (float)tex->frame.y;
-    float texw = texx + tex->texw;
-    float texh = texy + tex->texh;
-
-    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ texx, texy }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ texw, texy }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
-    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ texx, texh }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
-    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ texw, texh }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
-
-    curr_batch->index_draw_count += 6;
+    bs_pushRectCoord(pos, dim, tex_dim0, tex_dim1, col);
 }
 
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     bs_batchResizeCheck(6, 4);
-    dim.x += pos.x;
-    dim.y += pos.y;
+    bs_Tex2D *tex = bs_selectedTexture();
 
-    int indices[] = {
-        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
-        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
-    };
+    bs_vec2 tex_dim0, tex_dim1;
+    tex_dim0.x = tex->texw * (float)tex->frame.x;
+    tex_dim1.y = tex->texh * (float)tex->frame.y;
+    tex_dim1.x = tex_dim0.x + tex->texw;
+    tex_dim0.y = tex_dim0.y + tex->texh;
 
-    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
-
-    const float white = 0.9999;
-    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ white, white }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ white, white }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
-    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ white, white }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
-    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ white, white }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
-
-    curr_batch->index_draw_count += 6;
+    bs_pushRectCoord(pos, dim, tex_dim0, tex_dim1, col);
 }
 
 void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
@@ -733,7 +690,12 @@ int bs_objUnderPt(bs_ivec2 pt) {
     selection.count = 1;
 
     glClearColor(background.r, background.g, background.b, background.a);
+    
     return hex-1;
+}
+
+void bs_objEndRead() {
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 void bs_initMeshSelection() {
