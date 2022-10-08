@@ -5,6 +5,8 @@
 #include <stdbool.h>
 
 #include <bs_mem.h>
+#include <bs_core.h>
+#include <bs_shaders.h>
 
 /* --------------------------- TABLE OFFSETS -------------------------- */
 /* HEAD Table Offsets */
@@ -123,9 +125,10 @@ typedef struct {
     void *buf;
 
     struct {
+	uint16_t num_points;
 	struct {
-	    uint16_t x;
-	    uint16_t y;
+	    int16_t x;
+	    int16_t y;
 	} *coords;
     } points[100];
 } bs_glyfInfo;
@@ -226,7 +229,10 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
     /* X COORDINATES */
     int xcoord_offset = GLYF_XCOORDS(flag_offset, num_points);
     int xcoord_size = 0;
-    
+
+    glyf->points[id].coords = malloc(num_points * 2 * sizeof(uint16_t));
+    glyf->points[id].num_points = num_points;
+
     for(int i = 0; i < num_points; i++, flag_offset++) {
 	int flag = bs_memU8(glyf->buf, flag_offset);
 	int16_t xcoord;
@@ -249,11 +255,10 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
 	    }
 	}
 
-	printf("%x | %d\n", flag, xcoord);
+	glyf->points[id].coords[i].x = xcoord;
     }
 
     flag_offset = flag_offset_original;
-    printf("\n");
 
     /* Y COORDINATES */
     int ycoord_offset = GLYF_YCOORDS(flag_offset, num_points, xcoord_size);
@@ -277,7 +282,8 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
 	    }
 	}
 
-	printf("%x | %d\n", flag, ycoord);
+
+	glyf->points[id].coords[i].y = ycoord;
     }
 }
 
@@ -289,7 +295,33 @@ void bs_cmap(bs_cmapInfo *cmap) {
     cmap->num_subtables = bs_memU16(cmap->buf, CMAP_NUMBER_SUBTABLES);
 }
 
+bs_Batch batch00;
+bs_Shader shader00;
+void bs_pushText() {
+    bs_selectBatch(&batch00);
+
+    bs_renderBatch(0, bs_batchSize());
+}
+
 int bs_loadFont(char *path) {
+    char *vs = "#version 430\n" \
+	"layout (location = 0) in vec3 bs_Pos;" \
+
+	"uniform mat4 bs_Proj; uniform mat4 bs_View;" \
+
+	"void main() {" \
+	    "gl_Position = bs_Proj * bs_View * vec4(bs_Pos, 1.0);" \
+	"}";
+
+    char *fs = "#version 430\n" \
+	"out vec4 FragColor;" \
+	"void main() {" \
+	    "FragColor = vec4(1.0);" \
+	"}";
+
+    bs_loadMemShader(vs, fs, 0, &shader00);
+
+
     int err;
     void *buf = bs_readFileToString(path, &ttf.data_len, &err);
     if(err != 0)
@@ -306,17 +338,21 @@ int bs_loadFont(char *path) {
     bs_maxp(&ttf.maxp);
     bs_hhea(&ttf.hhea);
     bs_cmap(&ttf.cmap);
-
+    
     bs_glyf(&ttf.glyf, 36);
 
+
+    bs_batch(&batch00, &shader00);
+    for(int i = 0; i < ttf.glyf.points[36].num_points; i++) {
+	int16_t x = ttf.glyf.points[36].coords[i].x;
+	int16_t y = ttf.glyf.points[36].coords[i].y;
+	printf("%d, ", x);
+	printf("%d\n", y);
+	bs_pushRect((bs_vec3){ (float)x / 10.0 + 650.0, (float)y / 10.0 + 150.0 }, (bs_vec2){ 4.0, 4.0 }, (bs_RGBA){ 255, 0, 0, 255 });
+    }
+
+    bs_pushBatch();
+
     free(buf);
-    return 0;
-}
-
-int main() {
-    int err = bs_loadFont("Arial.ttf");
-    if(err != 0)
-        printf("%d\n", err);
-
     return 0;
 }

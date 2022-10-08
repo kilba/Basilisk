@@ -44,12 +44,12 @@ void bs_textureDataRaw(unsigned char *data) {
     curr_texture->data = data;
 }
 
-void bs_textureDataFile(char *path, bool update_dimensions) {
+bs_U32 bs_textureDataFile(char *path, bool update_dimensions) {
     unsigned int w, h;
-    int success = lodepng_decode32_file(&curr_texture->data, &w, &h, path);
+    bs_U32 err = lodepng_decode32_file(&curr_texture->data, &w, &h, path);
 
-    if(success != 0)
-        return;
+    if(err != 0)
+        return err;
 
     if(update_dimensions) {
         curr_texture->w = w;
@@ -231,8 +231,11 @@ void bs_textureArray(bs_Tex2D *tex, bs_ivec2 max_dim, int num_textures) {
     bs_textureMinMag(BS_NEAREST, BS_NEAREST);
 }
 
-void bs_textureArrayAppendPNG(char *path) {
-    bs_textureDataFile(path, true);
+bs_U32 bs_textureArrayAppendPNG(char *path) {
+    bs_U32 err = bs_textureDataFile(path, true);
+    if(err != 0)
+	return err;
+
     glTexSubImage3D(
 	curr_texture->type,
 	0,

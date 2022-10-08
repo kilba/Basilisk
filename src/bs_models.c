@@ -31,7 +31,7 @@ void bs_readPositionVertices(int accessor_index, bs_Prim *prim, bs_Mesh *mesh, c
 	}
 }
 
-void bs_readNormalVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) {
+void bs_readNormalVertices(int accessor_index, bs_Prim *prim, bs_Mesh *mesh, cgltf_data *data) {
 	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
 	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
@@ -137,7 +137,7 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
 	    case cgltf_attribute_type_position:
 		bs_readPositionVertices(index, prim, mesh, data); break;
 		case cgltf_attribute_type_normal:
-			bs_readNormalVertices(index, prim, data); break;
+			bs_readNormalVertices(index, prim, mesh, data); break;
 		case cgltf_attribute_type_texcoord:
 			bs_readTexCoordVertices(index, prim, data); break;
 		case cgltf_attribute_type_joints:
@@ -354,7 +354,7 @@ void bs_loadModel(char *model_path, char *texture_folder_path, bs_Model *model) 
     for(int i = 0; i < mesh_count; i++) {
 	bs_loadMesh(data, model, i);
     }
-    cgltf_free(data);
+//    cgltf_free(data);
 }
 
 void bs_animate(bs_Mesh *mesh, bs_Anim *anim, int frame) {

@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /* CGLM Alignment */
 #if defined(_MSC_VER)
@@ -80,6 +81,16 @@ typedef bs_vec4 	bs_quat;
 #define BS_CIV2(x, y) BS_CIVEC2(x, y)
 #define BS_CIV3(x, y, z) BS_CIVEC3(x, y, z)
 #define BS_CIV4(x, y, z, w) BS_CIVEC4(x, y, z, w)
+
+typedef int64_t bs_I64, bs_long;
+typedef int32_t bs_I32, bs_int;
+typedef int16_t bs_I16, bs_short;
+typedef int8_t  bs_I8 , bs_byte;
+
+typedef uint64_t bs_U64, bs_ulong;
+typedef uint32_t bs_U32, bs_uint;
+typedef uint16_t bs_U16, bs_ushort;
+typedef uint8_t  bs_U8 , bs_ubyte;
 
 /* --- UNSIGNED INT TYPES --- */
 typedef struct {
@@ -192,6 +203,7 @@ typedef struct {
     int buffer_count;
 
     int clear;
+    int culling;
 } bs_Framebuffer;
 
 // Contains all objects queued to render the next frame (unless using multiple batches)

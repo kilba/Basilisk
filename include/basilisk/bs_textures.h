@@ -6,7 +6,7 @@
 /* --- TEXTURES --- */
 void bs_texture(bs_Tex2D *texture, bs_ivec2 dim, int type);
 void bs_textureDataRaw(unsigned char *data);
-void bs_textureDataFile(char *path, bool update_dimensions);
+bs_U32 bs_textureDataFile(char *path, bool update_dimensions);
 void bs_loadTex2D(bs_Tex2D *tex, char *path);
 void bs_textureSettings(int min_filter, int mag_filter);
 void bs_pushTexture(int internal_format, int format, int type);
@@ -34,6 +34,6 @@ void bs_textureCube(bs_Tex2D *texture, int dim, char *paths[6]);
 void bs_textureCubeLin(bs_Tex2D *texture, int dim, char *paths[6]);
 
 void bs_textureArray(bs_Tex2D *tex, bs_ivec2 max_dim, int num_textures);
-void bs_textureArrayAppendPNG(char *path);
+bs_U32 bs_textureArrayAppendPNG(char *path);
 
 #endif /* BS_TEXTURES_H */

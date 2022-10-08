@@ -32,6 +32,7 @@ bs_Shader texture_shader;
 bs_Camera def_camera;
 bs_Batch *curr_batch;
 bs_Batch def_batch;
+bs_Shader def_shader;
 
 bs_Framebuffer *curr_framebuffer = NULL;
 bs_UniformBuffer global_unifs;
@@ -122,6 +123,16 @@ void bs_persp(bs_mat4 mat, float aspect, float fovy, float nearZ, float farZ) {
 }
 
 /* --- UNBATCHED RENDERING --- */
+void bs_drawTexture(bs_vec3 pos, bs_vec2 dim, bs_Tex2D *tex, bs_RGBA col) {
+    bs_selectTexture(tex, 0);
+    bs_selectBatch(&def_batch);
+    
+    bs_pushRect(pos, dim, col);
+
+    bs_pushBatch();
+    bs_renderBatch(0, bs_batchSize());
+    bs_clearBatch();
+}
 
 /* --- BATCHED RENDERING --- */
 void bs_selectBatch(bs_Batch *batch) {
@@ -208,6 +219,7 @@ void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
     curr_batch->index_draw_count += 6;
 }
 
+bool cw_test = false;
 void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col) {
     bs_batchResizeCheck(6, 4);
 
@@ -215,11 +227,21 @@ void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_di
     dim.y += pos.y;
 
     int indices[] = {
-        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
+        curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+0,
         curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
     };
 
+
+    int indices2[] = {
+        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
+        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+3, curr_batch->vertex_draw_count+2,
+    };
+
+
+
     memcpy(curr_batch->indices + curr_batch->index_draw_count, indices, 6 * sizeof(int));
+    if(cw_test)
+	memcpy(curr_batch->indices + curr_batch->index_draw_count, indices2, 6 * sizeof(int));
 
     bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim1.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
     bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim1.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
@@ -279,18 +301,9 @@ void bs_pushPrim(bs_Prim *prim) {
     }
 
     for(int i = 0; i < prim->vertex_count; i++) {
-        const float white = 0.9999;
-        bs_vec2 tex_coord = { white, white };
-
-        if(prim->material.tex != NULL) {
-            // TODO: These values are constant, unnecessary to set them every frame
-            tex_coord.x = prim->vertices[i].tex_coord.x;/* + prim->material.tex->tex_x;*/
-            tex_coord.y = prim->vertices[i].tex_coord.y;/* + prim->material.tex->tex_y;*/
-        }
-
         bs_pushVertex(
             prim->vertices[i].position, 
-            tex_coord, 
+            prim->vertices[i].tex_coord, 
             prim->vertices[i].normal, 
             prim->material.col, 
             prim->vertices[i].bone_ids, 
@@ -479,9 +492,14 @@ void bs_framebuffer(bs_Framebuffer *framebuffer, bs_ivec2 dim) {
     framebuffer->render_width  = dim.x;
     framebuffer->render_height = dim.y;
     framebuffer->clear = GL_DEPTH_BUFFER_BIT;
+    framebuffer->culling = BS_DIR_BACK;
 
     glGenFramebuffers(1, &framebuffer->FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
+}
+
+void bs_framebufferCulling(int setting) {
+    curr_framebuffer->culling = setting;
 }
 
 void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment) {
@@ -530,6 +548,8 @@ void bs_attachDepthBuffer(bs_Tex2D *tex) {
         return;
     #endif
 
+
+    framebuffer->clear |= GL_DEPTH_BUFFER_BIT;
     if(tex->type == BS_CUBEMAP) {
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tex->id, 0);
 	return;
@@ -563,8 +583,6 @@ void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
     glViewport(0, 0, framebuffer->render_width, framebuffer->render_height);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
 
-    glEnable(GL_DEPTH_TEST);
-
     // Clear any previous drawing
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(framebuffer->clear);
@@ -572,12 +590,10 @@ void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
 
 void bs_endFramebufferRender() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glDisable(GL_DEPTH_TEST);
-
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     bs_ivec2 res = bs_resolution();
     glViewport(0, 0, res.x, res.y);
+
 }
 
 unsigned char *bs_framebufferData(int x, int y, int w, int h) {
@@ -639,13 +655,14 @@ struct {
 
     bs_Batch batch;
     bs_Shader shader;
+    bs_Framebuffer fbo;
+    bs_Tex2D buf;
 } selection;
 
 void bs_objRead(bs_mat4 model, bs_Camera *cam) {
+    bs_startFramebufferRender(&selection.fbo);
     selection.batch.camera = cam;
 
-    glDrawBuffer(GL_BACK);
-    glReadBuffer(GL_BACK);
     bs_selectBatch(&selection.batch);
 
     bs_uniform_mat4(selection.model_loc, model);
@@ -694,12 +711,19 @@ int bs_objUnderPt(bs_ivec2 pt) {
     return hex-1;
 }
 
-void bs_objEndRead() {
-    glClear(GL_COLOR_BUFFER_BIT);
+bs_Tex2D *bs_objEndRead() {
+    bs_endFramebufferRender();
+    return &selection.buf;
 }
 
 void bs_initMeshSelection() {
     bs_ivec2 res = bs_resolution();
+
+    bs_textureRGBA(&selection.buf, res);
+
+    bs_framebuffer(&selection.fbo, res);
+    bs_attachColorbuffer(&selection.buf, 0);
+    bs_attachRenderbuffer();
 
     bs_loadMemShader(vs_selection, fs_selection, 0, &selection.shader);
     selection.model_loc = bs_uniformLoc(selection.shader.id, "model");
@@ -723,11 +747,43 @@ void bs_init(int width, int height, char *title) {
     // Load default shaders
     bs_loadShader("resources/bs_texture_shader.vs", "resources/bs_texture_shader.fs", 0, &texture_shader);
     bs_initMeshSelection();
+
+    char *def_vs = "#version 430\n"\
+	"layout (location = 0) in vec3 bs_Pos;"\
+	"layout (location = 1) in vec2 bs_TexCoord;"\
+	
+	"uniform mat4 bs_Proj; uniform mat4 bs_View;"\
+	"out vec2 ftex;"\
+
+	"void main() {"\
+	    "ftex = bs_TexCoord;"\
+	    "gl_Position = bs_Proj * bs_View * vec4(bs_Pos, 1.0);"\
+	"}";
+
+    char *def_fs = "#version 430\n"\
+	"in vec2 ftex;"\
+	"out vec4 FragColor;"\
+
+	"uniform sampler2D bs_Texture0;"\
+
+	"void main() {"\
+	    "FragColor = texture(bs_Texture0, ftex);"\
+	"}";
+
+
+    bs_loadMemShader(def_vs, def_fs, 0, &def_shader);
+    bs_batch(&def_batch, &def_shader);
 }
 
 void bs_startRender(void (*render)()) {
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+    cw_test = true;
+
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     srand(time(0));

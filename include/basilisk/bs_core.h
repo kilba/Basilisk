@@ -4,6 +4,8 @@
 #include <bs_types.h>
 
 /* --- RENDERING --- */
+void bs_drawTexture(bs_vec3 pos, bs_vec2 dim, bs_Tex2D *tex, bs_RGBA col);
+
 void bs_pushVertex(
     bs_vec3 pos,
     bs_vec2 tex_coord,
@@ -25,6 +27,7 @@ void bs_pushModel(bs_Model *model);
 
 /* --- FRAMEBUFFERS --- */
 void bs_framebuffer(bs_Framebuffer *framebuffer, bs_ivec2 dim);
+void bs_framebufferCulling(int setting);
 void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment);
 void bs_attachRenderbuffer();
 void bs_attachDepthBuffer(bs_Tex2D *tex);
@@ -60,7 +63,7 @@ int bs_batchSize();
 bool bs_ptIsOverMesh(bs_ivec2 coord, bs_Mesh *mesh, bs_mat4 model, bs_Camera *cam);
 void bs_objRead(bs_mat4 model, bs_Camera *cam);
 int bs_objUnderPt(bs_ivec2 pt);
-void bs_objEndRead();
+bs_Tex2D *bs_objEndRead();
 void bs_objPushMesh(bs_Mesh *mesh);
 
 /* --- INITIALIZATION --- */
@@ -98,6 +101,16 @@ void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up);
 #define BS_TEX1D 0x0DE0
 #define BS_TEX2D 0x0DE1
 #define BS_CUBEMAP 0x8513
+
+/* FACES */
+#define BS_DIR_FRONT_RIGHT 0x0401
+#define BS_DIR_BACK_LEFT 0x0402
+#define BS_DIR_BACK_RIGHT 0x0403
+#define BS_DIR_FRONT 0x0404
+#define BS_DIR_BACK 0x0405
+#define BS_DIR_LEFT 0x0406
+#define BS_DIR_RIGHT 0x0407
+#define BS_DIR_FRONT_AND_BACK 0x0408
 
 /* BATCH ATTRIBUTE TYPES  */
 #define BS_POSITION 1
