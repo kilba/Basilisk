@@ -219,7 +219,6 @@ void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
     curr_batch->index_draw_count += 6;
 }
 
-bool cw_test = false;
 void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col) {
     bs_batchResizeCheck(6, 4);
 
@@ -227,21 +226,11 @@ void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_di
     dim.y += pos.y;
 
     int indices[] = {
-        curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+0,
-        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
-    };
-
-
-    int indices2[] = {
         curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
-        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+3, curr_batch->vertex_draw_count+2,
+        curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+3,
     };
-
-
 
     memcpy(curr_batch->indices + curr_batch->index_draw_count, indices, 6 * sizeof(int));
-    if(cw_test)
-	memcpy(curr_batch->indices + curr_batch->index_draw_count, indices2, 6 * sizeof(int));
 
     bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim1.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
     bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim1.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
@@ -782,7 +771,6 @@ void bs_startRender(void (*render)()) {
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
-    cw_test = true;
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
