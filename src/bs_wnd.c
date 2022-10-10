@@ -62,9 +62,8 @@ void bs_initWnd(int width, int height, char *title) {
         return;
     }
 
-    // Step 2: Creating the Window
     hwnd = CreateWindowEx(
-        WS_EX_CLIENTEDGE,
+        WS_EX_WINDOWEDGE,
         g_szClassName,
         title,
         WS_OVERLAPPEDWINDOW,
@@ -79,8 +78,7 @@ void bs_initWnd(int width, int height, char *title) {
         return;
     }
 
-    PIXELFORMATDESCRIPTOR pfd =
-    {
+    PIXELFORMATDESCRIPTOR pfd = {
         sizeof(PIXELFORMATDESCRIPTOR),
         1,
         PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    // Flags

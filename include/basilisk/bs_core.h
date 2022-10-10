@@ -112,6 +112,9 @@ void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up);
 #define BS_DIR_RIGHT 0x0407
 #define BS_DIR_FRONT_AND_BACK 0x0408
 
+#define BS_CW  0x0900
+#define BS_CCW 0x0901
+
 /* BATCH ATTRIBUTE TYPES  */
 #define BS_POSITION 1
 #define BS_TEX_COORD 2

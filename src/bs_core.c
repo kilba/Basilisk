@@ -37,6 +37,9 @@ bs_Shader def_shader;
 bs_Framebuffer *curr_framebuffer = NULL;
 bs_UniformBuffer global_unifs;
 
+int culling = BS_DIR_BACK;
+int winding = BS_CCW;
+
 // TODO: Extract to bs_debug.c
 void bs_printHardwareInfo() {
     const GLubyte* vendor = glGetString(GL_VENDOR);
@@ -447,10 +450,6 @@ void bs_freeBatchData() {
     curr_batch->indices = NULL;
 }
 
-void bs_renderQuad() {
-
-}
-
 void bs_renderBatch(int start_index, int draw_count) {
     bs_switchShader(curr_batch->shader->id);
 
@@ -481,7 +480,8 @@ void bs_framebuffer(bs_Framebuffer *framebuffer, bs_ivec2 dim) {
     framebuffer->render_width  = dim.x;
     framebuffer->render_height = dim.y;
     framebuffer->clear = GL_DEPTH_BUFFER_BIT;
-    framebuffer->culling = BS_DIR_BACK;
+
+    bs_framebufferCulling(culling);
 
     glGenFramebuffers(1, &framebuffer->FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
@@ -569,6 +569,8 @@ void bs_noReadBuf() {
 }
 
 void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
+	glCullFace(framebuffer->culling);
+
     glViewport(0, 0, framebuffer->render_width, framebuffer->render_height);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
 
@@ -583,6 +585,8 @@ void bs_endFramebufferRender() {
     bs_ivec2 res = bs_resolution();
     glViewport(0, 0, res.x, res.y);
 
+    // TODO: Resetting culling after every framebuffer is uneccesary, put after main render loop
+	glCullFace(culling);
 }
 
 unsigned char *bs_framebufferData(int x, int y, int w, int h) {
@@ -769,8 +773,8 @@ void bs_startRender(void (*render)()) {
     glEnable(GL_DEPTH_TEST);
 
     glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
+    glCullFace(culling);
+    glFrontFace(winding);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 

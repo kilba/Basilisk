@@ -111,8 +111,6 @@ typedef struct {
 	unsigned int w;
 } bs_uivec4;
 
-
-
 /* --- TEXTURES --- */
 typedef struct {
     bs_ivec3 frame;
