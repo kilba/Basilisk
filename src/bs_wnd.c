@@ -222,7 +222,7 @@ void bs_wndTick(void (*render)()) {
         bs_checkGLError();
         SwapBuffers(dc);
 
-        pass:
+        pass: continue;
     }
 }
 

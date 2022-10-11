@@ -343,8 +343,28 @@ void bs_uniform_int(int loc, int val) {
 // VECTORS
 // TODO: bvecn, ivecn, uvecn, vecn, dvecn
 
+void bs_uniform_vec2(int loc, bs_vec2 vec) {
+    glUniform2f(loc, vec.x, vec.y);
+}
+
+void bs_uniform_ivec2(int loc, bs_ivec2 vec) {
+    glUniform2i(loc, vec.x, vec.y);
+}
+
 void bs_uniform_vec3(int loc, bs_vec3 vec) {
     glUniform3f(loc, vec.x, vec.y, vec.z);
+}
+
+void bs_uniform_ivec3(int loc, bs_ivec3 vec) {
+    glUniform3i(loc, vec.x, vec.y, vec.z);
+}
+
+void bs_uniform_vec4(int loc, bs_vec4 vec) {
+    glUniform4f(loc, vec.x, vec.y, vec.z, vec.w);
+}
+
+void bs_uniform_ivec4(int loc, bs_ivec4 vec) {
+    glUniform4i(loc, vec.x, vec.y, vec.z, vec.w);
 }
 
 // TODO: Arrays

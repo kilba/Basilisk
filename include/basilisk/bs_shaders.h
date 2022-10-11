@@ -27,7 +27,15 @@ void bs_setUniformBlockData(bs_UniformBuffer buf, void *block);
 void bs_uniform_mat4(int loc, float mat[4][4]);
 void bs_uniform_float(int loc, float val);
 void bs_uniform_int(int loc, int val);
+
+void bs_uniform_vec2(int loc, bs_vec2 vec);
+void bs_uniform_ivec2(int loc, bs_ivec2 vec);
+
 void bs_uniform_vec3(int loc, bs_vec3 vec);
+void bs_uniform_ivec3(int loc, bs_ivec3 vec);
+
+void bs_uniform_vec4(int loc, bs_vec4 vec);
+void bs_uniform_ivec4(int loc, bs_ivec4 vec);
 
 void bs_setMemBarrier(int barrier);
 void bs_dispatchComputeShader(int x, int y, int z);
