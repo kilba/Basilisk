@@ -55,7 +55,7 @@ void bs_initWnd(int width, int height, char *title) {
     wc.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
 
     if(!RegisterClassEx(&wc)) {
-        MessageBox(NULL, "Window Registration Failed11!", "Error!",
+        MessageBox(NULL, "Window Registration Failed!", "Error!",
             MB_ICONEXCLAMATION | MB_OK);
 
         printf("%d\n", GetLastError());
@@ -193,9 +193,6 @@ void bs_wndTick(void (*render)()) {
     start = (double)GetTickCount64() / 1000.0;
 
     while(GetMessage(&msg, NULL, 0, 0)) {
-        glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         TranslateMessage(&msg);
         DispatchMessage(&msg);
 
@@ -205,6 +202,7 @@ void bs_wndTick(void (*render)()) {
                 return;
             case WM_TIMER:
                 break;
+
             /* Skip scene update on non-timed events */
             default:
                 goto pass;
@@ -217,8 +215,13 @@ void bs_wndTick(void (*render)()) {
 
         delta_time = elapsed - prev;
 
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         bs_setGlobalVars();
         render();
+
         bs_checkGLError();
         SwapBuffers(dc);
 

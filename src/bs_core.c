@@ -438,7 +438,6 @@ void bs_bufferRange(int target, int bind_point, int buffer, int offset, int size
 
 // Pushes all vertices to VRAM
 void bs_pushBatch() {
-
     glBufferSubData(GL_ARRAY_BUFFER, 0, curr_batch->vertex_draw_count * curr_batch->attrib_size_bytes, curr_batch->vertices);
     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, curr_batch->index_draw_count * sizeof(int), curr_batch->indices);
 }
@@ -569,7 +568,8 @@ void bs_noReadBuf() {
 }
 
 void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
-	glCullFace(framebuffer->culling);
+    glEnable(GL_DEPTH_TEST);
+    glCullFace(framebuffer->culling);
 
     glViewport(0, 0, framebuffer->render_width, framebuffer->render_height);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
@@ -580,13 +580,14 @@ void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
 }
 
 void bs_endFramebufferRender() {
+    glDisable(GL_DEPTH_TEST);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     bs_ivec2 res = bs_resolution();
     glViewport(0, 0, res.x, res.y);
 
     // TODO: Resetting culling after every framebuffer is uneccesary, put after main render loop
-	glCullFace(culling);
+    glCullFace(culling);
 }
 
 unsigned char *bs_framebufferData(int x, int y, int w, int h) {
@@ -740,7 +741,6 @@ void bs_init(int width, int height, char *title) {
     // Load default shaders
     bs_loadShader("resources/bs_texture_shader.vs", "resources/bs_texture_shader.fs", 0, &texture_shader);
     bs_initMeshSelection();
-
     char *def_vs = "#version 430\n"\
 	"layout (location = 0) in vec3 bs_Pos;"\
 	"layout (location = 1) in vec2 bs_TexCoord;"\
