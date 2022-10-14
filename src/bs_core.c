@@ -38,7 +38,6 @@ bs_Framebuffer *curr_framebuffer = NULL;
 bs_UniformBuffer global_unifs;
 
 int culling = BS_DIR_BACK;
-int winding = BS_CCW;
 
 // TODO: Extract to bs_debug.c
 void bs_printHardwareInfo() {
@@ -774,7 +773,7 @@ void bs_startRender(void (*render)()) {
 
     glEnable(GL_CULL_FACE);
     glCullFace(culling);
-    glFrontFace(winding);
+    glFrontFace(BS_CCW);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
