@@ -66,6 +66,9 @@ int bs_objUnderPt(bs_ivec2 pt);
 bs_Tex2D *bs_objEndRead();
 void bs_objPushMesh(bs_Mesh *mesh);
 
+// This is deprecated!
+int bs_checkError();
+
 /* --- INITIALIZATION --- */
 void bs_init(int width, int height, char *title);
 void bs_startRender(void (*render)());

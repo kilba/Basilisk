@@ -131,7 +131,19 @@ typedef enum {
     UNIFORM_VIEW,
 
     BS_UNIFORM_TYPE_COUNT,
-} bs_STDUniforms;
+} BS_UNIFORM_TYPES;
+
+typedef enum {
+    BS_POS,
+    BS_TEX,
+    BS_COL,
+    BS_NOR,
+    BS_BID,
+    BS_WEI,
+    BS_V4_,
+
+    BS_MAX_ATTRIB_COUNT
+} Bs_ATTRIB_TYPES;
 
 // TODO: Remove this shit
 typedef struct {
@@ -147,6 +159,7 @@ typedef struct {
 typedef struct {
     bs_Uniform uniforms[BS_UNIFORM_TYPE_COUNT];
     int attribs;
+    uint8_t attrib_sizes[BS_MAX_ATTRIB_COUNT];
     int attrib_count;
 
     // OpenGL Variables

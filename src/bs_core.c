@@ -104,6 +104,11 @@ void bs_printHardwareInfo() {
     }
 #endif
 
+int bs_checkError() {
+    GLenum err = glGetError();
+    return err; 
+}
+
 /* --- MATRICES --- */
 void bs_ortho(bs_mat4 mat, int left, int right, int bottom, int top, float nearZ, float farZ) {
     glm_ortho(left, right, bottom, top, nearZ, farZ, mat);
@@ -169,36 +174,29 @@ void bs_pushVertex(
     bs_vec4  attrib_vec4) {
     bs_Batch *batch = curr_batch;
 
-    unsigned char *data_ptr = (unsigned char *)batch->vertices + batch->vertex_draw_count * batch->attrib_size_bytes;
+    uint8_t *data_ptr = (uint8_t *)batch->vertices + batch->vertex_draw_count * batch->attrib_size_bytes;
 
-    bool has_position  = ((batch->shader->attribs & BS_POSITION)  == BS_POSITION);
-    bool has_tex_coord = ((batch->shader->attribs & BS_TEX_COORD) == BS_TEX_COORD);
-    bool has_normal    = ((batch->shader->attribs & BS_NORMAL)    == BS_NORMAL);
-    bool has_color     = ((batch->shader->attribs & BS_COLOR)     == BS_COLOR);
-    bool has_bone_ids  = ((batch->shader->attribs & BS_BONE_IDS)  == BS_BONE_IDS);
-    bool has_weights   = ((batch->shader->attribs & BS_WEIGHTS)   == BS_WEIGHTS);
-    bool has_attr_vec4 = ((batch->shader->attribs & BS_ATTR_VEC4) == BS_ATTR_VEC4);
+    uint8_t *sizes = batch->shader->attrib_sizes;
+    memcpy(data_ptr, &pos, sizes[0]);
+    data_ptr += sizes[0];
 
-    memcpy(data_ptr, &pos, sizeof(bs_vec3) * has_position);
-    data_ptr += sizeof(bs_vec3) * has_position;
+    memcpy(data_ptr, &tex_coord, sizes[1]);
+    data_ptr += sizes[1];
 
-    memcpy(data_ptr, &tex_coord, sizeof(bs_vec2) * has_tex_coord);
-    data_ptr += sizeof(bs_vec2) * has_tex_coord;
+    memcpy(data_ptr, &color, sizes[2]);
+    data_ptr += sizes[2];
 
-    memcpy(data_ptr, &color, sizeof(bs_RGBA) * has_color);
-    data_ptr += sizeof(bs_RGBA) * has_color;
+    memcpy(data_ptr, &normal, sizes[3]);
+    data_ptr += sizes[3];
 
-    memcpy(data_ptr, &normal, sizeof(bs_vec3) * has_normal); 
-    data_ptr += sizeof(bs_vec3) * has_normal;
+    memcpy(data_ptr, &bone_ids, sizes[4]);
+    data_ptr += sizes[4];
 
-    memcpy(data_ptr, &bone_ids, sizeof(bs_ivec4) * has_bone_ids); 
-    data_ptr += sizeof(bs_ivec4) * has_bone_ids;
+    memcpy(data_ptr, &weights, sizes[5]); 
+    data_ptr += sizes[5];
 
-    memcpy(data_ptr, &weights, sizeof(bs_vec4) * has_weights); 
-    data_ptr += sizeof(bs_vec4) * has_weights;
-
-    memcpy(data_ptr, &attrib_vec4, sizeof(bs_vec4) * has_attr_vec4); 
-    data_ptr += sizeof(bs_vec4) * has_attr_vec4;
+    memcpy(data_ptr, &attrib_vec4, sizes[6]);
+    data_ptr += sizes[6];
 
     curr_batch->vertex_draw_count++;
 } 

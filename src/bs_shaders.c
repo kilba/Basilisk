@@ -96,50 +96,49 @@ void bs_setDefShaderUniforms(bs_Shader *shader, char *shader_code){
 
 void bs_setDefShaderAttribs(bs_Shader *shader, char *vs_code) {
     const char *def_attribs [] = { 
-        "bs_Pos", 
-        "bs_TexCoord", 
-        "bs_Color", 
-        "bs_Normal",
-        "bs_Bone_Ids",
-        "bs_Weights",
-        "bs_Attr_Vec4"
+	"bs_Pos", 
+	"bs_TexCoord", 
+	"bs_Color", 
+	"bs_Normal",
+	"bs_Bone_Ids",
+	"bs_Weights",
+	"bs_Attr_Vec4"
     };
 
     int values[] = { 
-        BS_POSITION,
-        BS_TEX_COORD,
-        BS_COLOR,
-        BS_NORMAL,
-        BS_BONE_IDS,
-        BS_WEIGHTS,
-        BS_ATTR_VEC4,
+	BS_POSITION,
+	BS_TEX_COORD,
+	BS_COLOR,
+	BS_NORMAL,
+	BS_BONE_IDS,
+	BS_WEIGHTS,
+	BS_ATTR_VEC4,
     };
 
-   const char s[2] = "";
-   char *token;
-   
-   /* get the first token */
-   token = strtok(vs_code, s);
-   
-   /* walk through other tokens */
-   while( token != NULL ) {
-      token = strtok(NULL, s);
-   }
+    uint8_t sizes[] = {
+	sizeof(bs_vec3),  /* BS_POS */
+	sizeof(bs_vec2),  /* BS_TEX */
+	sizeof(bs_RGBA),  /* BS_COL */
+	sizeof(bs_vec3),  /* BS_NOR */
+	sizeof(bs_ivec4), /* BS_BID */
+	sizeof(bs_vec4),  /* BS_WEI */
+	sizeof(bs_vec4)   /* BS_V4_ */
+    };
 
-    int attrib_count = sizeof(def_attribs) / sizeof(char*);
-    for(int i = 0; i < attrib_count; i++) {
-        if(strstr(vs_code, def_attribs[i])) {
-            shader->attribs |= values[i];
-            shader->attrib_count++;
-        }
+    for(int i = 0; i < BS_MAX_ATTRIB_COUNT; i++) {
+	shader->attrib_sizes[i] = 0;
+	if(strstr(vs_code, def_attribs[i])) {
+	    shader->attrib_sizes[i] = sizes[i];
+	    shader->attribs |= values[i];
+	    shader->attrib_count++;
+	}
     }
 }
 
 void bs_shaderErrorCheck(GLuint *shader, int shadertype) {
     GLint isCompiled = 0;
     glGetShaderiv(*shader, GL_COMPILE_STATUS, &isCompiled);
-    if(isCompiled == GL_FALSE)
-    {
+    if(isCompiled == GL_FALSE) {
         GLint maxLength = 0;
         glGetShaderiv(*shader, GL_INFO_LOG_LENGTH, &maxLength);
 
