@@ -13,10 +13,19 @@
 #include <bs_textures.h>
 
 bs_Joint identity_joint = { GLM_MAT4_IDENTITY_INIT };
+
+typedef struct {
+    int frame;
+    bs_mat4 joints[];
+} SSBO_Data;
+
 bs_Anim *anims = NULL;
-int anim_count;
+int anim_count = 0;
+int allocated_anims = 0;
 
 int64_t curr_tex_ptr = 0;
+bs_I32 anim_ssbo = -1;
+bs_U32 anim_offset = 0;
 int attrib_offset = 0;
 
 /* --- VERTEX LOADING --- */
@@ -270,58 +279,86 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 	// }
 }
 
-void bs_loadAnim(cgltf_data* data, int index) {
-	cgltf_animation *c_anim = &data->animations[index];
-	bs_Anim *anim = &anims[index];
+void bs_loadAnim(cgltf_data* data, int index, bs_Model *model) {
+    cgltf_animation *c_anim = &data->animations[index];
+    bs_Anim *anim = &anims[index];
 
-	int joint_count = c_anim->samplers_count / 3;
-	int frame_count = cgltf_accessor_unpack_floats(c_anim->samplers[0].input, NULL, 0);
+    int joint_count = c_anim->samplers_count / 3;
+    int frame_count = cgltf_accessor_unpack_floats(c_anim->samplers[0].input, NULL, 0);
 
-	anim->joints = malloc(joint_count * frame_count * sizeof(bs_Joint));
-	anim->joint_count = joint_count;
+    bs_mat4 *joints = malloc(joint_count * frame_count * sizeof(bs_mat4));
+    anim->joint_count = joint_count;
+    anim->frame_count = frame_count;
+    anim->frame_offset_shader = anim_offset;
+    anim_offset += frame_count * joint_count * sizeof(bs_mat4);
 
-	int i, i3 = 0; 
-	for(i = 0; i < joint_count; i++, i3+=3) {
-		cgltf_animation_sampler *c_sampler = &c_anim->samplers[i3];
-		cgltf_animation_channel *c_channel = &c_anim->channels[i3];
+    int i, i3 = 0; 
+    for(i = 0; i < joint_count; i++, i3+=3) {
+	cgltf_animation_sampler *c_sampler = &c_anim->samplers[i3];
+	cgltf_animation_channel *c_channel = &c_anim->channels[i3];
 
-		// Input accessor contains timings for every frame in current joint
-		// Output contains translation, rotation and scale for every frame in current joint
-		cgltf_accessor *input = c_sampler->input;
-		cgltf_accessor *translation_output = c_sampler->output + 0;
-		cgltf_accessor *rotation_output    = c_sampler->output + 1;
-		cgltf_accessor *scale_output       = c_sampler->output + 2;
+	// Input accessor contains timings for every frame in current joint
+	// Output contains translation, rotation and scale for every frame in current joint
+	cgltf_accessor *input = c_sampler->input;
+	cgltf_accessor *translation_output = c_sampler->output + 0;
+	cgltf_accessor *rotation_output    = c_sampler->output + 1;
+	cgltf_accessor *scale_output       = c_sampler->output + 2; 
 
-		for(int j = 0; j < frame_count; j++) {
-			int index = i + (j * joint_count);
-			bs_Joint *joint = &anim->joints[index];
+	for(int j = 0; j < frame_count; j++) {
+	    int index = i + (j * joint_count);
+	    bs_mat4 *joint = &joints[index];
 
-			bs_mat4 joint_mat = GLM_MAT4_IDENTITY_INIT;
-			vec3   tra;
-			versor rot;
-			vec3   sca;
+	    bs_mat4 joint_mat = GLM_MAT4_IDENTITY_INIT;
+	    vec3   tra;
+	    versor rot;
+	    vec3   sca;
 
-			cgltf_accessor_read_float(translation_output, j, (float*)&tra, 3);
-			cgltf_accessor_read_float(rotation_output   , j, (float*)&rot, 4);
-			cgltf_accessor_read_float(scale_output      , j, (float*)&sca, 3);
+	    cgltf_accessor_read_float(translation_output, j, (float*)&tra, 3);
+	    cgltf_accessor_read_float(rotation_output   , j, (float*)&rot, 4);
+	    cgltf_accessor_read_float(scale_output      , j, (float*)&sca, 3);
 
-			glm_translate(joint_mat, tra);
-			glm_quat_rotate(joint_mat, rot, joint_mat);
-			glm_scale(joint_mat, sca);
+	    glm_translate(joint_mat, tra);
+	    glm_quat_rotate(joint_mat, rot, joint_mat);
+	    glm_scale(joint_mat, sca);
 
-			memcpy(joint->mat, joint_mat, sizeof(bs_mat4));
-		}
+	    memcpy(joint, joint_mat, sizeof(bs_mat4));
 	}
+    }
+    
+    int ssbo_size = frame_count * joint_count * sizeof(bs_mat4);
+    anim->matrices = malloc(ssbo_size);
+
+    bs_Mesh *mesh = model->meshes;
+    for(int i = 0; i < frame_count; i++) {
+	for(int j = 0; j < joint_count; j++) {
+	    bs_Joint *change_joint = &mesh->joints[j];
+	    bs_Joint *parent = mesh->joints[j].parent;
+	    int index = j + i * joint_count;
+
+	    glm_mat4_mul(change_joint->bind_matrix, change_joint->local_inv, change_joint->mat);
+	    glm_mat4_mul(change_joint->mat, joints[index], change_joint->mat);
+	    glm_mat4_mul(change_joint->mat, change_joint->bind_matrix_inv, change_joint->mat);
+	    glm_mat4_mul(parent->mat, change_joint->mat, change_joint->mat);
+
+	    memcpy(anim->matrices + index, change_joint->mat, sizeof(bs_mat4));
+	}
+    }
+
+    free(joints);
 }
 
-void bs_loadAnims(cgltf_data* data) {
-	anim_count = data->animations_count;
-	if(anim_count == 0)
-		return;
+void bs_loadAnims(cgltf_data* data, bs_Model *model) {
+    anim_count += data->animations_count;
+    if(data->animations_count == 0)
+	return;
 
-	anims = malloc(anim_count * sizeof(bs_Anim));
+    if(anim_count > allocated_anims) {
+	allocated_anims = anim_count + 4;
+	anims = realloc(anims, allocated_anims * sizeof(bs_Anim));
+    }
 
-	bs_loadAnim(data, 0);
+    for(int i = 0; i < data->animations_count; i++)
+	bs_loadAnim(data, i, model);
 }
 
 void bs_loadModel(char *model_path, char *texture_folder_path, bs_Model *model) {
@@ -349,30 +386,31 @@ void bs_loadModel(char *model_path, char *texture_folder_path, bs_Model *model) 
     strcpy(model->name, model_path);
 
     // bs_loadModelTextures(data, model);
-    bs_loadAnims(data);
-
     for(int i = 0; i < mesh_count; i++) {
 	bs_loadMesh(data, model, i);
     }
-//    cgltf_free(data);
+    bs_loadAnims(data, model);
 }
 
-void bs_animate(bs_Mesh *mesh, bs_Anim *anim, int frame) {
-    for(int i = 0; i < anim->joint_count; i++) {
-	bs_Joint *change_joint = &mesh->joints[i];
-	bs_Joint *parent = mesh->joints[i].parent;
+void bs_animate(bs_Anim *anim, int frame) {
+    frame %= anim->frame_count;
+    frame *= 29;
+    frame += anim->frame_offset_shader;
 
-	memcpy(change_joint->mat, change_joint->bind_matrix, sizeof(bs_mat4));
+    bs_selectSSBO(anim_ssbo);
+    bs_pushSSBO(&frame, 0, 4);
+}
 
-	glm_mat4_mul(change_joint->mat, change_joint->local_inv, change_joint->mat);
-	glm_mat4_mul(change_joint->mat, anim->joints[i + frame * anim->joint_count].mat, change_joint->mat);
-	glm_mat4_mul(change_joint->mat, change_joint->bind_matrix_inv, change_joint->mat);
-	glm_mat4_mul(parent->mat, change_joint->mat, change_joint->mat);
-	
-	bs_uniform_mat4(change_joint->loc, change_joint->mat);
+void bs_pushAnims() {
+    int ssbo_size = anim_offset;
+    anim_ssbo = bs_SSBO(NULL, ssbo_size + 16, 3);
+    for(int i = 0; i < anim_count; i++) {
+	bs_Anim *anim = anims + i;
+	bs_pushSSBO(anim->matrices, 16 + anim->frame_offset_shader, ssbo_size);
+	free(anim->matrices);
     }
 }
 
 bs_Anim *bs_getAnims() {
-	return anims;
+    return anims;
 }

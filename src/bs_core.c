@@ -723,6 +723,7 @@ void bs_initMeshSelection() {
     bs_batch(&selection.batch, &selection.shader);
 }
 
+void bs_modelInit();
 void bs_init(int width, int height, char *title) {
     bs_initWnd(width, height, title);
     // bs_printHardwareInfo();

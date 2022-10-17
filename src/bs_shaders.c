@@ -17,6 +17,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+bs_U32 curr_ssbo = 0;
+
 typedef struct ReplaceBuf ReplaceBuf;
 struct ReplaceBuf {
     char *old_str;
@@ -309,6 +311,28 @@ void bs_setUniformBlockDataRange(bs_UniformBuffer buf, void *block, int start, i
 
 void bs_setUniformBlockData(bs_UniformBuffer buf, void *block) {
     bs_setUniformBlockDataRange(buf, block, 0, buf.block_size);
+}
+
+/* --- SSBO --- */
+bs_U32 bs_SSBO(void *data, int size, int bind_point) {
+    bs_U32 ssbo;
+
+    glGenBuffers(1, &ssbo);
+    bs_selectSSBO(ssbo);
+
+    glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bind_point, ssbo);
+
+    return ssbo;
+}
+
+void bs_selectSSBO(bs_U32 ssbo_id) {
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_id);
+    curr_ssbo = ssbo_id;
+}
+
+void bs_pushSSBO(void *data, int offset, int size) {
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, size, data);
 }
 
 int bs_uniformLoc(int id, char *name) {

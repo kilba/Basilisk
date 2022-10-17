@@ -152,11 +152,6 @@ typedef struct {
 } bs_Uniform;
 
 typedef struct {
-    int type;
-    int loc;
-} bs_Attrib;
-
-typedef struct {
     bs_Uniform uniforms[BS_UNIFORM_TYPE_COUNT];
     int attribs;
     uint8_t attrib_sizes[BS_MAX_ATTRIB_COUNT];
@@ -180,13 +175,6 @@ typedef struct {
     unsigned int id;
     unsigned int block_size;
 } bs_UniformBuffer;
-
-/* --- GENERAL --- */
-#define BS_WND_TRANSPARENT 0x0002000A
-#define BS_WND_HAS_TITLE_BAR 0x00020005
-#define BS_WND_TOPMOST 0x00020007
-#define BS_WND_VISIBLE 0x00020004
-#define BS_WND_UNCLICKABLE 0x0002000D
 
 typedef struct {
     bs_mat4 view;
@@ -241,8 +229,11 @@ typedef struct {
 
 typedef struct bs_Joint bs_Joint;
 typedef struct {
-    bs_Joint *joints;
+    bs_mat4 *matrices;
+
     int joint_count;
+    int frame_count;
+    int frame_offset_shader;
 } bs_Anim;
 
 typedef struct {

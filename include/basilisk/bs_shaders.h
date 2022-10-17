@@ -24,6 +24,11 @@ bs_UniformBuffer bs_initUniformBlock(int block_size, int bind_point);
 void bs_setUniformBlockDataRange(bs_UniformBuffer buf, void *block, int start, int end);
 void bs_setUniformBlockData(bs_UniformBuffer buf, void *block);
 
+/* --- SSBO --- */
+bs_U32 bs_SSBO(void *data, int size, int bind_point);
+void bs_selectSSBO(bs_U32 ssbo_id);
+void bs_pushSSBO(void *data, int offset, int size);
+
 void bs_uniform_mat4(int loc, float mat[4][4]);
 void bs_uniform_float(int loc, float val);
 void bs_uniform_int(int loc, int val);
