@@ -28,25 +28,27 @@ bs_I32 anim_ssbo = -1;
 bs_U32 anim_offset = 0;
 int attrib_offset = 0;
 
+int load_settings = 0;
+
 /* --- VERTEX LOADING --- */
 void bs_readPositionVertices(int accessor_index, bs_Prim *prim, bs_Mesh *mesh, cgltf_data *data) {	
-	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
+    int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
+    int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
-	for(int i = 0; i < num_floats / num_comps; i++) {
-		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].position.x, num_comps);
-		vec3 *pos = (vec3*)&prim->vertices[i].position;
-		glm_mat4_mulv3(mesh->mat, *pos, 1.0, *pos);
-	}
+    for(int i = 0; i < num_floats / num_comps; i++) {
+	cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].position.x, num_comps);
+	vec3 *pos = (vec3*)&prim->vertices[i].position;
+	glm_mat4_mulv3(mesh->mat, *pos, 1.0, *pos);
+    }
 }
 
 void bs_readNormalVertices(int accessor_index, bs_Prim *prim, bs_Mesh *mesh, cgltf_data *data) {
-	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
+    int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
+    int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
-	for(int i = 0; i < num_floats / num_comps; i++) {
-		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].normal.x, num_comps);
-	}
+    for(int i = 0; i < num_floats / num_comps; i++) {
+	cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].normal.x, num_comps);
+    }
 }
 
 void bs_readTexCoordVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) {
@@ -62,8 +64,8 @@ void bs_readTexCoordVertices(int accessor_index, bs_Prim *prim, cgltf_data *data
 	float y_range = (float)prim->material.tex->h / 1024.0;
 
 	for(int i = 0; i < num_floats; i+=2) {
-		prim->vertices[i/2].tex_coord.x = bs_fMap(prim->vertices[i/2].tex_coord.x, 0.0, 1.0, 0.0, x_range);
-		prim->vertices[i/2].tex_coord.y = bs_fMap(prim->vertices[i/2].tex_coord.y, 0.0, 1.0, 0.0, y_range);
+	    prim->vertices[i/2].tex_coord.x = bs_fMap(prim->vertices[i/2].tex_coord.x, 0.0, 1.0, 0.0, x_range);
+	    prim->vertices[i/2].tex_coord.y = bs_fMap(prim->vertices[i/2].tex_coord.y, 0.0, 1.0, 0.0, y_range);
 	}
     }
 }
@@ -124,37 +126,8 @@ void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
     mat->metallic = metallic->metallic_factor;
 }
 
-void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_index, int prim_index) {
-    cgltf_mesh *c_mesh = &data->meshes[mesh_index];
-    bs_Prim *prim = &mesh->prims[prim_index];
-    prim->material.tex = NULL;
-
-    int attrib_count = c_mesh->primitives[prim_index].attributes_count;
-    int num_floats = cgltf_accessor_unpack_floats(&data->accessors[c_mesh->primitives[prim_index].attributes[0].index], NULL, 0);
-
-    prim->vertices = malloc(num_floats * sizeof(bs_Vertex));
-    prim->vertex_count = num_floats / 3;
-
-    bs_loadMaterial(model, &c_mesh->primitives[prim_index], prim);
-
-	// Read vertices
-    for(int i = 0; i < attrib_count; i++) {
-    	int index = c_mesh->primitives[prim_index].attributes[i].index;
-    	int type = c_mesh->primitives[prim_index].attributes[i].type;
-
-    	switch(type) {
-	    case cgltf_attribute_type_position:
-		bs_readPositionVertices(index, prim, mesh, data); break;
-		case cgltf_attribute_type_normal:
-			bs_readNormalVertices(index, prim, mesh, data); break;
-		case cgltf_attribute_type_texcoord:
-			bs_readTexCoordVertices(index, prim, data); break;
-		case cgltf_attribute_type_joints:
-			bs_readJointIndices(index, prim, data); break;
-		case cgltf_attribute_type_weights:
-			bs_readWeights(index, prim, data); break;
-    	}
-    }
+void bs_readIndices(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim_index) {
+    bs_Prim *prim = mesh->prims + prim_index;
 
     // Read indices
     int num_indices = cgltf_accessor_unpack_floats(c_mesh->primitives[prim_index].indices, NULL, 0);
@@ -171,6 +144,66 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     mesh->vertex_count += prim->vertex_count;
     model->vertex_count += prim->vertex_count;
     model->index_count += num_indices;
+}
+
+void bs_readIndicesAdjacent() {
+}
+
+/* Temp */
+typedef struct {
+    bs_vec3 position;
+    bs_vec2 tex_coord;
+    bs_vec3 normal;
+    bs_RGBA color;
+    bs_ivec4 bone_ids;
+    bs_vec4 weights;
+    int unique_index;
+} VertexDecl;
+
+void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_index, int prim_index) {
+    cgltf_mesh *c_mesh = &data->meshes[mesh_index];
+    bs_Prim *prim = &mesh->prims[prim_index];
+    prim->material.tex = NULL;
+
+    int attrib_count = c_mesh->primitives[prim_index].attributes_count;
+    int num_floats = cgltf_accessor_unpack_floats(&data->accessors[c_mesh->primitives[prim_index].attributes[0].index], NULL, 0);
+
+    prim->vertex_count = num_floats / 3;
+    prim->vertices = malloc(prim->vertex_count * sizeof(VertexDecl));
+
+    bs_loadMaterial(model, &c_mesh->primitives[prim_index], prim);
+
+    // Read vertices
+    for(int i = 0; i < attrib_count; i++) {
+    	int index = c_mesh->primitives[prim_index].attributes[i].index;
+    	int type = c_mesh->primitives[prim_index].attributes[i].type;
+
+    	switch(type) {
+	    case cgltf_attribute_type_position:
+		bs_readPositionVertices(index, prim, mesh, data); break;
+	    case cgltf_attribute_type_normal:
+		bs_readNormalVertices(index, prim, mesh, data); break;
+	    case cgltf_attribute_type_texcoord:
+		bs_readTexCoordVertices(index, prim, data); break;
+	    case cgltf_attribute_type_joints:
+		bs_readJointIndices(index, prim, data); break;
+	    case cgltf_attribute_type_weights:
+		bs_readWeights(index, prim, data); break;
+    	}
+    }
+
+    if((load_settings & BS_INDICES) == BS_INDICES)
+	bs_readIndices(mesh, model, c_mesh, prim_index);
+
+    // TODO: Fixa att alla shared positioner ska ha samma unique_index
+    int num_tris = prim->index_count;
+    for(int i = 0; i < num_tris; i++) {
+	int first_idx = 3 * i;
+
+	for(int j = 0; j < 3; j++) {
+	    int idx = prim->indices[first_idx + j];
+	}
+    }
 }
 
 void bs_loadJoints(cgltf_data *data, bs_Mesh *mesh, cgltf_mesh *c_mesh) {
@@ -361,9 +394,10 @@ void bs_loadAnims(cgltf_data* data, bs_Model *model) {
 	bs_loadAnim(data, i, model);
 }
 
-void bs_loadModel(char *model_path, char *texture_folder_path, bs_Model *model) {
+void bs_loadModel(char *model_path, bs_Model *model, int settings) {
     cgltf_options options = {0};
     cgltf_data* data = NULL;
+    load_settings = settings;
 
     // Get path to GLTF binary data
     char bin_path[256];

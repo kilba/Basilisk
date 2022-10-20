@@ -43,12 +43,12 @@ void bs_eul2quat(bs_quat q, bs_vec3 eul) {
     q.z = cr * cp * sy - sr * sp * cy;
 }
 
-void bs_normv3ret(bs_vec3 v, bs_vec3 out) {
-    //memcpy(out, v, sizeof(bs_vec3));
-    float w = sqrt(out.x * out.x + out.y * out.y + out.z * out.z);
-    out.x /= w;
-    out.y /= w;
-    out.z /= w;
+bs_vec3 bs_normalize(bs_vec3 v) {
+    float w = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    v.x /= w;
+    v.y /= w;
+    v.z /= w;
+    return v;
 }
 
 void bs_crossv3(bs_vec3 v0, bs_vec3 v1, bs_vec3 out) {

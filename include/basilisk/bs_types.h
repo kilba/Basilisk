@@ -183,13 +183,6 @@ typedef struct {
 } bs_Camera;
 
 typedef struct {
-    bs_vec3 position;
-    bs_vec2 tex_coord;
-    bs_vec3 normal;
-    bs_RGBA color;
-} bs_Vertex;
-
-typedef struct {
     unsigned int vertex;
     unsigned int index;
 } bs_Offset;
@@ -257,13 +250,14 @@ struct bs_Joint {
 typedef struct {
     bs_Material material;
 
-    struct bs_mVertex {
+    struct {
 	bs_vec3 position;
 	bs_vec2 tex_coord;
 	bs_vec3 normal;
 	bs_RGBA color;
 	bs_ivec4 bone_ids;
 	bs_vec4 weights;
+	int unique_index;
     } *vertices;
     int vertex_count;
 

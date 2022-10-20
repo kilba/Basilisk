@@ -59,6 +59,7 @@ void bs_batchBufferSize(int index_count, int vertex_count);
 
 void bs_batchShader(bs_Batch *batch, bs_Shader *shader);
 int bs_batchSize();
+void bs_batchResizeCheck(int index_count, int vertex_count);
 
 bool bs_ptIsOverMesh(bs_ivec2 coord, bs_Mesh *mesh, bs_mat4 model, bs_Camera *cam);
 void bs_objRead(bs_mat4 model, bs_Camera *cam);
