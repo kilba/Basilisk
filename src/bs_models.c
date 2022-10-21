@@ -126,6 +126,100 @@ void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
     mat->metallic = metallic->metallic_factor;
 }
 
+int bs_findAdjacentIndex(int num_tris, bs_Prim *prim, int idx1, int idx2, int idx3) {
+    for(int i = 0; i < num_tris; i++) {
+	int first_idx = 6 * i;
+	int face_indices[3];
+    
+	for(int j = 0; j < 3; j++) {
+	    int idx = prim->indices[first_idx + j * 2];
+	    face_indices[j] = prim->vertices[idx].unique_index;
+	}
+
+	for(int edge = 0; edge < 3; edge++) {
+	    int v1 = face_indices[edge];
+	    int v2 = face_indices[(edge + 1) % 3];
+	    int opp = face_indices[(edge + 2) % 3];
+
+	    if(((v1 == idx1 && v2 == idx2) || (v2 == idx1 && v1 == idx2)) && opp != idx3)
+		return opp;
+	}
+    }
+    return -1;
+}
+
+void bs_readIndicesAdjacent(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim_index) {
+    bs_Prim *prim = mesh->prims + prim_index;
+
+    // Read indices
+    int num_indices = cgltf_accessor_unpack_floats(c_mesh->primitives[prim_index].indices, NULL, 0);
+    int num_adjacent = num_indices * 2;
+    prim->indices = malloc(num_adjacent * sizeof(int));
+    prim->index_count = num_adjacent;
+    for(int i = 0; i < num_indices; i++) {
+	cgltf_uint outv;
+	cgltf_accessor_read_uint(c_mesh->primitives[prim_index].indices, i, &outv, 1);
+	prim->indices[i * 2] = outv;
+    }
+
+    attrib_offset = c_mesh->primitives[prim_index].index_id + 1;
+
+    mesh->vertex_count += prim->vertex_count;
+    model->vertex_count += prim->vertex_count;
+    model->index_count += num_adjacent;
+    int num_tris = num_indices / 3;
+
+    /**/
+    struct Key {
+	bs_vec3 pos;
+	int idx;
+    } *keys = calloc(prim->vertex_count, sizeof(struct Key));
+    int key_count = 0;
+
+    for(int i = 0; i < num_tris; i++) {
+	int first_idx = 6 * i;
+
+	for(int j = 0; j < 3; j++) {
+	    int idx = prim->indices[first_idx + j * 2];
+	    int contain_id = -1;
+
+	    for(int k = 0; k < key_count; k++) {
+		if(memcmp(&keys[k].pos, &prim->vertices[idx].position, sizeof(bs_vec3)) == 0) {
+		    contain_id = k;
+		    break;
+		}
+	    }
+
+	    if(contain_id == -1) {
+		prim->vertices[idx].unique_index = idx;
+
+		keys[key_count].pos = prim->vertices[idx].position;
+		keys[key_count].idx = idx;
+		key_count++;
+	    } else {
+		prim->vertices[idx].unique_index = keys[contain_id].idx;
+	    }
+	}
+    }
+
+    /**/
+    for(int i = 0; i < num_tris; i++) {
+	int first_idx = 6 * i;
+
+	int v[3];
+	for(int j = 0; j < 3; j++) {
+	    int idx = prim->indices[first_idx + j * 2];
+	    v[j] = prim->vertices[idx].unique_index;
+	}
+
+	int n[3];
+	for(int j = 0; j < 3; j++) {
+	    n[j] = bs_findAdjacentIndex(num_tris, prim, v[j], v[(j + 1) % 3], v[(j + 2) % 3]);
+//	    prim->indices[first_idx + j * 2 + 1] = n[j];
+	}
+    }
+}
+
 void bs_readIndices(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim_index) {
     bs_Prim *prim = mesh->prims + prim_index;
 
@@ -146,9 +240,6 @@ void bs_readIndices(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim
     model->index_count += num_indices;
 }
 
-void bs_readIndicesAdjacent() {
-}
-
 /* Temp */
 typedef struct {
     bs_vec3 position;
@@ -159,6 +250,7 @@ typedef struct {
     bs_vec4 weights;
     int unique_index;
 } VertexDecl;
+
 
 void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_index, int prim_index) {
     cgltf_mesh *c_mesh = &data->meshes[mesh_index];
@@ -195,15 +287,17 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     if((load_settings & BS_INDICES) == BS_INDICES)
 	bs_readIndices(mesh, model, c_mesh, prim_index);
 
-    // TODO: Fixa att alla shared positioner ska ha samma unique_index
-    int num_tris = prim->index_count;
-    for(int i = 0; i < num_tris; i++) {
-	int first_idx = 3 * i;
+    if((load_settings & BS_INDICES_ADJACENT) == BS_INDICES_ADJACENT)
+	bs_readIndicesAdjacent(mesh, model, c_mesh, prim_index);
+/*
+    int id0 = prim->vertices[prim->indices[0]].unique_index;
+    int id1 = prim->vertices[prim->indices[1]].unique_index;
+    int id2 = prim->vertices[prim->indices[2]].unique_index;
 
-	for(int j = 0; j < 3; j++) {
-	    int idx = prim->indices[first_idx + j];
-	}
-    }
+    int idx1 = bs_findAdjacentIndex(num_tris, prim, id0, id1, id2);
+    int idx2 = bs_findAdjacentIndex(num_tris, prim, id1, id2, id0);
+    int idx3 = bs_findAdjacentIndex(num_tris, prim, id2, id0, id1);
+   printf("{ %d, %d, %d } | { %d, %d, %d }\n", id0, id1, id2, idx1, idx2, idx3);*/
 }
 
 void bs_loadJoints(cgltf_data *data, bs_Mesh *mesh, cgltf_mesh *c_mesh) {
