@@ -19,6 +19,8 @@ void bs_selectTextureTarget(bs_Tex2D *texture, int tex_unit, int target);
 void bs_selectTexture(bs_Tex2D *texture, int tex_unit);
 bs_Tex2D *bs_selectedTexture();
 
+void bs_depthStencil(bs_Tex2D *texture, bs_ivec2 dim);
+
 void bs_depth(bs_Tex2D *texture, bs_ivec2 dim);
 void bs_depthLin(bs_Tex2D *texture, bs_ivec2 dim);
 

@@ -31,6 +31,7 @@ void bs_framebufferCulling(int setting);
 void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment);
 void bs_attachRenderbuffer();
 void bs_attachDepthBuffer(bs_Tex2D *tex);
+void bs_attachDepthStencilBuffer(bs_Tex2D *tex);
 void bs_setDrawBufs(int n, ...);
 void bs_startFramebufferRender(bs_Framebuffer *framebuffer);
 void bs_endFramebufferRender();
@@ -39,6 +40,9 @@ void bs_noReadBuf();
 
 unsigned char *bs_framebufferData(int x, int y, int w, int h);
 unsigned char *bs_screenshot();
+
+void bs_polygonLine();
+void bs_polygonFill();
 
 /* --- BATCHING --- */
 void bs_batch(bs_Batch *batch, bs_Shader *shader);
@@ -81,6 +85,16 @@ void bs_ortho(bs_mat4 mat, int left, int right, int bottom, int top, float nearZ
 void bs_persp(bs_mat4 mat, float aspect, float fovy, float nearZ, float farZ);
 void bs_lookat(bs_mat4 mat, bs_vec3 eye, bs_vec3 center, bs_vec3 up);
 void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up);
+
+/* OPENGL RENDERING LOGIC LAYER */
+void bs_enable(int val);
+void bs_disable(int val);
+void bs_stencilFunc(int val0, int val1, int val2);
+void bs_depthFunc(int val);
+void bs_stencilMask(int val);
+void bs_depthMask(int val);
+void bs_stencilOp(int val0, int val1, int val2);
+void bs_stencilOpSeparate(int val0, int val1, int val2, int val3);
 
 /* --- CONSTANTS --- */
 #define BS_BATCH_INCR_BY 1024 
@@ -141,6 +155,29 @@ void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up);
 #define BS_TRIANGLES_ADJACENCY 0x000C
 #define BS_TRIANGLE_STRIP_ADJACENCY 0x000D
 
+/* RENDERING LOGIC */
+#define BS_STENCIL_TEST 0x0B90
+#define BS_DEPTH_TEST 0x0B71
+
+#define BS_CULL_FACE 0x0B44
+#define BS_DEPTH_CLAMP 0x864F
+
+#define BS_NEVER 0x0200
+#define BS_LESS 0x0201
+#define BS_EQUAL 0x0202
+#define BS_LEQUAL 0x0203
+#define BS_GREATER 0x0204
+#define BS_NOTEQUAL 0x0205
+#define BS_GEQUAL 0x0206
+#define BS_ALWAYS 0x0207
+
+#define BS_KEEP 0x1E00
+#define BS_REPLACE 0x1E01
+#define BS_INCR 0x1E02
+#define BS_DECR 0x1E03
+#define BS_INCR_WRAP 0x8507
+#define BS_DECR_WRAP 0x8508
+
 /* DATATYPES */
 #define BS_SBYTE 0x1400
 #define BS_UBYTE 0x1401
@@ -150,6 +187,8 @@ void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up);
 #define BS_UINT 0x1405
 #define BS_FLOAT 0x1406
 
+#define BS_UINT24_8 0x84FA
+
 /* BASE INTERNAL FORMATS */
 #define BS_CHANNEL_RED 0x1903
 #define BS_CHANNEL_GREEN 0x1904
@@ -157,12 +196,14 @@ void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up);
 #define BS_CHANNEL_ALPHA 0x1906
 #define BS_CHANNEL_RGB 0x1907
 #define BS_CHANNEL_RGBA 0x1908
+#define BS_CHANNEL_DEPTH24_STENCIL8 0x88F0
 
 /* SIZED INTERNAL FORMATS */
 #define BS_CHANNEL_RGBA32F 0x8814
 #define BS_CHANNEL_RGB32F 0x8815
 #define BS_CHANNEL_RGBA16F 0x881A
 #define BS_CHANNEL_RGB16F 0x881B
+#define BS_CHANNEL_DEPTH_STENCIL 0x84F9
 
 /* DEPTH INTERNAL FORMATS */
 #define BS_CHANNEL_DEPTH 0x1902

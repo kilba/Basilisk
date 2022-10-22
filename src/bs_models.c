@@ -215,7 +215,7 @@ void bs_readIndicesAdjacent(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, 
 	int n[3];
 	for(int j = 0; j < 3; j++) {
 	    n[j] = bs_findAdjacentIndex(num_tris, prim, v[j], v[(j + 1) % 3], v[(j + 2) % 3]);
-//	    prim->indices[first_idx + j * 2 + 1] = n[j];
+	    prim->indices[first_idx + j * 2 + 1] = n[j];
 	}
     }
 }

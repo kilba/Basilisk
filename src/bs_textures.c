@@ -55,6 +55,7 @@ bs_U32 bs_textureDataFile(char *path, bool update_dimensions) {
         curr_texture->w = w;
         curr_texture->h = h;
     }
+    return 0;
 }
 
 void bs_textureMinMag(int min_filter, int mag_filter) {
@@ -172,6 +173,12 @@ void bs_textureLinPNG(bs_Tex2D *texture, char *path) {
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
 }
 
+void bs_depthStencil(bs_Tex2D *texture, bs_ivec2 dim) {
+    bs_texture(texture, dim, BS_TEX2D);
+    bs_textureMinMag(BS_NEAREST, BS_NEAREST);
+    bs_pushTexture(BS_CHANNEL_DEPTH24_STENCIL8, BS_CHANNEL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
+}
+
 void bs_depthCube(bs_Tex2D *texture, int dim) {
     bs_texture(texture, BS_CIVEC2(dim, dim), BS_CUBEMAP);
 
@@ -247,4 +254,5 @@ bs_U32 bs_textureArrayAppendPNG(char *path) {
     );
 
     curr_texture->frame.z++;
+    return 0;
 }

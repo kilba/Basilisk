@@ -520,7 +520,7 @@ void bs_attachRenderbuffer() {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, framebuffer->RBO); 
 }
 
-void bs_attachDepthBuffer(bs_Tex2D *tex) {
+void bs_attachDepthBufferType(bs_Tex2D *tex, int type) {
     bs_Framebuffer *framebuffer = curr_framebuffer;
 
     #ifdef BS_DEBUG
@@ -535,12 +535,24 @@ void bs_attachDepthBuffer(bs_Tex2D *tex) {
 
 
     framebuffer->clear |= GL_DEPTH_BUFFER_BIT;
+    if(type == GL_DEPTH_STENCIL_ATTACHMENT)
+	framebuffer->clear |= GL_STENCIL_BUFFER_BIT;
+
     if(tex->type == BS_CUBEMAP) {
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tex->id, 0);
+	glFramebufferTexture(GL_FRAMEBUFFER, type, tex->id, 0);
 	return;
     }
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->id, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, tex->id, 0);
+
+}
+
+void bs_attachDepthBuffer(bs_Tex2D *tex) {
+    bs_attachDepthBufferType(tex, GL_DEPTH_ATTACHMENT);
+}
+
+void bs_attachDepthStencilBuffer(bs_Tex2D *tex) {
+    bs_attachDepthBufferType(tex, GL_DEPTH_STENCIL_ATTACHMENT);
 }
 
 void bs_setDrawBufs(int n, ...) {
@@ -597,6 +609,14 @@ unsigned char *bs_framebufferData(int x, int y, int w, int h) {
 unsigned char *bs_screenshot() {
     bs_ivec2 res = bs_resolution();
     return bs_framebufferData(0, 0, res.x, res.y);
+}
+
+void bs_polygonLine() {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+}
+
+void bs_polygonFill() {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 // TODO: Remove this
@@ -779,4 +799,37 @@ void bs_startRender(void (*render)()) {
     srand(time(0));
 
     bs_wndTick(render);
+}
+
+/* --- OpenGL Rendering Logic Abstraction --- */
+void bs_enable(int val) {
+    glEnable(val);
+}
+
+void bs_disable(int val) {
+    glDisable(val);
+}
+
+void bs_stencilFunc(int val0, int val1, int val2) {
+    glStencilFunc(val0, val1, val2);
+}
+
+void bs_depthFunc(int val) {
+    glDepthFunc(val);
+}
+
+void bs_stencilMask(int val) {
+    glStencilMask(val);
+}
+
+void bs_depthMask(int val) {
+    glDepthMask(val);
+}
+
+void bs_stencilOp(int val0, int val1, int val2) {
+    glStencilOp(val0, val1, val2);
+}
+
+void bs_stencilOpSeparate(int val0, int val1, int val2, int val3) {
+    glStencilOpSeparate(val0, val1, val2, val3);
 }
