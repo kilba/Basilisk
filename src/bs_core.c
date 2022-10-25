@@ -34,7 +34,7 @@ bs_Batch *curr_batch;
 bs_Batch def_batch;
 bs_Shader def_shader;
 
-bs_Framebuffer *curr_framebuffer = NULL;
+bs_Framebuf *curr_framebuf = NULL;
 bs_UniformBuffer global_unifs;
 
 int culling = BS_DIR_BACK;
@@ -175,8 +175,8 @@ void bs_pushVertex(
     bs_Batch *batch = curr_batch;
 
     uint8_t *data_ptr = (uint8_t *)batch->vertices + batch->vertex_draw_count * batch->attrib_size_bytes;
-
     uint8_t *sizes = batch->shader->attrib_sizes;
+
     memcpy(data_ptr, &pos, sizes[0]);
     data_ptr += sizes[0];
 
@@ -457,7 +457,7 @@ void bs_renderBatch(int start_index, int draw_count) {
     if(proj->is_valid)
 	bs_uniform_mat4(proj->loc, curr_batch->camera->proj);
 
-    glDrawElements(curr_batch->draw_mode, draw_count, BS_UINT, (void*)(start_index * 6 * sizeof(GLuint)));
+    glDrawElements(curr_batch->draw_mode, draw_count, BS_UINT, (void*)(start_index * sizeof(GLuint)));
 }
 
 void bs_clearBatch() {
@@ -470,89 +470,85 @@ int bs_batchSize() {
 }
 
 /* --- FRAMEBUFFERS --- */
-void bs_framebuffer(bs_Framebuffer *framebuffer, bs_ivec2 dim) {
-    curr_framebuffer = framebuffer;
+void bs_framebufResizeCheck() {
+    bs_Framebuf *framebuf = curr_framebuf;
 
-    framebuffer->render_width  = dim.x;
-    framebuffer->render_height = dim.y;
-    framebuffer->clear = GL_DEPTH_BUFFER_BIT;
+    if(framebuf->buf_count < framebuf->buf_alloc)
+	return;
 
-    bs_framebufferCulling(culling);
-
-    glGenFramebuffers(1, &framebuffer->FBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
+    framebuf->buf_alloc += 2;
+    framebuf->bufs = realloc(framebuf->bufs, framebuf->buf_alloc * sizeof(bs_Tex2D));
 }
 
-void bs_framebufferCulling(int setting) {
-    curr_framebuffer->culling = setting;
+void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim) {
+    curr_framebuf = framebuf;
+
+    framebuf->dim = dim;
+    framebuf->clear = GL_DEPTH_BUFFER_BIT;
+    framebuf->buf_count = 0;
+    framebuf->buf_alloc = 4;
+    framebuf->bufs = malloc(framebuf->buf_alloc * sizeof(bs_Tex2D));
+
+    bs_framebufCulling(culling);
+
+    glGenFramebuffers(1, &framebuf->FBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuf->FBO);
 }
 
-void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment) {
-    bs_Framebuffer *framebuffer = curr_framebuffer;
-    #ifdef BS_DEBUG
-        if(framebuffer == NULL) {
-            bs_print(BS_ERR, "COLORBUFFER ATTACH FAILED : Framebuffer is NULL");
-        }
-        if(color_buffer == NULL) {
-            bs_print(BS_ERR, "COLORBUFFER ATTACH FAILED : Texture is NULL");
-        }
-        return;
-    #endif
+void bs_framebufCulling(int setting) {
+    curr_framebuf->culling = setting;
+}
 
-    framebuffer->clear |= GL_COLOR_BUFFER_BIT;
+void bs_attachColorbuffer(int attachment) { 
+    bs_framebufResizeCheck();
+    
+    bs_Framebuf *framebuf = curr_framebuf;
+    bs_Tex2D *tex = framebuf->bufs + framebuf->buf_count;
+    framebuf->clear |= GL_COLOR_BUFFER_BIT;
 
-    // Attach it to currently bound framebuffer object
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, GL_TEXTURE_2D, color_buffer->id, 0);
+    bs_textureRGBA(tex, framebuf->dim);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, GL_TEXTURE_2D, tex->id, 0);
+    framebuf->buf_count++;
 }
 
 void bs_attachRenderbuffer() {
-    bs_Framebuffer *framebuffer = curr_framebuffer;
-    #ifdef BS_DEBUG
-        if(framebuffer == NULL) {
-            bs_print(BS_ERR, "RENDERBUFFER ATTACH FAILED : Framebuffer is NULL");
-        }
-        return;
-    #endif
+    bs_Framebuf *framebuf = curr_framebuf;
 
-    glGenRenderbuffers(1, &framebuffer->RBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, framebuffer->RBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, framebuffer->render_width, framebuffer->render_height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, framebuffer->RBO); 
+    glGenRenderbuffers(1, &framebuf->RBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, framebuf->RBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, framebuf->dim.x, framebuf->dim.y);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, framebuf->RBO); 
 }
 
-void bs_attachDepthBufferType(bs_Tex2D *tex, int type) {
-    bs_Framebuffer *framebuffer = curr_framebuffer;
+void bs_attachDepthBufferType(int type) {
+    bs_framebufResizeCheck();
 
-    #ifdef BS_DEBUG
-        if(framebuffer == NULL) {
-            bs_print(BS_ERR, "DEPTHBUFFER ATTACH FAILED : Framebuffer is NULL");
-        }
-        if(tex == NULL) {
-            bs_print(BS_ERR, "DEPTHBUFFER ATTACH FAILED : Texture is NULL");
-        }
-        return;
-    #endif
-
-
-    framebuffer->clear |= GL_DEPTH_BUFFER_BIT;
-    if(type == GL_DEPTH_STENCIL_ATTACHMENT)
-	framebuffer->clear |= GL_STENCIL_BUFFER_BIT;
+    bs_Framebuf *framebuf = curr_framebuf;
+    bs_Tex2D *tex = framebuf->bufs + framebuf->buf_count;
+    framebuf->clear |= GL_DEPTH_BUFFER_BIT;
 
     if(tex->type == BS_CUBEMAP) {
 	glFramebufferTexture(GL_FRAMEBUFFER, type, tex->id, 0);
 	return;
     }
 
+    if(type == GL_DEPTH_STENCIL_ATTACHMENT) {
+	bs_depthStencil(tex, framebuf->dim);
+	framebuf->clear |= GL_STENCIL_BUFFER_BIT;
+    } else {
+	bs_depth(tex, framebuf->dim);
+    }
+
     glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, tex->id, 0);
-
+    framebuf->buf_count++;
 }
 
-void bs_attachDepthBuffer(bs_Tex2D *tex) {
-    bs_attachDepthBufferType(tex, GL_DEPTH_ATTACHMENT);
+void bs_attachDepthBuffer() {
+    bs_attachDepthBufferType(GL_DEPTH_ATTACHMENT);
 }
 
-void bs_attachDepthStencilBuffer(bs_Tex2D *tex) {
-    bs_attachDepthBufferType(tex, GL_DEPTH_STENCIL_ATTACHMENT);
+void bs_attachDepthStencilBuffer() {
+    bs_attachDepthBufferType(GL_DEPTH_STENCIL_ATTACHMENT);
 }
 
 void bs_setDrawBufs(int n, ...) {
@@ -576,30 +572,30 @@ void bs_noReadBuf() {
     glDrawBuffer(GL_NONE);
 }
 
-void bs_startFramebufferRender(bs_Framebuffer *framebuffer) {
+void bs_startFramebufRender(bs_Framebuf *framebuf) {
     glEnable(GL_DEPTH_TEST);
-    glCullFace(framebuffer->culling);
+    glCullFace(framebuf->culling);
 
-    glViewport(0, 0, framebuffer->render_width, framebuffer->render_height);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->FBO);
+    glViewport(0, 0, framebuf->dim.x, framebuf->dim.y);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuf->FBO);
 
     // Clear any previous drawing
     glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClear(framebuffer->clear);
+    glClear(framebuf->clear);
 }
 
-void bs_endFramebufferRender() {
+void bs_endFramebufRender() {
     glDisable(GL_DEPTH_TEST);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     bs_ivec2 res = bs_resolution();
     glViewport(0, 0, res.x, res.y);
 
-    // TODO: Resetting culling after every framebuffer is uneccesary, put after main render loop
+    // TODO: Resetting culling after every framebuf is uneccesary, put after main render loop
     glCullFace(culling);
 }
 
-unsigned char *bs_framebufferData(int x, int y, int w, int h) {
+unsigned char *bs_framebufData(int x, int y, int w, int h) {
     const int rgb_size = 3;
     unsigned char *data = malloc(w * h * rgb_size);
     glReadPixels(x, y, w, h, BS_CHANNEL_RGB, BS_UBYTE, data);
@@ -608,7 +604,7 @@ unsigned char *bs_framebufferData(int x, int y, int w, int h) {
 
 unsigned char *bs_screenshot() {
     bs_ivec2 res = bs_resolution();
-    return bs_framebufferData(0, 0, res.x, res.y);
+    return bs_framebufData(0, 0, res.x, res.y);
 }
 
 void bs_polygonLine() {
@@ -666,12 +662,11 @@ struct {
 
     bs_Batch batch;
     bs_Shader shader;
-    bs_Framebuffer fbo;
-    bs_Tex2D buf;
+    bs_Framebuf fbo;
 } selection;
 
 void bs_objRead(bs_mat4 model, bs_Camera *cam) {
-    bs_startFramebufferRender(&selection.fbo);
+    bs_startFramebufRender(&selection.fbo);
     selection.batch.camera = cam;
 
     bs_selectBatch(&selection.batch);
@@ -723,17 +718,16 @@ int bs_objUnderPt(bs_ivec2 pt) {
 }
 
 bs_Tex2D *bs_objEndRead() {
-    bs_endFramebufferRender();
-    return &selection.buf;
+    bs_endFramebufRender();
+    return &selection.fbo.bufs[0];
 }
 
 void bs_initMeshSelection() {
     bs_ivec2 res = bs_resolution();
 
-    bs_textureRGBA(&selection.buf, res);
+    bs_framebuf(&selection.fbo, res);
+    bs_attachColorbuffer(0);
 
-    bs_framebuffer(&selection.fbo, res);
-    bs_attachColorbuffer(&selection.buf, 0);
     bs_attachRenderbuffer();
 
     bs_loadMemShader(vs_selection, fs_selection, 0, &selection.shader);

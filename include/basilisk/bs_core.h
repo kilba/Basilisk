@@ -26,19 +26,19 @@ void bs_pushMesh(bs_Mesh *mesh);
 void bs_pushModel(bs_Model *model);
 
 /* --- FRAMEBUFFERS --- */
-void bs_framebuffer(bs_Framebuffer *framebuffer, bs_ivec2 dim);
-void bs_framebufferCulling(int setting);
-void bs_attachColorbuffer(bs_Tex2D *color_buffer, int attachment);
+void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim);
+void bs_framebufCulling(int setting);
+void bs_attachColorbuffer(int attachment);
 void bs_attachRenderbuffer();
-void bs_attachDepthBuffer(bs_Tex2D *tex);
-void bs_attachDepthStencilBuffer(bs_Tex2D *tex);
+void bs_attachDepthBuffer();
+void bs_attachDepthStencilBuffer();
 void bs_setDrawBufs(int n, ...);
-void bs_startFramebufferRender(bs_Framebuffer *framebuffer);
-void bs_endFramebufferRender();
+void bs_startFramebufRender(bs_Framebuf *framebuf);
+void bs_endFramebufRender();
 void bs_noDrawBuf();
 void bs_noReadBuf();
 
-unsigned char *bs_framebufferData(int x, int y, int w, int h);
+unsigned char *bs_framebufData(int x, int y, int w, int h);
 unsigned char *bs_screenshot();
 
 void bs_polygonLine();

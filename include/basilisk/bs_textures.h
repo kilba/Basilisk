@@ -11,6 +11,7 @@ void bs_loadTex2D(bs_Tex2D *tex, char *path);
 void bs_textureSettings(int min_filter, int mag_filter);
 void bs_pushTexture(int internal_format, int format, int type);
 void bs_textureMipmaps();
+void bs_textureMinMag(int min_filter, int mag_filter);
 
 void bs_texSplit(int frame_count);
 void bs_texSplitVert(int frame_count);

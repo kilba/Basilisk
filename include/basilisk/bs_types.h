@@ -187,15 +187,18 @@ typedef struct {
 } bs_Offset;
 
 typedef struct {
-    int render_width;
-    int render_height;
+    bs_ivec2 dim;
 
     unsigned int FBO, RBO;
     int buffer_count;
 
     int clear;
     int culling;
-} bs_Framebuffer;
+
+    int buf_count;
+    int buf_alloc;
+    bs_Tex2D *bufs;
+} bs_Framebuf;
 
 // Contains all objects queued to render the next frame (unless using multiple batches)
 typedef struct {
