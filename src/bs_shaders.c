@@ -234,9 +234,9 @@ void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shade
 
     // Load shader source code into memory
     int len;
-    char *vscode = bs_readFileToString(vs_path, &len, &vs_err_code);
-    char *fscode = bs_readFileToString(fs_path, &len, &fs_err_code);
-    char *gscode = bs_readFileToString(gs_path, &len, &gs_err_code);
+    char *vscode = bs_fileContents(vs_path, &len, &vs_err_code);
+    char *fscode = bs_fileContents(fs_path, &len, &fs_err_code);
+    char *gscode = bs_fileContents(gs_path, &len, &gs_err_code);
 
     // Don't compile shaders if file wasn't found
     if(vs_err_code == 2 || fs_err_code == 2) {
@@ -271,7 +271,7 @@ void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Te
     int cs_err_code;
     int len;
 
-    char *cscode = bs_readFileToString(cs_path, &len, &cs_err_code);
+    char *cscode = bs_fileContents(cs_path, &len, &cs_err_code);
     bs_loadMemComputeShader(cscode, compute_shader, tex);
     free(cscode);
 }

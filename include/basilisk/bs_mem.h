@@ -10,7 +10,7 @@ uint32_t	bs_memU32(void *data, uint_fast32_t offset);
 int bs_memcmpU32(const void *a, const void *b);
 
 char* bs_replaceFirstSubstring(char* str, char* old_str, char* new_str);
-char* bs_readFileToString(char *path, int *content_len, int *errcode);
+char* bs_fileContents(char *path, int *content_len, int *errcode);
 void bs_appendToFile(const char *filepath, const char *data);
 void bs_writeToFile(const char *filepath, const char *data);
 

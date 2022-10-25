@@ -62,7 +62,7 @@ bs_replaceFirstSubstring(char* str, char* old_str, char* new_str) {
 }
 
 char* 
-bs_readFileToString(char *path, int *content_len, int *errcode) {
+bs_fileContents(char *path, int *content_len, int *errcode) {
     if(path == 0) {
         *errcode = 1;
         return NULL;

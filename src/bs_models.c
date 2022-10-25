@@ -145,7 +145,8 @@ int bs_findAdjacentIndex(int num_tris, bs_Prim *prim, int idx1, int idx2, int id
 		return opp;
 	}
     }
-    return -1;
+
+    return idx3;
 }
 
 void bs_readIndicesAdjacent(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim_index) {
@@ -203,10 +204,13 @@ void bs_readIndicesAdjacent(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, 
     }
 
     /**/
+
+    // For each triangle in mesh
     for(int i = 0; i < num_tris; i++) {
 	int first_idx = 6 * i;
 
 	int v[3];
+	// For each vertex in triangle
 	for(int j = 0; j < 3; j++) {
 	    int idx = prim->indices[first_idx + j * 2];
 	    v[j] = prim->vertices[idx].unique_index;
@@ -345,19 +349,19 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
     cgltf_mesh *c_mesh = &data->meshes[mesh_index];
     cgltf_node *node = &data->nodes[mesh_index];
 
+    int c_mesh_name_len = strlen(c_mesh->node->name);
     model->meshes[mesh_index].joint_count = 0;
-    model->meshes[mesh_index].name = malloc(strlen(c_mesh->name));
-    strcpy(model->meshes[mesh_index].name, c_mesh->name);
+    model->meshes[mesh_index].name = malloc(c_mesh_name_len+1);
+    int n = sprintf(model->meshes[mesh_index].name, "%s", c_mesh->node->name);
 
     memcpy(&model->meshes[mesh_index].pos, node->translation, sizeof(bs_vec3));
     memcpy(&model->meshes[mesh_index].rot, node->rotation, sizeof(bs_vec4));
     memcpy(&model->meshes[mesh_index].sca, node->scale, sizeof(bs_vec4));
-
     bs_mat4 local = GLM_MAT4_IDENTITY_INIT;
     glm_translate(local, node->translation);
     glm_quat_rotate(local, (versor){ node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3] }, local);
     glm_scale(local, node->scale);
-
+ 
     memcpy(&model->meshes[mesh_index].mat, &local, sizeof(bs_mat4));
 
     model->meshes[mesh_index].prims = malloc(c_mesh->primitives_count * sizeof(bs_Prim));
@@ -368,9 +372,6 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
     for(int i = 0; i < c_mesh->primitives_count; i++) {
 	bs_loadPrim(data, &model->meshes[mesh_index], model, mesh_index, i);
     }
-}
-
-void bs_loadModelTexturesToAtlas() {
 }
 
 void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
@@ -499,10 +500,10 @@ void bs_loadModel(char *model_path, bs_Model *model, int settings) {
     strncpy(bin_path, model_path, path_len-4);
     strcat(bin_path, "bin");
 
+    // TODO: Check if exists
     // Load the GLTF json and binary data
     cgltf_parse_file(&options, model_path, &data);
     cgltf_load_buffers(&options, data, bin_path);
-
     int mesh_count = data->meshes_count;
 
     model->meshes = malloc(mesh_count * sizeof(bs_Mesh));
@@ -510,14 +511,16 @@ void bs_loadModel(char *model_path, bs_Model *model, int settings) {
     model->vertex_count = 0;
     model->index_count = 0;
 
+
     model->name = malloc(path_len);
     strcpy(model->name, model_path);
-
-    // bs_loadModelTextures(data, model);
+    bs_loadModelTextures(data, model);
     for(int i = 0; i < mesh_count; i++) {
 	bs_loadMesh(data, model, i);
     }
+
     bs_loadAnims(data, model);
+    cgltf_free(data);
 }
 
 void bs_animate(bs_Anim *anim, int frame) {

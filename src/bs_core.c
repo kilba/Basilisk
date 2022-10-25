@@ -748,10 +748,7 @@ void bs_init(int width, int height, char *title) {
     bs_initWnd(width, height, title);
     // bs_printHardwareInfo();
 
-    def_camera.pos.x = 0.0;
-    def_camera.pos.y = 0.0;
-    def_camera.pos.z = 500.0;
-    bs_lookat(def_camera.view, def_camera.pos, (bs_vec3){ 0.0, 0.0, -1.0 }, (bs_vec3){ 0.0, 1.0, 0.0 });
+    bs_lookat(def_camera.view, BS_CV3(0, 0, 300), BS_CV3(0.0, 0.0, -1.0), BS_CV3(0.0, 1.0, 0.0));
     bs_ortho(def_camera.proj, 0, width, 0, height, 0.01, 1000.0);
 
     global_unifs = bs_initUniformBlock(sizeof(bs_Globals), 0);

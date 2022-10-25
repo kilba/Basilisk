@@ -179,7 +179,6 @@ typedef struct {
 typedef struct {
     bs_mat4 view;
     bs_mat4 proj;
-    bs_vec3 pos;
 } bs_Camera;
 
 typedef struct {
