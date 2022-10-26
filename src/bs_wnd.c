@@ -241,11 +241,11 @@ double bs_deltaTime() {
 bs_ivec2 bs_wndPosition() {
     RECT rect;
     GetWindowRect(hwnd, &rect);
-    return BS_CIV2(rect.left, rect.top);
+    return BS_IVEC2(rect.left, rect.top);
 }
 
 bs_ivec2 bs_resolution() {
-    return BS_CIV2(w, h);
+    return BS_IVEC2(w, h);
 }
 
 bs_ivec2 bs_wndResolution() {
@@ -262,7 +262,7 @@ bs_ivec2 bs_wndResolution() {
 bs_ivec2 bs_cursorPos() {
     POINT p;
     GetCursorPos(&p);
-    return BS_CIV2(p.x, p.y);
+    return BS_IVEC2(p.x, p.y);
 }
 
 bs_ivec2 bs_cursorPosWndInv() {
@@ -275,7 +275,7 @@ bs_ivec2 bs_cursorPosWndInv() {
     // Map to window coords
     ScreenToClient(hwnd, &p);
 
-    return BS_CIV2(p.x, p.y);
+    return BS_IVEC2(p.x, p.y);
 }
 
 bs_ivec2 bs_cursorPosWnd() {

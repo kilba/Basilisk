@@ -9,10 +9,14 @@ void bs_shaderReplaceAlloc(int amount);
 void bs_replaceInAllShaders(char *old_str, char *new_str);
 void bs_freeReplaceBlock();
 
-void bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code, bs_Shader *shader);
-void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shader);
-void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs_Tex2D *tex);
-void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Tex2D *tex);
+void bs_shaderMem(char *vs_code, char *fs_code, char *gs_code, bs_Shader *shader);
+void bs_shader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shader);
+void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs_Texture *tex);
+void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Texture *tex);
+
+// Deprecated
+#define bs_loadShader bs_shader
+#define bs_loadMemShader bs_shaderMem
 
 /* --- COMPUTE SHADERS --- */
 int bs_uniformLoc(int id, char *name);
@@ -29,7 +33,7 @@ bs_U32 bs_SSBO(void *data, int size, int bind_point);
 void bs_selectSSBO(bs_U32 ssbo_id);
 void bs_pushSSBO(void *data, int offset, int size);
 
-void bs_uniform_mat4(int loc, float mat[4][4]);
+void bs_uniform_mat4(int loc, bs_mat4 mat);
 void bs_uniform_float(int loc, float val);
 void bs_uniform_int(int loc, int val);
 

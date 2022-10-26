@@ -4,8 +4,6 @@
 #include <bs_types.h>
 
 /* --- RENDERING --- */
-void bs_drawTexture(bs_vec3 pos, bs_vec2 dim, bs_Tex2D *tex, bs_RGBA col);
-
 void bs_pushVertex(
     bs_vec3 pos,
     bs_vec2 tex_coord,
@@ -68,7 +66,7 @@ void bs_batchResizeCheck(int index_count, int vertex_count);
 bool bs_ptIsOverMesh(bs_ivec2 coord, bs_Mesh *mesh, bs_mat4 model, bs_Camera *cam);
 void bs_objRead(bs_mat4 model, bs_Camera *cam);
 int bs_objUnderPt(bs_ivec2 pt);
-bs_Tex2D *bs_objEndRead();
+bs_Texture *bs_objEndRead();
 void bs_objPushMesh(bs_Mesh *mesh);
 
 // This is deprecated!
@@ -79,14 +77,15 @@ void bs_init(int width, int height, char *title);
 void bs_startRender(void (*render)());
 void bs_setGlobalVars();
 
-/* --- MATRICES --- */
+/* --- MATRICES / CAMERAS --- */
+bs_Camera *bs_defCamera();
 void bs_setMatrices(bs_Shader *shader);
 void bs_ortho(bs_mat4 mat, int left, int right, int bottom, int top, float nearZ, float farZ);
 void bs_persp(bs_mat4 mat, float aspect, float fovy, float nearZ, float farZ);
 void bs_lookat(bs_mat4 mat, bs_vec3 eye, bs_vec3 center, bs_vec3 up);
 void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up);
 
-/* OPENGL RENDERING LOGIC LAYER */
+/* --- OPENGL RENDERING LOGIC LAYER --- */
 void bs_enable(int val);
 void bs_disable(int val);
 void bs_stencilFunc(int val0, int val1, int val2);

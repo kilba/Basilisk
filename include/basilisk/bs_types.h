@@ -50,37 +50,40 @@ typedef bs_vec4 	bs_quat;
 
 /* --- ARRAY -> VECTORS --- */
 // ARRAY -> VECTORS (INT)
-#define BS_IVEC2(arr) (bs_ivec2){ arr.x, arr.y }
-#define BS_IVEC3(arr) (bs_ivec3){ arr.x, arr.y, arr.z }
-#define BS_IVEC4(arr) (bs_ivec4){ arr.x, arr.y, arr.z, arr.w }
-#define BS_IV2(arr) BS_IVEC2(arr)
-#define BS_IV3(arr) BS_IVEC3(arr)
-#define BS_IV4(arr) BS_IVEC4(arr)
+#define BS_AIVEC2(arr) (bs_ivec2){ arr.x, arr.y }
+#define BS_AIVEC3(arr) (bs_ivec3){ arr.x, arr.y, arr.z }
+#define BS_AIVEC4(arr) (bs_ivec4){ arr.x, arr.y, arr.z, arr.w }
+#define BS_AIV2(arr) BS_AIVEC2(arr)
+#define BS_AIV3(arr) BS_AIVEC3(arr)
+#define BS_AIV4(arr) BS_AIVEC4(arr)
 
 // ARRAY -> VECTORS
-#define BS_VEC2(arr) (bs_vec2){ arr.x, arr.y }
-#define BS_VEC3(arr) (bs_vec3){ arr.x, arr.y, arr.z }
-#define BS_VEC4(arr) (bs_vec4){ arr.x, arr.y, arr.z, arr.w }
-#define BS_V2(arr) BS_VEC2(arr)
-#define BS_V3(arr) BS_VEC3(arr)
-#define BS_V4(arr) BS_VEC4(arr)
+#define BS_AVEC2(arr) (bs_vec2){ arr.x, arr.y }
+#define BS_AVEC3(arr) (bs_vec3){ arr.x, arr.y, arr.z }
+#define BS_AVEC4(arr) (bs_vec4){ arr.x, arr.y, arr.z, arr.w }
+#define BS_AV2(arr) BS_AVEC2(arr)
+#define BS_AV3(arr) BS_AVEC3(arr)
+#define BS_AV4(arr) BS_AVEC4(arr)
 
 /* --- COORDS -> VECTOR --- */
 // COORDS -> VECTOR
-#define BS_CVEC2(x, y) (bs_vec2){ x, y }
-#define BS_CVEC3(x, y, z) (bs_vec3){ x, y, z }
-#define BS_CVEC4(x, y, z, w) (bs_vec4) { x, y, z, w }
-#define BS_CV2(x, y) BS_CVEC2(x, y)
-#define BS_CV3(x, y, z) BS_CVEC3(x, y, z)
-#define BS_CV4(x, y, z, w) BS_CVEC4(x, y, z, w)
+#define BS_VEC2(x, y) (bs_vec2){ x, y }
+#define BS_VEC3(x, y, z) (bs_vec3){ x, y, z }
+#define BS_VEC4(x, y, z, w) (bs_vec4) { x, y, z, w }
+#define BS_V2(x, y) BS_VEC2(x, y)
+#define BS_V3(x, y, z) BS_VEC3(x, y, z)
+#define BS_V4(x, y, z, w) BS_VEC4(x, y, z, w)
 
 // COORDS -> VECTOR (INT)
-#define BS_CIVEC2(x, y) (bs_ivec2){ x, y }
-#define BS_CIVEC3(x, y, z) (bs_ivec3){ x, y, z }
-#define BS_CIVEC4(x, y, z, w) (bs_ivec4) { x, y, z, w }
-#define BS_CIV2(x, y) BS_CIVEC2(x, y)
-#define BS_CIV3(x, y, z) BS_CIVEC3(x, y, z)
-#define BS_CIV4(x, y, z, w) BS_CIVEC4(x, y, z, w)
+#define BS_IVEC2(x, y) (bs_ivec2){ x, y }
+#define BS_IVEC3(x, y, z) (bs_ivec3){ x, y, z }
+#define BS_IVEC4(x, y, z, w) (bs_ivec4) { x, y, z, w }
+#define BS_IV2(x, y) BS_IVEC2(x, y)
+#define BS_IV3(x, y, z) BS_IVEC3(x, y, z)
+#define BS_IV4(x, y, z, w) BS_IVEC4(x, y, z, w)
+
+// "COORDS" -> COLOR
+#define BS_RGBA(r, g, b, a) (bs_RGBA) { r, g, b, a }
 
 typedef int64_t bs_I64, bs_long;
 typedef int32_t bs_I32, bs_int;
@@ -122,7 +125,7 @@ typedef struct {
     unsigned int id;
     unsigned int unit;
     unsigned char *data;
-} bs_Tex2D;
+} bs_Texture;
 
 /* --- SHADERS --- */
 // TODO: Make #define instead
@@ -168,7 +171,7 @@ typedef struct {
     unsigned int id;
     unsigned int cs_id;
     
-    bs_Tex2D *tex;
+    bs_Texture *tex;
 } bs_ComputeShader;
 
 typedef struct {
@@ -197,7 +200,7 @@ typedef struct {
 
     int buf_count;
     int buf_alloc;
-    bs_Tex2D *bufs;
+    bs_Texture *bufs;
 } bs_Framebuf;
 
 // Contains all objects queued to render the next frame (unless using multiple batches)
@@ -233,7 +236,7 @@ typedef struct {
 
 typedef struct {
     bs_RGBA col;
-    bs_Tex2D *tex;
+    bs_Texture *tex;
 
     float metallic;
 } bs_Material;
@@ -287,7 +290,7 @@ typedef struct {
     char *name;
 
     bs_Mesh *meshes;
-    bs_Tex2D *textures;
+    bs_Texture *textures;
 
     int mesh_count;
     int vertex_count;
@@ -295,32 +298,67 @@ typedef struct {
 } bs_Model;
 
 /* --- VECTOR CONSTANTS --- */
-// bs_vec2 Constants
-#define bs_vec2_0 (bs_vec2){ 0.0, 0.0 }
-#define bs_vec2_1 (bs_vec2){ 1.0, 1.0 }
-// bs_vec3 Constants
-#define bs_vec3_0 (bs_vec3){ 0.0, 0.0, 0.0 }
-#define bs_vec3_1 (bs_vec3){ 1.0, 1.0, 1.0 }
-// bs_vec4 Constants
-#define bs_vec4_0 (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }
-#define bs_vec4_1 (bs_vec4){ 1.0, 1.0, 1.0, 1.0 }
+#define BS_VEC2_0 (bs_vec2){ 0.0, 0.0 }
+#define BS_VEC2_1 (bs_vec2){ 1.0, 1.0 }
 
-#define bs_ivec4_0 (bs_ivec4){ 0.0, 0.0, 0.0, 0.0 }
+#define BS_VEC3_0 (bs_vec3){ 0.0, 0.0, 0.0 }
+#define VS_VEC3_1 (bs_vec3){ 1.0, 1.0, 1.0 }
+
+#define BS_VEC4_0 (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }
+#define BS_VEC4_1 (bs_vec4){ 1.0, 1.0, 1.0, 1.0 }
+
+
+#define BS_IVEC2_0 (bs_ivec4){ 0, 0 }
+#define BS_IVEC2_1 (bs_ivec4){ 1, 1 }
+
+#define BS_IVEC3_0 (bs_ivec4){ 0, 0, 0 }
+#define BS_IVEC3_1 (bs_ivec4){ 1, 1, 1 }
+
+#define BS_IVEC4_0 (bs_ivec4){ 0, 0, 0, 0 }
+#define BS_IVEC4_1 (bs_ivec4){ 1, 1, 1, 1 }
 
 /* --- COLOR CONSTANTS --- */
 // bs_RGBA Constants
-#define bs_RGBA_0 (bs_RGBA){ 0, 0, 0, 0 }
-#define bs_RGBA_BLACK (bs_RGBA){ 0, 0, 0, 255 }
-#define bs_RGBA_WHITE (bs_RGBA){ 255, 255, 255, 255 }
+#define BS_BLANK (bs_RGBA){ 0, 0, 0, 0 }
+#define BS_BLACK (bs_RGBA){ 0, 0, 0, 255 }
+#define BS_WHITE (bs_RGBA){ 255, 255, 255, 255 }
 
-#define bs_RGBA_RED     (bs_RGBA){ 255, 0  , 0  , 255 }
-#define bs_RGBA_GREEN   (bs_RGBA){ 0  , 255, 0  , 255 }
-#define bs_RGBA_BLUE    (bs_RGBA){ 0  , 0  , 255, 255 }
+#define BS_RED     (bs_RGBA){ 255, 0  , 0  , 255 }
+#define BS_GREEN   (bs_RGBA){ 0  , 255, 0  , 255 }
+#define BS_BLUE    (bs_RGBA){ 0  , 0  , 255, 255 }
 
-#define bs_RGBA_CYAN    (bs_RGBA){ 0  , 255, 255, 255 }
-#define bs_RGBA_YELLOW  (bs_RGBA){ 255, 255, 0  , 255 }
-#define bs_RGBA_MAGENTA (bs_RGBA){ 255, 0  , 255, 255 }
+#define BS_CYAN    (bs_RGBA){ 0  , 255, 255, 255 }
+#define BS_YELLOW  (bs_RGBA){ 255, 255, 0  , 255 }
+#define BS_MAGENTA (bs_RGBA){ 255, 0  , 255, 255 }
 
-#define bs_RGBA255_0
+/* --- DEPRECATED --- */
+#define BS_CV2 BS_V2
+#define BS_CV3 BS_V3
+#define BS_CV4 BS_V4
+#define BS_CVEC2 BS_VEC2
+#define BS_CVEC3 BS_VEC3
+#define BS_CVEC4 BS_VEC4
+
+#define BS_ICV2 BS_IV2
+#define BS_ICV3 BS_IV3
+#define BS_ICV4 BS_IV4
+#define BS_ICVEC2 BS_IVEC2
+#define BS_ICVEC3 BS_IVEC3
+#define BS_ICVEC4 BS_IVEC4
+
+#define bs_RGBA_0     BS_BLANK
+#define bs_RGBA_BLACK BS_BLACK
+#define bs_RGBA_WHITE BS_WHITE
+
+#define bs_RGBA_RED   BS_RED
+#define bs_RGBA_GREEN BS_GREEN
+#define bs_RGBA_BLUE  BS_BLUE
+
+#define bs_RGBA_CYAN    BS_CYAN
+#define bs_RGBA_YELLOW  BS_YELLOW
+#define bs_RGBA_MAGENTA BS_MAGENTA
+
+typedef struct bs_Texture bs_Tex2D;
+typedef struct bs_Framebuf bs_Framebuffer;
 
 #endif /* BS_TYPES_H */

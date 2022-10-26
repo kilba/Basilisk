@@ -202,7 +202,7 @@ void bs_setDefaultUniformLocations(bs_Shader *shader, char *vs_code, char *fs_co
     }
 }
 
-void bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code, bs_Shader *shader) {
+void bs_shaderMem(char *vs_code, char *fs_code, char *gs_code, bs_Shader *shader) {
     if(vs_code == NULL || fs_code == NULL) {
         shader->id = -1;
         return;
@@ -227,7 +227,7 @@ void bs_loadMemShader(char *vs_code, char *fs_code, char *gs_code, bs_Shader *sh
     return;
 }
 
-void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shader) {
+void bs_shader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shader) {
     int vs_err_code;
     int fs_err_code;
     int gs_err_code;
@@ -245,14 +245,14 @@ void bs_loadShader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shade
     }
 
     // Load the shader from memory, compile and return it
-    bs_loadMemShader(vscode, fscode, gscode, shader);
+    bs_shaderMem(vscode, fscode, gscode, shader);
     free(vscode);
     free(fscode);
     free(gscode);
 }
 
 /* COMPUTE SHADERS */
-void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs_Tex2D *tex) {
+void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs_Texture *tex) {
     if(cs_code == NULL)
         return;
 
@@ -267,7 +267,7 @@ void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs
     glBindImageTexture(0, compute_shader->tex->id, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 }
 
-void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Tex2D *tex) {
+void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Texture *tex) {
     int cs_err_code;
     int len;
 
@@ -349,7 +349,7 @@ void bs_switchShaderCompute(int id) {
 
 // MATRICES
 // TODO: mat2, mat3
-void bs_uniform_mat4(int loc, float mat[4][4]) {
+void bs_uniform_mat4(int loc, bs_mat4 mat) {
     glUniformMatrix4fv(loc, 1, GL_FALSE, mat[0]);
 }
 

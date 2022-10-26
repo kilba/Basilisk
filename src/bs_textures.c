@@ -18,10 +18,10 @@
 #include <windows.h>
 #include <winreg.h>
 
-bs_Tex2D *curr_texture;
+bs_Texture *curr_texture;
 
 /* TEXTURE INITIALIZATION */
-void bs_texture(bs_Tex2D *texture, bs_ivec2 dim, int type) {
+void bs_texture(bs_Texture *texture, bs_ivec2 dim, int type) {
     glGenTextures(1, &texture->id);
     glBindTexture(type, texture->id);
 
@@ -105,82 +105,82 @@ void bs_textureMipmaps() {
 }
 
 void bs_texSplit(int frame_count) {
-    bs_Tex2D *tex = curr_texture;
+    bs_Texture *tex = curr_texture;
     tex->texw = 1.0 / (float)frame_count;
 }
 
 void bs_texSplitVert(int frame_count) {
-    bs_Tex2D *tex = curr_texture;
+    bs_Texture *tex = curr_texture;
     tex->texh = 1.0 / (float)frame_count;
 }
 
-void bs_selectTextureTarget(bs_Tex2D *texture, int tex_unit, int target) {
+void bs_selectTextureTarget(bs_Texture *texture, int tex_unit, int target) {
     curr_texture = texture;
     glActiveTexture(GL_TEXTURE0 + tex_unit);
     glBindTexture(target, texture->id);
 }
 
-void bs_selectTexture(bs_Tex2D *texture, int tex_unit) {
+void bs_selectTexture(bs_Texture *texture, int tex_unit) {
     bs_selectTextureTarget(texture, tex_unit, texture->type);
 }
 
-bs_Tex2D *bs_selectedTexture() {
+bs_Texture *bs_selectedTexture() {
     return curr_texture;
 }
 
 /* Functions for easier texture initialization */
-void bs_depth(bs_Tex2D *texture, bs_ivec2 dim) {
+void bs_depth(bs_Texture *texture, bs_ivec2 dim) {
     bs_texture(texture, dim, BS_TEX2D);
     bs_textureMinMag(BS_NEAREST, BS_NEAREST);
     bs_pushTexture(BS_CHANNEL_DEPTH, BS_CHANNEL_DEPTH, BS_FLOAT);
 }
 
-void bs_depthLin(bs_Tex2D *texture, bs_ivec2 dim) {
+void bs_depthLin(bs_Texture *texture, bs_ivec2 dim) {
     bs_texture(texture, dim, BS_TEX2D);
     bs_textureMinMag(BS_LINEAR, BS_LINEAR);
     bs_pushTexture(BS_CHANNEL_DEPTH, BS_CHANNEL_DEPTH, BS_FLOAT);
 }
 
-void bs_textureRGBA(bs_Tex2D *texture, bs_ivec2 dim) {
+void bs_textureRGBA(bs_Texture *texture, bs_ivec2 dim) {
     bs_texture(texture, dim, BS_TEX2D);
     bs_textureMinMag(BS_NEAREST, BS_NEAREST);
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
 }
 
-void bs_textureLinRGBA(bs_Tex2D *texture, bs_ivec2 dim) {
+void bs_textureLinRGBA(bs_Texture *texture, bs_ivec2 dim) {
     bs_texture(texture, dim, BS_TEX2D);
     bs_textureMinMag(BS_LINEAR, BS_LINEAR);
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
 }
 
-void bs_texturePNG(bs_Tex2D *texture, char *path) {
+void bs_texturePNG(bs_Texture *texture, char *path) {
     if(path == NULL)
 	return;
 
-    bs_texture(texture, BS_CIVEC2(0, 0), BS_TEX2D);
+    bs_texture(texture, BS_IVEC2(0, 0), BS_TEX2D);
     bs_textureMinMag(BS_NEAREST, BS_NEAREST);
     bs_textureDataFile(path, true);
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
 }
 
-void bs_textureLinPNG(bs_Tex2D *texture, char *path) {
+void bs_textureLinPNG(bs_Texture *texture, char *path) {
     if(path == NULL)
 	return;
 
-    bs_texture(texture, BS_CIVEC2(0, 0), BS_TEX2D);
+    bs_texture(texture, BS_IVEC2(0, 0), BS_TEX2D);
     bs_textureMinMag(BS_LINEAR, BS_LINEAR);
     bs_textureDataFile(path, true);
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
 }
 
-void bs_depthStencil(bs_Tex2D *texture, bs_ivec2 dim) {
+void bs_depthStencil(bs_Texture *texture, bs_ivec2 dim) {
     bs_texture(texture, dim, BS_TEX2D);
     bs_textureMinMag(BS_NEAREST, BS_NEAREST);
     bs_pushTexture(BS_CHANNEL_DEPTH24_STENCIL8, BS_CHANNEL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
 }
 
-void bs_depthCube(bs_Tex2D *texture, int dim) {
-    bs_texture(texture, BS_CIVEC2(dim, dim), BS_CUBEMAP);
+void bs_depthCube(bs_Texture *texture, int dim) {
+    bs_texture(texture, BS_IVEC2(dim, dim), BS_CUBEMAP);
 
     for(int i = 0; i < 6; ++i) {
 	bs_pushTextureTarget(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i, BS_CHANNEL_DEPTH, BS_CHANNEL_DEPTH, BS_FLOAT);
@@ -190,8 +190,8 @@ void bs_depthCube(bs_Tex2D *texture, int dim) {
     bs_textureWrap(BS_TEXTURE_WRAP_STR, BS_CLAMP_TO_EDGE);
 }
 
-void bs_depthCubeLin(bs_Tex2D *texture, int dim) {
-    bs_texture(texture, BS_CIVEC2(dim, dim), BS_CUBEMAP);
+void bs_depthCubeLin(bs_Texture *texture, int dim) {
+    bs_texture(texture, BS_IVEC2(dim, dim), BS_CUBEMAP);
 
     for(int i = 0; i < 6; ++i) {
 	bs_pushTextureTarget(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i, BS_CHANNEL_DEPTH, BS_CHANNEL_DEPTH, BS_FLOAT);
@@ -201,8 +201,8 @@ void bs_depthCubeLin(bs_Tex2D *texture, int dim) {
     bs_textureWrap(BS_TEXTURE_WRAP_STR, BS_CLAMP_TO_EDGE);
 }
 
-void bs_textureCube(bs_Tex2D *texture, int dim, char *paths[6]) {
-    bs_texture(texture, BS_CIVEC2(dim, dim), BS_CUBEMAP);
+void bs_textureCube(bs_Texture *texture, int dim, char *paths[6]) {
+    bs_texture(texture, BS_IVEC2(dim, dim), BS_CUBEMAP);
 
     for(int i = 0; i < 6; ++i) {
 	bs_textureDataFile(paths[i], true);
@@ -213,8 +213,8 @@ void bs_textureCube(bs_Tex2D *texture, int dim, char *paths[6]) {
     bs_textureWrap(BS_TEXTURE_WRAP_STR, BS_CLAMP_TO_EDGE);
 }
 
-void bs_textureCubeLin(bs_Tex2D *texture, int dim, char *paths[6]) {
-    bs_texture(texture, BS_CIVEC2(dim, dim), BS_CUBEMAP);
+void bs_textureCubeLin(bs_Texture *texture, int dim, char *paths[6]) {
+    bs_texture(texture, BS_IVEC2(dim, dim), BS_CUBEMAP);
 
     for(int i = 0; i < 6; ++i) {
 	bs_textureDataFile(paths[i], true);
@@ -225,7 +225,7 @@ void bs_textureCubeLin(bs_Tex2D *texture, int dim, char *paths[6]) {
     bs_textureWrap(BS_TEXTURE_WRAP_STR, BS_CLAMP_TO_EDGE);
 }
 
-void bs_textureArray(bs_Tex2D *tex, bs_ivec2 max_dim, int num_textures) {
+void bs_textureArray(bs_Texture *tex, bs_ivec2 max_dim, int num_textures) {
     bs_texture(tex, max_dim, GL_TEXTURE_2D_ARRAY);
 
     glTexStorage3D(

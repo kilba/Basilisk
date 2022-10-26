@@ -385,7 +385,7 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 		ids[i] = (int64_t)data->textures[i].image;
 	}
 
- 	model->textures = malloc(data->textures_count * sizeof(bs_Tex2D));
+ 	model->textures = malloc(data->textures_count * sizeof(bs_Texture));
 	for(int i = 0; i < data->textures_count; i++) {
 		char texture_path[256] = "resources/models/";
 		strcat(texture_path, data->images[i].name);

@@ -109,7 +109,11 @@ int bs_checkError() {
     return err; 
 }
 
-/* --- MATRICES --- */
+/* --- MATRICES / CAMERAS --- */
+bs_Camera *bs_defCamera() {
+    return &def_camera;
+}
+
 void bs_ortho(bs_mat4 mat, int left, int right, int bottom, int top, float nearZ, float farZ) {
     glm_ortho(left, right, bottom, top, nearZ, farZ, mat);
 
@@ -127,18 +131,6 @@ void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up) {
 
 void bs_persp(bs_mat4 mat, float aspect, float fovy, float nearZ, float farZ) {
     glm_perspective(glm_rad(fovy), aspect, nearZ, farZ, mat);
-}
-
-/* --- UNBATCHED RENDERING --- */
-void bs_drawTexture(bs_vec3 pos, bs_vec2 dim, bs_Tex2D *tex, bs_RGBA col) {
-    bs_selectTexture(tex, 0);
-    bs_selectBatch(&def_batch);
-    
-    bs_pushRect(pos, dim, col);
-
-    bs_pushBatch();
-    bs_renderBatch(0, bs_batchSize());
-    bs_clearBatch();
 }
 
 /* --- BATCHED RENDERING --- */
@@ -211,10 +203,10 @@ void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
 
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
     
-    bs_pushVertex(p0, (bs_vec2){ 0.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
-    bs_pushVertex(p1, (bs_vec2){ 1.0, 0.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
-    bs_pushVertex(p2, (bs_vec2){ 0.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
-    bs_pushVertex(p3, (bs_vec2){ 1.0, 1.0 }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
+    bs_pushVertex(p0, (bs_vec2){ 0.0, 0.0 }, BS_VEC3_0, col, BS_IVEC4_0, BS_VEC4_0, BS_VEC4_0); // Bottom Left
+    bs_pushVertex(p1, (bs_vec2){ 1.0, 0.0 }, BS_VEC3_0, col, BS_IVEC4_0, BS_VEC4_0, BS_VEC4_0); // Bottom right
+    bs_pushVertex(p2, (bs_vec2){ 0.0, 1.0 }, BS_VEC3_0, col, BS_IVEC4_0, BS_VEC4_0, BS_VEC4_0); // Top Left
+    bs_pushVertex(p3, (bs_vec2){ 1.0, 1.0 }, BS_VEC3_0, col, BS_IVEC4_0, BS_VEC4_0, BS_VEC4_0); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
@@ -232,16 +224,16 @@ void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_di
 
     memcpy(curr_batch->indices + curr_batch->index_draw_count, indices, 6 * sizeof(int));
 
-    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim1.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim1.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Bottom right
-    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim0.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Left
-    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim0.y }, bs_vec3_0, col, bs_ivec4_0, bs_vec4_0, bs_vec4_0); // Top Right
+    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim1.y }, BS_VEC3_0, col, BS_IVEC4_0, BS_VEC4_0, BS_VEC4_0); // Bottom Left
+    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim1.y }, BS_VEC3_0, col, BS_IVEC4_0, BS_VEC4_0, BS_VEC4_0); // Bottom right
+    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim0.y }, BS_VEC3_0, col, BS_IVEC4_0, BS_VEC4_0, BS_VEC4_0); // Top Left
+    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim0.y }, BS_VEC3_0, col, BS_IVEC4_0, BS_VEC4_0, BS_VEC4_0); // Top Right
 
     curr_batch->index_draw_count += 6;
 }
 
 void bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
-    bs_Tex2D *tex = bs_selectedTexture();
+    bs_Texture *tex = bs_selectedTexture();
 
     bs_vec2 tex_dim0, tex_dim1;
     tex_dim0.x = tex->texw * (float)tex->frame.x;
@@ -254,7 +246,7 @@ void bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     bs_batchResizeCheck(6, 4);
-    bs_Tex2D *tex = bs_selectedTexture();
+    bs_Texture *tex = bs_selectedTexture();
 
     bs_vec2 tex_dim0, tex_dim1;
     tex_dim0.x = tex->texw * (float)tex->frame.x;
@@ -272,9 +264,9 @@ void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     };
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 3 * sizeof(int));
 
-    bs_pushVertex(pos1, (bs_vec2){ 0.0, 0.0 }, bs_vec3_0, color, bs_ivec4_0, bs_vec4_0, bs_vec4_0);
-    bs_pushVertex(pos2, (bs_vec2){ 1.0, 0.0 }, bs_vec3_0, color, bs_ivec4_0, bs_vec4_0, bs_vec4_0);
-    bs_pushVertex(pos3, (bs_vec2){ 0.0, 1.0 }, bs_vec3_0, color, bs_ivec4_0, bs_vec4_0, bs_vec4_0);
+    bs_pushVertex(pos1, (bs_vec2){ 0.0, 0.0 }, BS_VEC3_0, color, BS_IVEC4_0, BS_VEC4_0, BS_VEC4_0);
+    bs_pushVertex(pos2, (bs_vec2){ 1.0, 0.0 }, BS_VEC3_0, color, BS_IVEC4_0, BS_VEC4_0, BS_VEC4_0);
+    bs_pushVertex(pos3, (bs_vec2){ 0.0, 1.0 }, BS_VEC3_0, color, BS_IVEC4_0, BS_VEC4_0, BS_VEC4_0);
 
     curr_batch->index_draw_count += 3;
 }
@@ -297,7 +289,7 @@ void bs_pushPrim(bs_Prim *prim) {
             prim->material.col, 
             prim->vertices[i].bone_ids, 
             prim->vertices[i].weights, 
-            bs_vec4_0
+            BS_VEC4_0
         );
     }
 
@@ -477,7 +469,7 @@ void bs_framebufResizeCheck() {
 	return;
 
     framebuf->buf_alloc += 2;
-    framebuf->bufs = realloc(framebuf->bufs, framebuf->buf_alloc * sizeof(bs_Tex2D));
+    framebuf->bufs = realloc(framebuf->bufs, framebuf->buf_alloc * sizeof(bs_Texture));
 }
 
 void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim) {
@@ -487,7 +479,7 @@ void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim) {
     framebuf->clear = GL_DEPTH_BUFFER_BIT;
     framebuf->buf_count = 0;
     framebuf->buf_alloc = 4;
-    framebuf->bufs = malloc(framebuf->buf_alloc * sizeof(bs_Tex2D));
+    framebuf->bufs = malloc(framebuf->buf_alloc * sizeof(bs_Texture));
 
     bs_framebufCulling(culling);
 
@@ -503,7 +495,7 @@ void bs_attachColorbuffer(int attachment) {
     bs_framebufResizeCheck();
     
     bs_Framebuf *framebuf = curr_framebuf;
-    bs_Tex2D *tex = framebuf->bufs + framebuf->buf_count;
+    bs_Texture *tex = framebuf->bufs + framebuf->buf_count;
     framebuf->clear |= GL_COLOR_BUFFER_BIT;
 
     bs_textureRGBA(tex, framebuf->dim);
@@ -524,7 +516,7 @@ void bs_attachDepthBufferType(int type) {
     bs_framebufResizeCheck();
 
     bs_Framebuf *framebuf = curr_framebuf;
-    bs_Tex2D *tex = framebuf->bufs + framebuf->buf_count;
+    bs_Texture *tex = framebuf->bufs + framebuf->buf_count;
     framebuf->clear |= GL_DEPTH_BUFFER_BIT;
 
     if(tex->type == BS_CUBEMAP) {
@@ -717,7 +709,7 @@ int bs_objUnderPt(bs_ivec2 pt) {
     return hex-1;
 }
 
-bs_Tex2D *bs_objEndRead() {
+bs_Texture *bs_objEndRead() {
     bs_endFramebufRender();
     return &selection.fbo.bufs[0];
 }
