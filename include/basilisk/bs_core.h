@@ -94,6 +94,7 @@ void bs_stencilMask(int val);
 void bs_depthMask(int val);
 void bs_stencilOp(int val0, int val1, int val2);
 void bs_stencilOpSeparate(int val0, int val1, int val2, int val3);
+void bs_cullFace(int val);
 
 /* --- CONSTANTS --- */
 #define BS_BATCH_INCR_BY 1024 

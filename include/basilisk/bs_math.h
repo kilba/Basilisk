@@ -11,7 +11,9 @@ void bs_eul2quat(bs_quat q, bs_vec3 eul);
 
 // void bs_normv3(bs_vec3 *v);
 bs_vec3 bs_normalize(bs_vec3 v);
-void bs_crossv3(bs_vec3 v0, bs_vec3 v1, bs_vec3 out);
+bs_vec3 bs_cross(bs_vec3 v0, bs_vec3 v1);
+float bs_dot(bs_vec3 v0, bs_vec3 v1);
+bool bs_triangleIsCCW(bs_vec3 a, bs_vec3 b, bs_vec3 c, bs_vec3 normal);
 float bs_signv3(bs_vec3 p1, bs_vec3 p2, bs_vec3 p3);
 bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3);
 

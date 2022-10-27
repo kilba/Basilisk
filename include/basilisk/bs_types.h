@@ -201,6 +201,8 @@ typedef struct {
     int buf_count;
     int buf_alloc;
     bs_Texture *bufs;
+
+    bs_U8 depth_index;
 } bs_Framebuf;
 
 // Contains all objects queued to render the next frame (unless using multiple batches)
@@ -268,6 +270,7 @@ typedef struct {
 
     int *indices;
     int index_count;
+    int unique_count;
 } bs_Prim;
 
 typedef struct {
@@ -293,6 +296,7 @@ typedef struct {
     bs_Texture *textures;
 
     int mesh_count;
+    int prim_count;
     int vertex_count;
     int index_count;
 } bs_Model;

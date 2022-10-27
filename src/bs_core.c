@@ -31,8 +31,6 @@ bs_Shader texture_shader;
 
 bs_Camera def_camera;
 bs_Batch *curr_batch;
-bs_Batch def_batch;
-bs_Shader def_shader;
 
 bs_Framebuf *curr_framebuf = NULL;
 bs_UniformBuffer global_unifs;
@@ -477,6 +475,7 @@ void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim) {
 
     framebuf->dim = dim;
     framebuf->clear = GL_DEPTH_BUFFER_BIT;
+    framebuf->depth_index = 0;
     framebuf->buf_count = 0;
     framebuf->buf_alloc = 4;
     framebuf->bufs = malloc(framebuf->buf_alloc * sizeof(bs_Texture));
@@ -518,8 +517,11 @@ void bs_attachDepthBufferType(int type) {
     bs_Framebuf *framebuf = curr_framebuf;
     bs_Texture *tex = framebuf->bufs + framebuf->buf_count;
     framebuf->clear |= GL_DEPTH_BUFFER_BIT;
+    framebuf->depth_index = framebuf->buf_count;
+    framebuf->buf_count++;
 
     if(tex->type == BS_CUBEMAP) {
+	bs_depthCube(tex, framebuf->dim.x);
 	glFramebufferTexture(GL_FRAMEBUFFER, type, tex->id, 0);
 	return;
     }
@@ -532,7 +534,6 @@ void bs_attachDepthBufferType(int type) {
     }
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, tex->id, 0);
-    framebuf->buf_count++;
 }
 
 void bs_attachDepthBuffer() {
@@ -740,33 +741,7 @@ void bs_init(int width, int height, char *title) {
     global_unifs = bs_initUniformBlock(sizeof(bs_Globals), 0);
 
     // Load default shaders
-    bs_loadShader("resources/bs_texture_shader.vs", "resources/bs_texture_shader.fs", 0, &texture_shader);
     bs_initMeshSelection();
-    char *def_vs = "#version 430\n"\
-	"layout (location = 0) in vec3 bs_Pos;"\
-	"layout (location = 1) in vec2 bs_TexCoord;"\
-	
-	"uniform mat4 bs_Proj; uniform mat4 bs_View;"\
-	"out vec2 ftex;"\
-
-	"void main() {"\
-	    "ftex = bs_TexCoord;"\
-	    "gl_Position = bs_Proj * bs_View * vec4(bs_Pos, 1.0);"\
-	"}";
-
-    char *def_fs = "#version 430\n"\
-	"in vec2 ftex;"\
-	"out vec4 FragColor;"\
-
-	"uniform sampler2D bs_Texture0;"\
-
-	"void main() {"\
-	    "FragColor = texture(bs_Texture0, ftex);"\
-	"}";
-
-
-    bs_loadMemShader(def_vs, def_fs, 0, &def_shader);
-    bs_batch(&def_batch, &def_shader);
 }
 
 void bs_startRender(void (*render)()) {
@@ -815,4 +790,8 @@ void bs_stencilOp(int val0, int val1, int val2) {
 
 void bs_stencilOpSeparate(int val0, int val1, int val2, int val3) {
     glStencilOpSeparate(val0, val1, val2, val3);
+}
+
+void bs_cullFace(int val) {
+    glCullFace(val);
 }

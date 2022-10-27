@@ -205,7 +205,7 @@ void bs_readIndicesAdjacent(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, 
 
     /**/
 
-    // For each triangle in mesh
+    // For each triangle in primitive
     for(int i = 0; i < num_tris; i++) {
 	int first_idx = 6 * i;
 
@@ -255,12 +255,11 @@ typedef struct {
     int unique_index;
 } VertexDecl;
 
-
 void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_index, int prim_index) {
     cgltf_mesh *c_mesh = &data->meshes[mesh_index];
     bs_Prim *prim = &mesh->prims[prim_index];
-    prim->material.tex = NULL;
 
+    prim->material.tex = NULL;
     int attrib_count = c_mesh->primitives[prim_index].attributes_count;
     int num_floats = cgltf_accessor_unpack_floats(&data->accessors[c_mesh->primitives[prim_index].attributes[0].index], NULL, 0);
 
@@ -293,15 +292,6 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
 
     if((load_settings & BS_INDICES_ADJACENT) == BS_INDICES_ADJACENT)
 	bs_readIndicesAdjacent(mesh, model, c_mesh, prim_index);
-/*
-    int id0 = prim->vertices[prim->indices[0]].unique_index;
-    int id1 = prim->vertices[prim->indices[1]].unique_index;
-    int id2 = prim->vertices[prim->indices[2]].unique_index;
-
-    int idx1 = bs_findAdjacentIndex(num_tris, prim, id0, id1, id2);
-    int idx2 = bs_findAdjacentIndex(num_tris, prim, id1, id2, id0);
-    int idx3 = bs_findAdjacentIndex(num_tris, prim, id2, id0, id1);
-   printf("{ %d, %d, %d } | { %d, %d, %d }\n", id0, id1, id2, idx1, idx2, idx3);*/
 }
 
 void bs_loadJoints(cgltf_data *data, bs_Mesh *mesh, cgltf_mesh *c_mesh) {
@@ -508,15 +498,16 @@ void bs_loadModel(char *model_path, bs_Model *model, int settings) {
 
     model->meshes = malloc(mesh_count * sizeof(bs_Mesh));
     model->mesh_count = mesh_count;
+    model->prim_count = 0;
     model->vertex_count = 0;
     model->index_count = 0;
-
 
     model->name = malloc(path_len);
     strcpy(model->name, model_path);
     bs_loadModelTextures(data, model);
     for(int i = 0; i < mesh_count; i++) {
 	bs_loadMesh(data, model, i);
+	model->prim_count += model->meshes[i].prim_count;
     }
 
     bs_loadAnims(data, model);

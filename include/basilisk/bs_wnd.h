@@ -1,6 +1,8 @@
 #ifndef BS_WND_H
 #define BS_WND_H
 
+#include <bs_types.h>
+
 void bs_initWnd(int width, int height, char *title);
 void bs_wndTick(void (*render)());
 void bs_setBackgroundColor(bs_RGBA color);

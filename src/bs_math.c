@@ -51,10 +51,23 @@ bs_vec3 bs_normalize(bs_vec3 v) {
     return v;
 }
 
-void bs_crossv3(bs_vec3 v0, bs_vec3 v1, bs_vec3 out) {
+bs_vec3 bs_cross(bs_vec3 v0, bs_vec3 v1) {
+    bs_vec3 out;
     out.x = v0.y * v1.z - v0.z * v1.y;
     out.y = v0.z * v1.x - v0.x * v1.z;
     out.z = v0.x * v1.y - v0.y * v1.x;
+    return out;
+}
+
+float bs_dot(bs_vec3 v0, bs_vec3 v1) {
+    return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z;
+}
+
+bool bs_triangleIsCCW(bs_vec3 a, bs_vec3 b, bs_vec3 c, bs_vec3 normal) {
+    return bs_dot(bs_cross(
+	BS_V3(b.x - a.x, b.y - a.y, b.z - a.z), 
+	BS_V3(c.x - a.x, c.y - a.y, c.z - a.z)
+    ), normal) > 0.0;
 }
 
 float bs_signv3(bs_vec3 p1, bs_vec3 p2, bs_vec3 p3) {
