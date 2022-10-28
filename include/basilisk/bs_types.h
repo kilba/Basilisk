@@ -234,6 +234,8 @@ typedef struct {
     int joint_count;
     int frame_count;
     int frame_offset_shader;
+
+    char *name;
 } bs_Anim;
 
 typedef struct {

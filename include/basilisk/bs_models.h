@@ -7,6 +7,7 @@ void bs_loadModel(char *model_path, bs_Model *model, int settings);
 void bs_animate(bs_Anim *anim, int frame);
 void bs_pushAnims();
 bs_Anim *bs_getAnims();
+bs_Anim *bs_getAnimFromName(char *name);
 
 /* --- SETTINGS --- */
 /* Loads the indices (Default) */

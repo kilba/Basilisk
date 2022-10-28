@@ -404,11 +404,16 @@ void bs_loadAnim(cgltf_data* data, int index, bs_Model *model) {
     int joint_count = c_anim->samplers_count / 3;
     int frame_count = cgltf_accessor_unpack_floats(c_anim->samplers[0].input, NULL, 0);
 
+    int name_len = strlen(c_anim->name);
+
     bs_mat4 *joints = malloc(joint_count * frame_count * sizeof(bs_mat4));
+    anim->name = malloc(name_len + 1);
+    strcpy(anim->name, c_anim->name);
+
     anim->joint_count = joint_count;
     anim->frame_count = frame_count;
     anim->frame_offset_shader = anim_offset;
-    anim_offset += frame_count * joint_count * sizeof(bs_mat4);
+    anim_offset += frame_count * joint_count;
 
     int i, i3 = 0; 
     for(i = 0; i < joint_count; i++, i3+=3) {
@@ -423,8 +428,8 @@ void bs_loadAnim(cgltf_data* data, int index, bs_Model *model) {
 	cgltf_accessor *scale_output       = c_sampler->output + 2; 
 
 	for(int j = 0; j < frame_count; j++) {
-	    int index = i + (j * joint_count);
-	    bs_mat4 *joint = &joints[index];
+	    int idx = i + (j * joint_count);
+	    bs_mat4 *joint = &joints[idx];
 
 	    bs_mat4 joint_mat = GLM_MAT4_IDENTITY_INIT;
 	    vec3   tra;
@@ -451,14 +456,14 @@ void bs_loadAnim(cgltf_data* data, int index, bs_Model *model) {
 	for(int j = 0; j < joint_count; j++) {
 	    bs_Joint *change_joint = &mesh->joints[j];
 	    bs_Joint *parent = mesh->joints[j].parent;
-	    int index = j + i * joint_count;
+	    int idx = j + i * joint_count;
 
 	    glm_mat4_mul(change_joint->bind_matrix, change_joint->local_inv, change_joint->mat);
-	    glm_mat4_mul(change_joint->mat, joints[index], change_joint->mat);
+	    glm_mat4_mul(change_joint->mat, joints[idx], change_joint->mat);
 	    glm_mat4_mul(change_joint->mat, change_joint->bind_matrix_inv, change_joint->mat);
 	    glm_mat4_mul(parent->mat, change_joint->mat, change_joint->mat);
 
-	    memcpy(anim->matrices + index, change_joint->mat, sizeof(bs_mat4));
+	    memcpy(anim->matrices + idx, change_joint->mat, sizeof(bs_mat4));
 	}
     }
 
@@ -515,8 +520,12 @@ void bs_loadModel(char *model_path, bs_Model *model, int settings) {
 }
 
 void bs_animate(bs_Anim *anim, int frame) {
+    /* TODO: Log warning */
+    if(anim == NULL)
+	return;
+
     frame %= anim->frame_count;
-    frame *= 29;
+    frame *= anim->joint_count;
     frame += anim->frame_offset_shader;
 
     bs_selectSSBO(anim_ssbo);
@@ -524,15 +533,26 @@ void bs_animate(bs_Anim *anim, int frame) {
 }
 
 void bs_pushAnims() {
-    int ssbo_size = anim_offset;
+    int ssbo_size = anim_offset * sizeof(bs_mat4);
     anim_ssbo = bs_SSBO(NULL, ssbo_size + 16, 3);
     for(int i = 0; i < anim_count; i++) {
 	bs_Anim *anim = anims + i;
-	bs_pushSSBO(anim->matrices, 16 + anim->frame_offset_shader, ssbo_size);
+	int size = anim->joint_count * anim->frame_count * sizeof(bs_mat4);
+	bs_pushSSBO(anim->matrices, 16 + anim->frame_offset_shader * sizeof(bs_mat4), size);
 	free(anim->matrices);
     }
 }
 
 bs_Anim *bs_getAnims() {
     return anims;
+}
+
+bs_Anim *bs_getAnimFromName(char *name) {
+    for(int i = 0; i < anim_count; i++) {
+	bs_Anim *anim = anims + i;
+	if(strcmp(name, anim->name))
+	    return anim;
+    }
+
+    return NULL;
 }
