@@ -144,6 +144,7 @@ typedef enum {
     BS_BID,
     BS_WEI,
     BS_V4_,
+    BS_V4I,
 
     BS_MAX_ATTRIB_COUNT
 } Bs_ATTRIB_TYPES;
@@ -308,11 +309,19 @@ typedef struct {
 #define BS_VEC2_1 (bs_vec2){ 1.0, 1.0 }
 
 #define BS_VEC3_0 (bs_vec3){ 0.0, 0.0, 0.0 }
-#define VS_VEC3_1 (bs_vec3){ 1.0, 1.0, 1.0 }
+#define BS_VEC3_1 (bs_vec3){ 1.0, 1.0, 1.0 }
 
 #define BS_VEC4_0 (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }
 #define BS_VEC4_1 (bs_vec4){ 1.0, 1.0, 1.0, 1.0 }
 
+#define BS_V2_0 BS_VEC2_0
+#define BS_V2_1 BS_VEC2_1
+
+#define BS_V3_0 BS_VEC3_0
+#define BS_V3_1 BS_VEC3_1
+
+#define BS_V4_0 BS_VEC4_0
+#define BS_V4_1 BS_VEC4_1
 
 #define BS_IVEC2_0 (bs_ivec4){ 0, 0 }
 #define BS_IVEC2_1 (bs_ivec4){ 1, 1 }
@@ -322,6 +331,17 @@ typedef struct {
 
 #define BS_IVEC4_0 (bs_ivec4){ 0, 0, 0, 0 }
 #define BS_IVEC4_1 (bs_ivec4){ 1, 1, 1, 1 }
+
+#define BS_IV2_0 BS_IVEC2_0
+#define BS_IV2_1 BS_IVEC2_1
+
+#define BS_IV3_0 BS_IVEC3_0
+#define BS_IV3_1 BS_IVEC3_1
+
+#define BS_IV4_0 BS_IVEC4_0
+#define BS_IV4_1 BS_IVEC4_1
+
+
 
 /* --- COLOR CONSTANTS --- */
 // bs_RGBA Constants

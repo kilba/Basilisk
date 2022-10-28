@@ -5,13 +5,15 @@
 
 /* --- RENDERING --- */
 void bs_pushVertex(
-    bs_vec3 pos,
-    bs_vec2 tex_coord,
-    bs_vec3 normal,
-    bs_RGBA color,
-    bs_ivec4 bone_ids,
-    bs_vec4 weights,
-    bs_vec4 attrib_vec4);
+    bs_vec3  pos,
+    bs_vec2  tex,
+    bs_vec3  nor,
+    bs_RGBA  col,
+    bs_ivec4 bid,
+    bs_vec4  wei,
+    bs_vec4  v4_,
+    bs_ivec4 v4i
+);
 
 void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
 void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col);
@@ -19,6 +21,9 @@ void bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
 void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
+void bs_pushPrimIA(bs_Prim *prim, bs_ivec4 attributes); 
+void bs_pushMeshIA(bs_Mesh *mesh, bs_ivec4 attributes);
+void bs_pushModelIA(bs_Model *model, bs_ivec4 attributes);
 void bs_pushPrim(bs_Prim *prim); 
 void bs_pushMesh(bs_Mesh *mesh);
 void bs_pushModel(bs_Model *model);
@@ -134,13 +139,14 @@ void bs_cullFace(int val);
 #define BS_CCW 0x0901
 
 /* BATCH ATTRIBUTE TYPES  */
-#define BS_POSITION 1
-#define BS_TEX_COORD 2
-#define BS_COLOR 4
-#define BS_NORMAL 8
-#define BS_BONE_IDS 16
-#define BS_WEIGHTS 32
-#define BS_ATTR_VEC4 64
+#define BS_POS 1
+#define BS_TEX 2
+#define BS_COL 4
+#define BS_NOR 8
+#define BS_BID 16
+#define BS_WEI 32
+#define BS_V4_ 64
+#define BS_V4I 128
 
 /* RENDER MODES */
 #define BS_POINTS 0x0000

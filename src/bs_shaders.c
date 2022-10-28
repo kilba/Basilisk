@@ -99,22 +99,24 @@ void bs_setDefShaderUniforms(bs_Shader *shader, char *shader_code){
 void bs_setDefShaderAttribs(bs_Shader *shader, char *vs_code) {
     const char *def_attribs [] = { 
 	"bs_Pos", 
-	"bs_TexCoord", 
-	"bs_Color", 
-	"bs_Normal",
-	"bs_Bone_Ids",
-	"bs_Weights",
-	"bs_Attr_Vec4"
+	"bs_Tex", 
+	"bs_Col", 
+	"bs_Nor",
+	"bs_BID",
+	"bs_Wei",
+	"bs_V4_",
+	"bs_V4I"
     };
 
     int values[] = { 
-	BS_POSITION,
-	BS_TEX_COORD,
-	BS_COLOR,
-	BS_NORMAL,
-	BS_BONE_IDS,
-	BS_WEIGHTS,
-	BS_ATTR_VEC4,
+	BS_POS,
+	BS_TEX,
+	BS_COL,
+	BS_NOR,
+	BS_BID,
+	BS_WEI,
+	BS_V4_,
+	BS_V4I
     };
 
     uint8_t sizes[] = {
@@ -124,7 +126,8 @@ void bs_setDefShaderAttribs(bs_Shader *shader, char *vs_code) {
 	sizeof(bs_vec3),  /* BS_NOR */
 	sizeof(bs_ivec4), /* BS_BID */
 	sizeof(bs_vec4),  /* BS_WEI */
-	sizeof(bs_vec4)   /* BS_V4_ */
+	sizeof(bs_vec4),  /* BS_V4_ */
+	sizeof(bs_ivec4), /* BS_V4I */
     };
 
     for(int i = 0; i < BS_MAX_ATTRIB_COUNT; i++) {
