@@ -32,6 +32,7 @@
 typedef struct { float x, y; } bs_vec2;
 typedef struct { float x, y, z; } bs_vec3;
 typedef struct { float x, y, z, w; } bs_vec4;
+typedef struct { bs_vec3 v0, v1, v2; } bs_triangle;
 
 typedef struct { int x, y; } bs_ivec2;
 typedef struct { int x, y, z; } bs_ivec3;

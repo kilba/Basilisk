@@ -63,11 +63,27 @@ float bs_dot(bs_vec3 v0, bs_vec3 v1) {
     return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z;
 }
 
+bs_vec3 bs_triangleNormal(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2) {
+    bs_vec3 a = BS_V3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
+    bs_vec3 b = BS_V3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
+    bs_vec3 c = bs_cross(a, b);
+    c = bs_normalize(c);
+    return c;
+}
+
+bs_vec3 bs_triangleCenter(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2) {
+    float x, y, z;
+    x = v0.x + v1.x + v2.x;
+    y = v0.y + v1.y + v2.y;
+    z = v0.z + v1.z + v2.z;
+    return BS_V3(x / 3.0, y / 3.0, z / 3.0);
+}
+
 bool bs_triangleIsCCW(bs_vec3 a, bs_vec3 b, bs_vec3 c, bs_vec3 normal) {
-    return bs_dot(bs_cross(
+    return bs_cross(
 	BS_V3(b.x - a.x, b.y - a.y, b.z - a.z), 
 	BS_V3(c.x - a.x, c.y - a.y, c.z - a.z)
-    ), normal) > 0.0;
+    ).z > 0.0;
 }
 
 float bs_signv3(bs_vec3 p1, bs_vec3 p2, bs_vec3 p3) {

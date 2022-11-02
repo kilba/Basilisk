@@ -279,7 +279,7 @@ void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
 }
 
 /* --- Rendering models with attributes --- */
-void bs_pushPrimIA(bs_Prim *prim, bs_ivec4 attributes) {
+void bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes) {
 
     bs_batchResizeCheck(prim->index_count, prim->vertex_count);
     for(int i = 0; i < prim->index_count; i++) {
@@ -294,37 +294,37 @@ void bs_pushPrimIA(bs_Prim *prim, bs_ivec4 attributes) {
             prim->material.col, 
             prim->vertices[i].bone_ids, 
             prim->vertices[i].weights, 
-            BS_V4_0,
-	    attributes
+            attributes,
+	    BS_IV4_0
         );
     }
 
     curr_batch->index_draw_count += prim->index_count;
 }
 
-void bs_pushMeshIA(bs_Mesh *mesh, bs_ivec4 attributes) {
+void bs_pushMeshA(bs_Mesh *mesh, bs_vec4 attributes) {
     for(int i = 0; i < mesh->prim_count; i++) {
         bs_Prim *prim = &mesh->prims[i];
-        bs_pushPrimIA(prim, attributes);
+        bs_pushPrimA(prim, attributes);
     }
 }
 
-void bs_pushModelIA(bs_Model *model, bs_ivec4 attributes) {
+void bs_pushModelA(bs_Model *model, bs_vec4 attributes) {
     for(int i = 0; i < model->mesh_count; i++) {
-        bs_pushMeshIA(&model->meshes[i], attributes);
+        bs_pushMeshA(&model->meshes[i], attributes);
     }
 }
 
 void bs_pushPrim(bs_Prim *prim) {
-    bs_pushPrimIA(prim, BS_IV4_0);
+    bs_pushPrimA(prim, BS_V4_0);
 }
 
 void bs_pushMesh(bs_Mesh *mesh) {
-    bs_pushMeshIA(mesh, BS_IV4_0);
+    bs_pushMeshA(mesh, BS_V4_0);
 }
 
 void bs_pushModel(bs_Model *model) {
-    bs_pushModelIA(model, BS_IV4_0);
+    bs_pushModelA(model, BS_V4_0);
 }
 
 void bs_batchBufferSize(int index_count, int vertex_count) {
@@ -804,6 +804,10 @@ void bs_depthMask(int val) {
     glDepthMask(val);
 }
 
+void bs_colorMask(int val0, int val1, int val2, int val3) {
+    glColorMask(val0, val1, val2, val3);
+}
+
 void bs_stencilOp(int val0, int val1, int val2) {
     glStencilOp(val0, val1, val2);
 }
@@ -814,4 +818,20 @@ void bs_stencilOpSeparate(int val0, int val1, int val2, int val3) {
 
 void bs_cullFace(int val) {
     glCullFace(val);
+}
+
+void bs_clear(int bit_field) {
+    glClear(bit_field);
+}
+
+void bs_clearStencil(int val) {
+    glClearStencil(val);
+}
+
+void bs_clearColor(float r, float g, float b, float a) {
+    glClearColor(r, g, b, a);
+}
+
+void bs_frontFace(int face) {
+    glFrontFace(face);
 }

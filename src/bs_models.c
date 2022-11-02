@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 #define CGLTF_IMPLEMENTATION
 #include <cgltf/cgltf.h>
 #include <cglm/cglm.h>
@@ -11,6 +12,7 @@
 #include <bs_models.h>
 #include <bs_shaders.h>
 #include <bs_textures.h>
+#include <bs_debug.h>
 
 bs_Joint identity_joint = { GLM_MAT4_IDENTITY_INIT };
 
@@ -126,6 +128,23 @@ void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
     mat->metallic = metallic->metallic_factor;
 }
 
+bool bs_checkWindingConflict(bs_Prim *prim, int num_tris, int cur, int idx0, int idx1) {
+    for(int i = 0; i < num_tris; i++) {
+	int first_idx = 6 * i;
+	if(i == cur)
+	    continue;
+
+	for(int j = 0; j < 3; j++) {
+	    int cmp_idx0 = prim->vertices[prim->indices[first_idx + j * 2]].unique_index;
+	    int cmp_idx1 = prim->vertices[prim->indices[first_idx + ((j+1)%3) * 2]].unique_index;
+
+	    if(cmp_idx0 == idx0 && cmp_idx1 == idx1)
+		return true;
+	}
+    }
+    return false;
+}
+
 int bs_findAdjacentIndex(int num_tris, bs_Prim *prim, int idx1, int idx2, int idx3) {
     for(int i = 0; i < num_tris; i++) {
 	int first_idx = 6 * i;
@@ -141,11 +160,13 @@ int bs_findAdjacentIndex(int num_tris, bs_Prim *prim, int idx1, int idx2, int id
 	    int v2 = face_indices[(edge + 1) % 3];
 	    int opp = face_indices[(edge + 2) % 3];
 
+	    /* If the two triangles share an edge */
 	    if(((v1 == idx1 && v2 == idx2) || (v2 == idx1 && v1 == idx2)) && opp != idx3)
 		return opp;
 	}
     }
 
+    /* Return the opposite vertex if no adjacent was found */
     return idx3;
 }
 
@@ -210,15 +231,50 @@ void bs_readIndicesAdjacent(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, 
 	int first_idx = 6 * i;
 
 	int v[3];
+	bs_vec3 tri_positions[3];
+	bs_vec3 tri_normal, tri_normal2, tri_normal3;
+
 	// For each vertex in triangle
 	for(int j = 0; j < 3; j++) {
 	    int idx = prim->indices[first_idx + j * 2];
+	    int idx2 = prim->indices[first_idx + ((j+1)%3) * 2];
 	    v[j] = prim->vertices[idx].unique_index;
+	    tri_positions[j] = prim->vertices[v[j]].position;
+
+//	    printf("%d, %d | %d\n", prim->vertices[idx].unique_index, prim->vertices[idx2].unique_index,  bs_checkWindingConflict(prim, num_tris, i, prim->vertices[idx].unique_index, prim->vertices[idx2].unique_index));
 	}
 
+	tri_normal = prim->vertices[prim->indices[first_idx]].normal; /* TODO: Change from 0 */
+	tri_normal2 = prim->vertices[v[1]].normal; /* TODO: Change from 0 */
+	tri_normal3 = prim->vertices[v[2]].normal; /* TODO: Change from 0 */
+
+	int idxs[3];
+	idxs[0] = prim->vertices[prim->indices[first_idx + 0]].unique_index;
+	idxs[1] = prim->vertices[prim->indices[first_idx + 2]].unique_index;
+	idxs[2] = prim->vertices[prim->indices[first_idx + 4]].unique_index;
+
+
+	bs_vec3 norm = bs_triangleNormal(prim->vertices[idxs[0]].position, prim->vertices[idxs[1]].position, prim->vertices[idxs[2]].position);
+	bool tri_ccw = bs_triangleIsCCW(tri_positions[0], tri_positions[1], tri_positions[2], norm);
+	bs_vec3 cent = bs_triangleCenter(tri_positions[0], tri_positions[1], tri_positions[2]);
+
 	int n[3];
+	// For each edge, get all adjacent triangle indices
 	for(int j = 0; j < 3; j++) {
-	    n[j] = bs_findAdjacentIndex(num_tris, prim, v[j], v[(j + 1) % 3], v[(j + 2) % 3]);
+	    int v0 = j;
+	    int v1 = (j + 1) % 3;
+	    int opp = (j + 2) % 3;
+	    
+	    // bool con = bs_checkWindingConflict(prim, num_tris, i, v[v0], v[v1]);
+	    n[j] = bs_findAdjacentIndex(num_tris, prim, v[v0], v[v1], v[opp]);
+/*
+	    if(con) {
+		prim->indices[first_idx + j * 2 + 1] = n[j];
+		continue;
+	    }
+	    int val = v[opp];
+*/
+
 	    prim->indices[first_idx + j * 2 + 1] = n[j];
 	}
     }
@@ -290,6 +346,7 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     if((load_settings & BS_INDICES) == BS_INDICES)
 	bs_readIndices(mesh, model, c_mesh, prim_index);
 
+    printf("%s\n", mesh->name);
     if((load_settings & BS_INDICES_ADJACENT) == BS_INDICES_ADJACENT)
 	bs_readIndicesAdjacent(mesh, model, c_mesh, prim_index);
 }

@@ -16,6 +16,8 @@ float bs_dot(bs_vec3 v0, bs_vec3 v1);
 bool bs_triangleIsCCW(bs_vec3 a, bs_vec3 b, bs_vec3 c, bs_vec3 normal);
 float bs_signv3(bs_vec3 p1, bs_vec3 p2, bs_vec3 p3);
 bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3);
+bs_vec3 bs_triangleNormal(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
+bs_vec3 bs_triangleCenter(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
 
 /* --- RANDOM --- */
 float bs_randRange(float min, float max);

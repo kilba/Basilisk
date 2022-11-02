@@ -1,8 +1,12 @@
 #ifndef BS_DEBUGGING_H
 #define BS_DEBUGGING_H
 
+#include <bs_types.h>
+
 void bs_print(const int info_type, char *format, ...);
-bool bsdbg_hilightMeshOnMouseOver(bs_Mesh *mesh, bs_mat4 model, bs_Camera *cam);
+void bs_printV2(bs_vec2 v);
+void bs_printV3(bs_vec3 v);
+void bs_printV4(bs_vec4 v);
 
 void bsdbg_tick();
 void bsdbg_init();

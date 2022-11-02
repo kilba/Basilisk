@@ -21,9 +21,9 @@ void bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
 void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
-void bs_pushPrimIA(bs_Prim *prim, bs_ivec4 attributes); 
-void bs_pushMeshIA(bs_Mesh *mesh, bs_ivec4 attributes);
-void bs_pushModelIA(bs_Model *model, bs_ivec4 attributes);
+void bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes); 
+void bs_pushMeshA(bs_Mesh *mesh, bs_vec4 attributes);
+void bs_pushModelA(bs_Model *model, bs_vec4 attributes);
 void bs_pushPrim(bs_Prim *prim); 
 void bs_pushMesh(bs_Mesh *mesh);
 void bs_pushModel(bs_Model *model);
@@ -97,9 +97,14 @@ void bs_stencilFunc(int val0, int val1, int val2);
 void bs_depthFunc(int val);
 void bs_stencilMask(int val);
 void bs_depthMask(int val);
+void bs_colorMask(int val0, int val1, int val2, int val3);
 void bs_stencilOp(int val0, int val1, int val2);
 void bs_stencilOpSeparate(int val0, int val1, int val2, int val3);
 void bs_cullFace(int val);
+void bs_clear(int bit_field);
+void bs_clearStencil(int val);
+void bs_clearColor(float r, float g, float b, float a);
+void bs_frontFace(int face);
 
 /* --- CONSTANTS --- */
 #define BS_BATCH_INCR_BY 1024 
@@ -124,6 +129,11 @@ void bs_cullFace(int val);
 #define BS_TEX1D 0x0DE0
 #define BS_TEX2D 0x0DE1
 #define BS_CUBEMAP 0x8513
+
+/* CLEAR BUFFER BITS */
+#define BS_DEPTH_BUFFER_BIT 0x00000100
+#define BS_STENCIL_BUFFER_BIT 0x00000400
+#define BS_COLOR_BUFFER_BIT 0x00004000
 
 /* FACES */
 #define BS_DIR_FRONT_RIGHT 0x0401
