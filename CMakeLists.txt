@@ -2,35 +2,37 @@ cmake_minimum_required(VERSION 3.23.2)
 
 project(basilisk)
 
-add_library(${PROJECT_NAME}
-	src/bs_wnd.c
-	src/bs_mem.c
-	src/bs_ttf.c
-	src/bs_core.c
-	src/bs_math.c
-	src/bs_debug.c
-	src/bs_models.c
-	src/bs_shaders.c
-	src/bs_textures.c
-	src/bs_abstract.c
+set(DIR ${CMAKE_CURRENT_LIST_DIR})
 
-	external/glad/glad.c
-	external/lodepng/lodepng.c
+add_library(${PROJECT_NAME}
+	${DIR}/src/bs_wnd.c
+	${DIR}/src/bs_mem.c
+	${DIR}/src/bs_ttf.c
+	${DIR}/src/bs_core.c
+	${DIR}/src/bs_math.c
+	${DIR}/src/bs_debug.c
+	${DIR}/src/bs_models.c
+	${DIR}/src/bs_shaders.c
+	${DIR}/src/bs_textures.c
+	${DIR}/src/bs_abstract.c
+
+	${DIR}/external/glad/glad.c
+	${DIR}/external/lodepng/lodepng.c
 )
 
-add_subdirectory(external/cglm)
+include_directories(${DIR}/external/cglm)
 
 target_include_directories(${PROJECT_NAME}
-	PUBLIC include
-	PUBLIC include/gl
-	PUBLIC include/basilisk
-	PUBLIC external/lodepng
-	PUBLIC external/cglm/include
+	PUBLIC ${DIR}/include
+	PUBLIC ${DIR}/include/gl
+	PUBLIC ${DIR}/include/basilisk
+	PUBLIC ${DIR}/external/lodepng
+	PUBLIC ${DIR}/external/cglm/include
 )
 
 target_link_directories(${PROJECT_NAME}
-	PRIVATE lib
-	PRIVATE external/cglm/src
+	PRIVATE ${DIR}/lib
+	PRIVATE ${DIR}/external/cglm
 )
 
 target_link_libraries(${PROJECT_NAME}

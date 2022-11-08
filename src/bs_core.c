@@ -10,14 +10,13 @@
 #include <bs_math.h>
 #include <bs_wnd.h>
 
-// TODO: Ifdef debug
 #include <bs_debug.h>
 
-// STD
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
 #include <lodepng.h>
+#include <assert.h>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -35,6 +34,7 @@ bs_Batch *curr_batch;
 bs_Framebuf *curr_framebuf = NULL;
 bs_UniformBuffer global_unifs;
 
+int batch_count = 0;
 int culling = BS_DIR_BACK;
 
 // TODO: Extract to bs_debug.c
@@ -196,12 +196,12 @@ void bs_pushVertex(
     curr_batch->vertex_draw_count++;
 } 
 
-void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
+int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
     bs_batchResizeCheck(6, 4);
 
     int indices[] = {
         curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
-        curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+3,
+        curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+3,
     };
 
     memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
@@ -211,10 +211,10 @@ void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
     bs_pushVertex(p2, (bs_vec2){ 0.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Top Left
     bs_pushVertex(p3, (bs_vec2){ 1.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Top Right
 
-    curr_batch->index_draw_count += 6;
+    return curr_batch->index_draw_count += 6;
 }
 
-void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col) {
+int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col) {
     bs_batchResizeCheck(6, 4);
 
     dim.x += pos.x;
@@ -232,10 +232,10 @@ void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_di
     bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Top Left
     bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Top Right
 
-    curr_batch->index_draw_count += 6;
+    return curr_batch->index_draw_count += 6;
 }
 
-void bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
+int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     bs_Texture *tex = bs_selectedTexture();
 
     bs_vec2 tex_dim0, tex_dim1;
@@ -244,10 +244,10 @@ void bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     tex_dim1.x = tex_dim0.x + tex->texw;
     tex_dim1.y = tex_dim0.y + tex->texh;
 
-    bs_pushRectCoord(pos, dim, tex_dim0, tex_dim1, col);
+    return bs_pushRectCoord(pos, dim, tex_dim0, tex_dim1, col);
 }
 
-void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
+int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     bs_batchResizeCheck(6, 4);
     bs_Texture *tex = bs_selectedTexture();
 
@@ -257,10 +257,10 @@ void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     tex_dim1.x = tex_dim0.x + tex->texw;
     tex_dim0.y = tex_dim0.y + tex->texh;
 
-    bs_pushRectCoord(pos, dim, tex_dim0, tex_dim1, col);
+    return bs_pushRectCoord(pos, dim, tex_dim0, tex_dim1, col);
 }
 
-void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
+int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     bs_batchResizeCheck(3, 3);
     int indices[] = {
         curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
@@ -271,15 +271,15 @@ void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     bs_pushVertex(pos2, (bs_vec2){ 1.0, 0.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
     bs_pushVertex(pos3, (bs_vec2){ 0.0, 1.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
 
-    curr_batch->index_draw_count += 3;
+    return curr_batch->index_draw_count += 3;
 }
 
-void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
-    bs_pushTriangle(start, end, end, color);
+int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
+    return bs_pushTriangle(start, end, end, color);
 }
 
 /* --- Rendering models with attributes --- */
-void bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes) {
+int bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes) {
 
     bs_batchResizeCheck(prim->index_count, prim->vertex_count);
     for(int i = 0; i < prim->index_count; i++) {
@@ -299,32 +299,36 @@ void bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes) {
         );
     }
 
-    curr_batch->index_draw_count += prim->index_count;
+    return curr_batch->index_draw_count += prim->index_count;
 }
 
-void bs_pushMeshA(bs_Mesh *mesh, bs_vec4 attributes) {
+int bs_pushMeshA(bs_Mesh *mesh, bs_vec4 attributes) {
+    int ret = 0;
     for(int i = 0; i < mesh->prim_count; i++) {
         bs_Prim *prim = &mesh->prims[i];
-        bs_pushPrimA(prim, attributes);
+        ret += bs_pushPrimA(prim, attributes);
     }
+    return ret;
 }
 
-void bs_pushModelA(bs_Model *model, bs_vec4 attributes) {
+int bs_pushModelA(bs_Model *model, bs_vec4 attributes) {
+    int ret = 0;
     for(int i = 0; i < model->mesh_count; i++) {
-        bs_pushMeshA(&model->meshes[i], attributes);
+        ret += bs_pushMeshA(&model->meshes[i], attributes);
     }
+    return ret;
 }
 
-void bs_pushPrim(bs_Prim *prim) {
-    bs_pushPrimA(prim, BS_V4_0);
+int bs_pushPrim(bs_Prim *prim) {
+    return bs_pushPrimA(prim, BS_V4_0);
 }
 
-void bs_pushMesh(bs_Mesh *mesh) {
-    bs_pushMeshA(mesh, BS_V4_0);
+int bs_pushMesh(bs_Mesh *mesh) {
+    return bs_pushMeshA(mesh, BS_V4_0);
 }
 
-void bs_pushModel(bs_Model *model) {
-    bs_pushModelA(model, BS_V4_0);
+int bs_pushModel(bs_Model *model) {
+    return bs_pushModelA(model, BS_V4_0);
 }
 
 void bs_batchBufferSize(int index_count, int vertex_count) {
@@ -401,6 +405,8 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
             bs_attrib(data->type, data->count, data->size, data->normalized);
         }
     }
+
+    batch_count++;
 }
 
 void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size) {
@@ -808,6 +814,10 @@ void bs_colorMask(int val0, int val1, int val2, int val3) {
     glColorMask(val0, val1, val2, val3);
 }
 
+void bs_colorMaski(int i, int val0, int val1, int val2, int val3) {
+    glColorMaski(i, val0, val1, val2, val3);
+}
+
 void bs_stencilOp(int val0, int val1, int val2) {
     glStencilOp(val0, val1, val2);
 }
@@ -834,4 +844,12 @@ void bs_clearColor(float r, float g, float b, float a) {
 
 void bs_frontFace(int face) {
     glFrontFace(face);
+}
+
+void bs_blendEquation(int val) {
+    glBlendEquation(val);
+}
+
+void bs_blendFunc(int val0, int val1) {
+    glBlendFunc(val0, val1);
 }

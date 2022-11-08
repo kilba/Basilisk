@@ -15,18 +15,18 @@ void bs_pushVertex(
     bs_ivec4 v4i
 );
 
-void bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
-void bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col);
-void bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
-void bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
-void bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
-void bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
-void bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes); 
-void bs_pushMeshA(bs_Mesh *mesh, bs_vec4 attributes);
-void bs_pushModelA(bs_Model *model, bs_vec4 attributes);
-void bs_pushPrim(bs_Prim *prim); 
-void bs_pushMesh(bs_Mesh *mesh);
-void bs_pushModel(bs_Model *model);
+int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
+int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col);
+int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
+int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
+int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
+int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
+int bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes); 
+int bs_pushMeshA(bs_Mesh *mesh, bs_vec4 attributes);
+int bs_pushModelA(bs_Model *model, bs_vec4 attributes);
+int bs_pushPrim(bs_Prim *prim); 
+int bs_pushMesh(bs_Mesh *mesh);
+int bs_pushModel(bs_Model *model);
 
 /* --- FRAMEBUFFERS --- */
 void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim);
@@ -98,6 +98,7 @@ void bs_depthFunc(int val);
 void bs_stencilMask(int val);
 void bs_depthMask(int val);
 void bs_colorMask(int val0, int val1, int val2, int val3);
+void bs_colorMaski(int i, int val0, int val1, int val2, int val3);
 void bs_stencilOp(int val0, int val1, int val2);
 void bs_stencilOpSeparate(int val0, int val1, int val2, int val3);
 void bs_cullFace(int val);
@@ -105,6 +106,8 @@ void bs_clear(int bit_field);
 void bs_clearStencil(int val);
 void bs_clearColor(float r, float g, float b, float a);
 void bs_frontFace(int face);
+void bs_blendEquation(int val);
+void bs_blendFunc(int val0, int val1);
 
 /* --- CONSTANTS --- */
 #define BS_BATCH_INCR_BY 1024 
@@ -174,6 +177,7 @@ void bs_frontFace(int face);
 /* RENDERING LOGIC */
 #define BS_STENCIL_TEST 0x0B90
 #define BS_DEPTH_TEST 0x0B71
+#define BS_BLEND 0x0BE2
 
 #define BS_CULL_FACE 0x0B44
 #define BS_DEPTH_CLAMP 0x864F
@@ -193,6 +197,21 @@ void bs_frontFace(int face);
 #define BS_DECR 0x1E03
 #define BS_INCR_WRAP 0x8507
 #define BS_DECR_WRAP 0x8508
+
+#define BS_FUNC_ADD 0x8006
+#define BS_FUNC_REVERSE_SUBTRACT 0x800B
+#define BS_FUNC_SUBTRACT 0x800A
+
+#define BS_ZERO 0
+#define BS_ONE 1
+#define BS_SRC_COLOR 0x0300
+#define BS_ONE_MINUS_SRC_COLOR 0x0301
+#define BS_SRC_ALPHA 0x0302
+#define BS_ONE_MINUS_SRC_ALPHA 0x0303
+#define BS_DST_ALPHA 0x0304
+#define BS_ONE_MINUS_DST_ALPHA 0x0305
+#define BS_DST_COLOR 0x0306
+#define BS_ONE_MINUS_DST_COLOR 0x0307
 
 /* DATATYPES */
 #define BS_SBYTE 0x1400

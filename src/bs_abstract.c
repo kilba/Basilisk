@@ -22,6 +22,7 @@ enum {
 enum {
     SHADER_TEX,
     SHADER_COL,
+    SHADER_NDC,
 
     SHADER_COUNT
 };
@@ -73,6 +74,18 @@ void bs_drawTriangleCam(bs_vec3 pos0, bs_vec3 pos1, bs_vec3 pos2, bs_RGBA col, b
     bs_clearBatch();
 }
 
+void bs_drawRectNDCCam(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Camera *cam) {
+    bs_selectBatch(batches + BATCH_COL);
+    batches[BATCH_COL].camera = cam;
+    batches[BATCH_COL].shader = shaders + SHADER_NDC;
+
+    bs_pushRect(pos, dim, col);
+
+    bs_pushBatch();
+    bs_renderBatch(0, bs_batchSize());
+    bs_clearBatch();
+}
+
 void bs_drawLineCam(bs_vec3 start, bs_vec3 end, bs_RGBA col, bs_Camera *cam) {
     bs_selectBatch(batches + BATCH_LINE);
     batches[BATCH_LINE].camera = cam;
@@ -103,6 +116,10 @@ void bs_drawRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 
 void bs_drawTriangle(bs_vec3 pos0, bs_vec3 pos1, bs_vec3 pos2, bs_RGBA col) {
     bs_drawTriangleCam(pos0, pos1, pos2, col, camera);
+}
+
+void bs_drawRectNDC(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
+    bs_drawRectNDCCam(pos, dim, col, camera);
 }
 
 void bs_drawLine(bs_vec3 start, bs_vec3 end, bs_RGBA col) {
@@ -157,11 +174,22 @@ void bs_initAbstract() {
 	"void main() {"\
 	    "FragColor = fcol;"\
 	"}";
+    char *vs_ndc = \
+	"#version 430\n"\
+	"layout (location = 0) in vec3 bs_Pos;"\
+	"layout (location = 1) in vec4 bs_Color;"\
+	"out vec4 fcol;"\
+	"void main() {"\
+	    "fcol = bs_Color;"\
+	    "gl_Position = vec4(bs_Pos, 1.0);"\
+	"}";
+
 
     bs_camAbstract(bs_defCamera());
 
     bs_shaderMem(vs_tex, fs_tex, 0, shaders + SHADER_TEX);
     bs_shaderMem(vs_col, fs_col, 0, shaders + SHADER_COL);
+    bs_shaderMem(vs_ndc, fs_col, 0, shaders + SHADER_NDC);
     bs_batch(batches + BATCH_TEX, shaders + SHADER_TEX);
     bs_batch(batches + BATCH_COL, shaders + SHADER_COL);
     bs_batch(batches + BATCH_LINE, shaders + SHADER_COL);

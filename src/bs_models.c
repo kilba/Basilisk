@@ -187,6 +187,7 @@ void bs_readIndicesAdjacent(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, 
     attrib_offset = c_mesh->primitives[prim_index].index_id + 1;
 
     mesh->vertex_count += prim->vertex_count;
+    mesh->index_count += prim->index_count;
     model->vertex_count += prim->vertex_count;
     model->index_count += num_adjacent;
     int num_tris = num_indices / 3;
@@ -265,17 +266,21 @@ void bs_readIndicesAdjacent(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, 
 	    int v1 = (j + 1) % 3;
 	    int opp = (j + 2) % 3;
 	    
-	    // bool con = bs_checkWindingConflict(prim, num_tris, i, v[v0], v[v1]);
+	    bool con = bs_checkWindingConflict(prim, num_tris, i, v[v0], v[v1]);
 	    n[j] = bs_findAdjacentIndex(num_tris, prim, v[v0], v[v1], v[opp]);
-/*
+
+	    /* Only supply the adjacent if there's a conflict */
 	    if(con) {
 		prim->indices[first_idx + j * 2 + 1] = n[j];
 		continue;
 	    }
 	    int val = v[opp];
-*/
 
-	    prim->indices[first_idx + j * 2 + 1] = n[j];
+	    // If there is NO adjacent triangle, regardless of winding
+	    if(n[j] == v[opp])
+		val = v[v0];
+
+	    prim->indices[first_idx + j * 2 + 1] = v[opp];
 	}
     }
 }
@@ -296,6 +301,7 @@ void bs_readIndices(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim
     attrib_offset = c_mesh->primitives[prim_index].index_id + 1;
 
     mesh->vertex_count += prim->vertex_count;
+    mesh->index_count += prim->index_count;
     model->vertex_count += prim->vertex_count;
     model->index_count += num_indices;
 }
@@ -346,7 +352,6 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     if((load_settings & BS_INDICES) == BS_INDICES)
 	bs_readIndices(mesh, model, c_mesh, prim_index);
 
-    printf("%s\n", mesh->name);
     if((load_settings & BS_INDICES_ADJACENT) == BS_INDICES_ADJACENT)
 	bs_readIndicesAdjacent(mesh, model, c_mesh, prim_index);
 }
@@ -398,6 +403,8 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
 
     int c_mesh_name_len = strlen(c_mesh->node->name);
     model->meshes[mesh_index].joint_count = 0;
+    model->meshes[mesh_index].index_count = 0;
+    model->meshes[mesh_index].vertex_count = 0;
     model->meshes[mesh_index].name = malloc(c_mesh_name_len+1);
     int n = sprintf(model->meshes[mesh_index].name, "%s", c_mesh->node->name);
 

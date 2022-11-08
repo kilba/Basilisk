@@ -279,7 +279,6 @@ typedef struct {
 
 typedef struct {
     char *name; /* Can be freed */
-    int vertex_count;
 
     bs_vec3 pos;
     bs_vec4 rot;
@@ -288,6 +287,9 @@ typedef struct {
 
     bs_Prim *prims;
     int prim_count;
+
+    int vertex_count;
+    int index_count;
 
     bs_Joint *joints;
     int joint_count;
