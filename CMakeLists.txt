@@ -34,7 +34,3 @@ target_link_directories(${PROJECT_NAME}
 	PRIVATE ${DIR}/lib
 	PRIVATE ${DIR}/external/cglm
 )
-
-target_link_libraries(${PROJECT_NAME}
-	cglm
-)
