@@ -32,68 +32,55 @@ int attrib_offset = 0;
 
 int load_settings = 0;
 
-/* --- VERTEX LOADING --- */
-void bs_readPositionVertices(int accessor_index, bs_Prim *prim, bs_Mesh *mesh, cgltf_data *data) {	
+/* --- VERTEX PARSING --- */
+void bs_posData(int accessor_index, bs_Prim *prim, cgltf_data *data) {
     int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
     int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
-    for(int i = 0; i < num_floats / num_comps; i++) {
-	cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].position.x, num_comps);
-	vec3 *pos = (vec3*)&prim->vertices[i].position;
-	glm_mat4_mulv3(mesh->mat, *pos, 1.0, *pos);
+    int offset = 0;
+    for(int i = 0; i < num_floats / num_comps; i++, offset += prim->vertex_size) {
+	cgltf_accessor_read_float(&data->accessors[accessor_index], i, (float *)prim->vertices + offset, num_comps);
     }
 }
 
-void bs_readNormalVertices(int accessor_index, bs_Prim *prim, bs_Mesh *mesh, cgltf_data *data) {
+void bs_norData(int accessor_index, bs_Prim *prim, cgltf_data *data) {
     int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
     int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
-    for(int i = 0; i < num_floats / num_comps; i++) {
-	cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].normal.x, num_comps);
+    int offset = prim->offset_nor;
+    for(int i = 0; i < num_floats / num_comps; i++, offset += prim->vertex_size) {
+	cgltf_accessor_read_float(&data->accessors[accessor_index], i, (float *)prim->vertices + offset, num_comps);
     }
 }
 
-void bs_readTexCoordVertices(int accessor_index, bs_Prim *prim, cgltf_data *data) {
+void bs_texData(int accessor_index, bs_Prim *prim, cgltf_data *data) {
     int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
     int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
-    for(int i = 0; i < num_floats / num_comps; i++) {
-	cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].tex_coord.x, num_comps);
-    }
-
-    if(prim->material.tex != NULL) {
-	float x_range = (float)prim->material.tex->w / 1024.0;
-	float y_range = (float)prim->material.tex->h / 1024.0;
-
-	for(int i = 0; i < num_floats; i+=2) {
-	    prim->vertices[i/2].tex_coord.x = bs_fMap(prim->vertices[i/2].tex_coord.x, 0.0, 1.0, 0.0, x_range);
-	    prim->vertices[i/2].tex_coord.y = bs_fMap(prim->vertices[i/2].tex_coord.y, 0.0, 1.0, 0.0, y_range);
-	}
+    int offset = prim->offset_tex;
+    for(int i = 0; i < num_floats / num_comps; i++, offset += prim->vertex_size) {
+	cgltf_accessor_read_float(&data->accessors[accessor_index], i, (float *)prim->vertices + offset, num_comps);
     }
 }
 
-void bs_readJointIndices(int accessor_index, bs_Prim *prim, cgltf_data *data) {
-	int num_ints = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
+void bs_bidData(int accessor_index, bs_Prim *prim, cgltf_data *data) {
+    int num_ints = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
+    int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
-	for(int i = 0; i < num_ints / num_comps; i++) {
-		unsigned int xyzw[4];
-
-		cgltf_accessor_read_uint(&data->accessors[accessor_index], i, xyzw, num_comps);
-		prim->vertices[i].bone_ids.x = xyzw[0];
-		prim->vertices[i].bone_ids.y = xyzw[1];
-		prim->vertices[i].bone_ids.z = xyzw[2];
-		prim->vertices[i].bone_ids.w = xyzw[3];
-	}
+    int offset = prim->offset_bid;
+    for(int i = 0; i < num_ints / num_comps; i++, offset += prim->vertex_size) {
+	cgltf_accessor_read_uint(&data->accessors[accessor_index], i, (unsigned int *)prim->vertices + offset, num_comps);
+    }
 }
 
-void bs_readWeights(int accessor_index, bs_Prim *prim, cgltf_data *data) {
-	int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-	int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
+void bs_weiData(int accessor_index, bs_Prim *prim, cgltf_data *data) {
+    int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
+    int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
 
-	for(int i = 0; i < num_floats / num_comps; i++) {
-		cgltf_accessor_read_float(&data->accessors[accessor_index], i, &prim->vertices[i].weights.x, num_comps);
-	}
+    int offset = prim->offset_wei;
+    for(int i = 0; i < num_floats / num_comps; i++, offset += prim->vertex_size) {
+	cgltf_accessor_read_float(&data->accessors[accessor_index], i, (float *)prim->vertices + offset, num_comps);
+    }
 }
 
 void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
@@ -129,30 +116,44 @@ void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
 }
 
 bool bs_checkWindingConflict(bs_Prim *prim, int num_tris, int cur, int idx0, int idx1) {
+    int *vertex = (int *)prim->vertices + prim->offset_idx;
+
     for(int i = 0; i < num_tris; i++) {
-	int first_idx = 6 * i;
 	if(i == cur)
 	    continue;
 
-	for(int j = 0; j < 3; j++) {
-	    int cmp_idx0 = prim->vertices[prim->indices[first_idx + j * 2]].unique_index;
-	    int cmp_idx1 = prim->vertices[prim->indices[first_idx + ((j+1)%3) * 2]].unique_index;
+	int first_idx = 6 * i;
+	int v0, v1, v2;
 
-	    if(cmp_idx0 == idx0 && cmp_idx1 == idx1)
-		return true;
-	}
+	v0 = *(vertex + (prim->vertex_size * prim->indices[first_idx + 0]));
+	v1 = *(vertex + (prim->vertex_size * prim->indices[first_idx + 2]));
+	v2 = *(vertex + (prim->vertex_size * prim->indices[first_idx + 4]));
+	
+	if((v0 == idx0 && v1 == idx1))
+	    return true;
+
+	if(v1 == idx0 && v2 == idx1)
+	    return true;
+
+	if(v2 == idx0 && v0 == idx1)
+	    return true;
+
     }
     return false;
 }
 
 int bs_findAdjacentIndex(int num_tris, bs_Prim *prim, int idx1, int idx2, int idx3) {
+    int *vertex = (int *)prim->vertices + prim->offset_idx;
+    
     for(int i = 0; i < num_tris; i++) {
 	int first_idx = 6 * i;
 	int face_indices[3];
     
 	for(int j = 0; j < 3; j++) {
 	    int idx = prim->indices[first_idx + j * 2];
-	    face_indices[j] = prim->vertices[idx].unique_index;
+
+	    int *idx_p = vertex + (idx * prim->vertex_size);
+	    face_indices[j] = *idx_p;
 	}
 
 	for(int edge = 0; edge < 3; edge++) {
@@ -170,6 +171,7 @@ int bs_findAdjacentIndex(int num_tris, bs_Prim *prim, int idx1, int idx2, int id
     return idx3;
 }
 
+/* TODO: This is currently broken */
 void bs_readIndicesAdjacent(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim_index) {
     bs_Prim *prim = mesh->prims + prim_index;
 
@@ -190,99 +192,6 @@ void bs_readIndicesAdjacent(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, 
     mesh->index_count += prim->index_count;
     model->vertex_count += prim->vertex_count;
     model->index_count += num_adjacent;
-    int num_tris = num_indices / 3;
-
-    /**/
-    struct Key {
-	bs_vec3 pos;
-	int idx;
-    } *keys = calloc(prim->vertex_count, sizeof(struct Key));
-    int key_count = 0;
-
-    for(int i = 0; i < num_tris; i++) {
-	int first_idx = 6 * i;
-
-	for(int j = 0; j < 3; j++) {
-	    int idx = prim->indices[first_idx + j * 2];
-	    int contain_id = -1;
-
-	    for(int k = 0; k < key_count; k++) {
-		if(memcmp(&keys[k].pos, &prim->vertices[idx].position, sizeof(bs_vec3)) == 0) {
-		    contain_id = k;
-		    break;
-		}
-	    }
-
-	    if(contain_id == -1) {
-		prim->vertices[idx].unique_index = idx;
-
-		keys[key_count].pos = prim->vertices[idx].position;
-		keys[key_count].idx = idx;
-		key_count++;
-	    } else {
-		prim->vertices[idx].unique_index = keys[contain_id].idx;
-	    }
-	}
-    }
-
-    /**/
-
-    // For each triangle in primitive
-    for(int i = 0; i < num_tris; i++) {
-	int first_idx = 6 * i;
-
-	int v[3];
-	bs_vec3 tri_positions[3];
-	bs_vec3 tri_normal, tri_normal2, tri_normal3;
-
-	// For each vertex in triangle
-	for(int j = 0; j < 3; j++) {
-	    int idx = prim->indices[first_idx + j * 2];
-	    int idx2 = prim->indices[first_idx + ((j+1)%3) * 2];
-	    v[j] = prim->vertices[idx].unique_index;
-	    tri_positions[j] = prim->vertices[v[j]].position;
-
-//	    printf("%d, %d | %d\n", prim->vertices[idx].unique_index, prim->vertices[idx2].unique_index,  bs_checkWindingConflict(prim, num_tris, i, prim->vertices[idx].unique_index, prim->vertices[idx2].unique_index));
-	}
-
-	tri_normal = prim->vertices[prim->indices[first_idx]].normal; /* TODO: Change from 0 */
-	tri_normal2 = prim->vertices[v[1]].normal; /* TODO: Change from 0 */
-	tri_normal3 = prim->vertices[v[2]].normal; /* TODO: Change from 0 */
-
-	int idxs[3];
-	idxs[0] = prim->vertices[prim->indices[first_idx + 0]].unique_index;
-	idxs[1] = prim->vertices[prim->indices[first_idx + 2]].unique_index;
-	idxs[2] = prim->vertices[prim->indices[first_idx + 4]].unique_index;
-
-
-	bs_vec3 norm = bs_triangleNormal(prim->vertices[idxs[0]].position, prim->vertices[idxs[1]].position, prim->vertices[idxs[2]].position);
-	bool tri_ccw = bs_triangleIsCCW(tri_positions[0], tri_positions[1], tri_positions[2], norm);
-	bs_vec3 cent = bs_triangleCenter(tri_positions[0], tri_positions[1], tri_positions[2]);
-
-	int n[3];
-	// For each edge, get all adjacent triangle indices
-	for(int j = 0; j < 3; j++) {
-	    int v0 = j;
-	    int v1 = (j + 1) % 3;
-	    int opp = (j + 2) % 3;
-	    
-	    bool con = bs_checkWindingConflict(prim, num_tris, i, v[v0], v[v1]);
-	    n[j] = bs_findAdjacentIndex(num_tris, prim, v[v0], v[v1], v[opp]);
-
-	    /* Only supply the adjacent if there's a conflict */
-	    if(con) {
-		prim->indices[first_idx + j * 2 + 1] = n[j];
-		continue;
-	    }
-	    int val = v[opp];
-
-	    // If there is NO adjacent triangle, regardless of winding
-	    if(n[j] == v[opp])
-		val = v[v0];
-
-	    prim->indices[first_idx + j * 2 + 1] = v[opp];
-	}
-    }
 }
 
 void bs_readIndices(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim_index) {
@@ -306,17 +215,6 @@ void bs_readIndices(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim
     model->index_count += num_indices;
 }
 
-/* Temp */
-typedef struct {
-    bs_vec3 position;
-    bs_vec2 tex_coord;
-    bs_vec3 normal;
-    bs_RGBA color;
-    bs_ivec4 bone_ids;
-    bs_vec4 weights;
-    int unique_index;
-} VertexDecl;
-
 void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_index, int prim_index) {
     cgltf_mesh *c_mesh = &data->meshes[mesh_index];
     bs_Prim *prim = &mesh->prims[prim_index];
@@ -325,10 +223,33 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     int attrib_count = c_mesh->primitives[prim_index].attributes_count;
     int num_floats = cgltf_accessor_unpack_floats(&data->accessors[c_mesh->primitives[prim_index].attributes[0].index], NULL, 0);
 
-    prim->vertex_count = num_floats / 3;
-    prim->vertices = malloc(prim->vertex_count * sizeof(VertexDecl));
-
+    int vertex_size = 0;
     bs_loadMaterial(model, &c_mesh->primitives[prim_index], prim);
+
+    prim->offset_nor = 0;
+    prim->offset_tex = 0;
+    prim->offset_bid = 0;
+    prim->offset_wei = 0;
+    prim->offset_tex = 0;
+
+    // Calculate vertex size
+    for(int i = 0; i < attrib_count; i++) {
+    	int index = c_mesh->primitives[prim_index].attributes[i].index;
+    	int type = c_mesh->primitives[prim_index].attributes[i].type;
+
+	// Position has no offset since it is always at offset 0 
+    	switch(type) {
+	    case cgltf_attribute_type_position : vertex_size += 3; break;
+	    case cgltf_attribute_type_normal   : prim->offset_nor = vertex_size; vertex_size += 3; break;
+	    case cgltf_attribute_type_texcoord : prim->offset_tex = vertex_size; vertex_size += 2; break;
+	    case cgltf_attribute_type_joints   : prim->offset_bid = vertex_size; vertex_size += 4; break;
+	    case cgltf_attribute_type_weights  : prim->offset_wei = vertex_size; vertex_size += 4; break;
+    	}
+    }
+
+    prim->vertex_size = vertex_size;
+    prim->vertex_count = num_floats / 3;
+    prim->vertices = malloc(prim->vertex_count * vertex_size  * sizeof(float));
 
     // Read vertices
     for(int i = 0; i < attrib_count; i++) {
@@ -336,16 +257,11 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     	int type = c_mesh->primitives[prim_index].attributes[i].type;
 
     	switch(type) {
-	    case cgltf_attribute_type_position:
-		bs_readPositionVertices(index, prim, mesh, data); break;
-	    case cgltf_attribute_type_normal:
-		bs_readNormalVertices(index, prim, mesh, data); break;
-	    case cgltf_attribute_type_texcoord:
-		bs_readTexCoordVertices(index, prim, data); break;
-	    case cgltf_attribute_type_joints:
-		bs_readJointIndices(index, prim, data); break;
-	    case cgltf_attribute_type_weights:
-		bs_readWeights(index, prim, data); break;
+	    case cgltf_attribute_type_position : bs_posData(index, prim, data); break;
+	    case cgltf_attribute_type_normal   : bs_norData(index, prim, data); break;
+	    case cgltf_attribute_type_texcoord : bs_texData(index, prim, data); break;
+	    case cgltf_attribute_type_joints   : bs_bidData(index, prim, data); break;
+	    case cgltf_attribute_type_weights  : bs_weiData(index, prim, data); break;
     	}
     }
 
@@ -451,7 +367,6 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 	}
 
  	curr_tex_ptr = ids[0];
-
 
 	// for(int i = 0; i < data->textures_count; i++) {
 	// 	ids[i] -= curr_tex_ptr;
@@ -619,4 +534,16 @@ bs_Anim *bs_getAnimFromName(char *name) {
     }
 
     return NULL;
+}
+
+void bs_freeModel(bs_Model *model) {
+    // Free primitive data
+    for(int m = 0; m < model->mesh_count; m++) {
+	bs_Mesh *mesh = model->meshes + m;
+	for(int p = 0; p < mesh->prim_count; p++) {
+	    bs_Prim *prim = mesh->prims + p;
+	    free(prim->indices);
+	    free(prim->vertices);
+	}
+    }
 }

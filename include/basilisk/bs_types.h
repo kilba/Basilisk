@@ -29,6 +29,9 @@
 #  define BS_ALIGN_MAT BS_ALIGN(16)
 #endif
 
+#include <stdlib.h>
+#include <stdio.h>
+
 typedef struct { float x, y; } bs_vec2;
 typedef struct { float x, y, z; } bs_vec3;
 typedef struct { float x, y, z, w; } bs_vec4;
@@ -46,6 +49,7 @@ typedef struct { unsigned char r, g, b; } bs_RGB;
 
 typedef BS_ALIGN_IF(16) bs_vec2 bs_mat2[2];
 typedef BS_ALIGN_IF(16)	float bs_mat4[4][4];
+typedef                 float bs_mat3[3][3];
 
 typedef bs_vec4 	bs_quat;
 
@@ -261,16 +265,15 @@ struct bs_Joint {
 typedef struct {
     bs_Material material;
 
-    struct {
-	bs_vec3 position;
-	bs_vec2 tex_coord;
-	bs_vec3 normal;
-	bs_RGBA color;
-	bs_ivec4 bone_ids;
-	bs_vec4 weights;
-	int unique_index;
-    } *vertices;
+    void *vertices;
     int vertex_count;
+    int vertex_size;
+
+    int offset_tex;
+    int offset_nor;
+    int offset_bid;
+    int offset_wei;
+    int offset_idx;
 
     int *indices;
     int index_count;

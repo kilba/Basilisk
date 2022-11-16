@@ -286,14 +286,15 @@ int bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes) {
         curr_batch->indices[curr_batch->index_draw_count+i] = prim->indices[i] + curr_batch->vertex_draw_count;
     }
 
-    for(int i = 0; i < prim->vertex_count; i++) {
+    float *vertex = prim->vertices;
+    for(int i = 0; i < prim->vertex_count; i++, vertex += prim->vertex_size) {
         bs_pushVertex(
-            prim->vertices[i].position, 
-            prim->vertices[i].tex_coord, 
-            prim->vertices[i].normal, 
+            *(bs_vec3  *)(vertex + 0),
+	    *(bs_vec2  *)(vertex + prim->offset_tex),
+	    *(bs_vec3  *)(vertex + prim->offset_nor),
             prim->material.col, 
-            prim->vertices[i].bone_ids, 
-            prim->vertices[i].weights, 
+	    *(bs_ivec4 *)(vertex + prim->offset_bid),
+	    *(bs_vec4  *)(vertex + prim->offset_wei),
             attributes,
 	    BS_IV4_0
         );
