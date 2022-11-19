@@ -104,8 +104,70 @@ bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3) {
     return !(has_neg && has_pos);
 }
 
-/* --- MATRICES --- */
-void bs_mulMat4Vec4(bs_vec4 v, bs_mat4 m, bs_vec4 out) {
+/* --- QUATERNIONS --- */
+void bs_qToMat3(bs_vec4 q, bs_mat3 *out) {
+    float qx2 = q.x + q.x;
+    float qy2 = q.y + q.y;
+    float qz2 = q.z + q.z;
+    float qxqx2 = q.x * qx2;
+    float qxqy2 = q.x * qy2;
+    float qxqz2 = q.x * qz2;
+    float qxqw2 = q.w * qx2;
+    float qyqy2 = q.y * qy2;
+    float qyqz2 = q.y * qz2;
+    float qyqw2 = q.w * qy2;
+    float qzqz2 = q.z * qz2;
+    float qzqw2 = q.w * qz2;
+
+    bs_mat3 cpy = {
+	{ 1.0 - qyqy2 - qzqz2, qxqy2 + qzqw2, qxqz2 - qyqw2 },
+	{ qxqy2 - qzqw2, 1.0 - qxqx2 - qzqz2, qyqz2 + qxqw2 },
+	{ qxqz2 + qyqw2, qyqz2 - qxqw2, 1.0 - qxqx2 - qyqy2 }
+    };
+
+    memcpy(out, &cpy, sizeof(bs_mat3));
+}
+
+bs_quat bs_qMulq(bs_quat q, bs_quat rhs) {
+    return BS_QUAT(
+	    q.w * rhs.x + q.x * rhs.w + q.y * rhs.z - q.z * rhs.y,
+	    q.w * rhs.y + q.y * rhs.w + q.z * rhs.x - q.x * rhs.z,
+	    q.w * rhs.z + q.z * rhs.w + q.x * rhs.y - q.y * rhs.x,
+	    q.w * rhs.w - q.x * rhs.x - q.y * rhs.y - q.z * rhs.z
+	    );
+}
+
+bs_quat bs_qNormalize(bs_quat q) {
+    float x = q.x;
+    float y = q.y;
+    float z = q.z;
+    float w = q.w;
+
+    float d = q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z;
+    if(d == 0)
+	w = 1.0;
+
+    d = 1.0 / sqrt(d);
+    if(d > (1.0e-8)) {
+	x *= d;
+	y *= d;
+	z *= d;
+	w *= d;
+    }
+
+    return BS_QUAT(x, y, z, w);
+}
+
+bs_quat bs_qIntegrate(bs_vec4 quat, bs_vec3 dv, float dt) {
+    bs_quat q = { dv.x * dt, dv.y * dt, dv.z * dt, 0.0 };
+    q = bs_qMulq(q, quat);
+
+    quat.x += q.x * 0.5;
+    quat.y += q.y * 0.5;
+    quat.z += q.z * 0.5;
+    quat.w += q.w * 0.5;
+
+    return bs_qNormalize(quat);
 }
 
 /* --- RANDOM --- */

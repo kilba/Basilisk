@@ -19,6 +19,11 @@ bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3);
 bs_vec3 bs_triangleNormal(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
 bs_vec3 bs_triangleCenter(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
 
+/* --- QUATERNIONS --- */
+void bs_qToMat3(bs_vec4 q, bs_mat3 *out);
+bs_quat bs_qMulq(bs_quat q, bs_quat rhs);
+bs_quat bs_qNormalize(bs_quat q);
+bs_quat bs_qIntegrate(bs_vec4 quat, bs_vec3 dv, float dt);
 /* --- RANDOM --- */
 float bs_randRange(float min, float max);
 int bs_randRangeI(int min, int max);

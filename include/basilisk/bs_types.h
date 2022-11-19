@@ -90,6 +90,9 @@ typedef bs_vec4 	bs_quat;
 // "COORDS" -> COLOR
 #define BS_RGBA(r, g, b, a) (bs_RGBA) { r, g, b, a }
 
+// COORDS -> QUATERNIONS
+#define BS_QUAT(x, y, z, w) (bs_quat){ x, y, z, w }
+
 typedef int64_t bs_I64, bs_long;
 typedef int32_t bs_I32, bs_int;
 typedef int16_t bs_I16, bs_short;
