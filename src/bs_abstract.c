@@ -187,9 +187,9 @@ void bs_initAbstract() {
 
     bs_camAbstract(bs_defCamera());
 
-    bs_shaderMem(vs_tex, fs_tex, 0, shaders + SHADER_TEX);
-    bs_shaderMem(vs_col, fs_col, 0, shaders + SHADER_COL);
-    bs_shaderMem(vs_ndc, fs_col, 0, shaders + SHADER_NDC);
+    bs_shaderMem(shaders + SHADER_TEX, vs_tex, fs_tex, 0);
+    bs_shaderMem(shaders + SHADER_COL, vs_col, fs_col, 0);
+    bs_shaderMem(shaders + SHADER_NDC, vs_ndc, fs_col, 0);
     bs_batch(batches + BATCH_TEX, shaders + SHADER_TEX);
     bs_batch(batches + BATCH_COL, shaders + SHADER_COL);
     bs_batch(batches + BATCH_LINE, shaders + SHADER_COL);

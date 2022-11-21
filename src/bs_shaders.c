@@ -52,7 +52,7 @@ void bs_freeReplaceBlock() {
 }
 
 // Gets all default uniform locations
-void bs_setDefShaderUniforms(bs_Shader *shader, char *shader_code){
+void bs_setDefShaderUniforms(bs_Shader *shader, const char *shader_code){
     const char *def_uniforms[] = { 
         "bs_Proj", 
         "bs_View", 
@@ -96,7 +96,7 @@ void bs_setDefShaderUniforms(bs_Shader *shader, char *shader_code){
     }
 }
 
-void bs_setDefShaderAttribs(bs_Shader *shader, char *vs_code) {
+void bs_setDefShaderAttribs(bs_Shader *shader, const char *vs_code) {
     const char *def_attribs [] = { 
 	"bs_Pos", 
 	"bs_Tex", 
@@ -164,8 +164,8 @@ void bs_shaderErrorCheck(GLuint *shader, int shadertype) {
     }
 }
 
-char *bs_replaceInShader(char *code) {
-    char *new_code = code;
+const char *bs_replaceInShader(const char *code) {
+    const char *new_code = code;
     for(int i = 0; i < replace_buf_curr; i++) {
 	ReplaceBuf *buf = replace_buf + i;
 	char *repl = bs_replaceFirstSubstring(new_code, buf->old_str, buf->new_str);
@@ -175,7 +175,7 @@ char *bs_replaceInShader(char *code) {
     return new_code;
 }
 
-void bs_loadShaderCode(int program, GLuint *shader_id, char *shader_code, int type) {
+void bs_loadShaderCode(int program, GLuint *shader_id, const char *shader_code, int type) {
     const GLchar *replaced_shader_code = bs_replaceInShader(shader_code);
 
     *shader_id = glCreateShader(type);
@@ -190,22 +190,22 @@ void bs_loadShaderCode(int program, GLuint *shader_id, char *shader_code, int ty
     }
 }
 
-void bs_setDefaultUniformLocations(bs_Shader *shader, char *vs_code, char *fs_code, char *gs_code) {
+void bs_setDefaultUniformLocations(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code) {
     for(int i = 0; i < BS_UNIFORM_TYPE_COUNT; i++) {
         shader->uniforms[i].is_valid = false;
     }
 
-    bs_setDefShaderUniforms(shader, (char *)vs_code);
-    bs_setDefShaderUniforms(shader, (char *)fs_code);
+    bs_setDefShaderUniforms(shader, vs_code);
+    bs_setDefShaderUniforms(shader, fs_code);
 
-    bs_setDefShaderAttribs(shader, (char *)vs_code);
+    bs_setDefShaderAttribs(shader, vs_code);
 
     if(gs_code != 0) {
-        bs_setDefShaderUniforms(shader, (char *)gs_code);
+        bs_setDefShaderUniforms(shader, gs_code);
     }
 }
 
-void bs_shaderMem(char *vs_code, char *fs_code, char *gs_code, bs_Shader *shader) {
+void bs_shaderMem(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code) {
     if(vs_code == NULL || fs_code == NULL) {
         shader->id = -1;
         return;
@@ -230,7 +230,7 @@ void bs_shaderMem(char *vs_code, char *fs_code, char *gs_code, bs_Shader *shader
     return;
 }
 
-void bs_shader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shader) {
+void bs_shader(bs_Shader *shader, const char *vs_path, const char *fs_path, const char *gs_path) {
     int vs_err_code;
     int fs_err_code;
     int gs_err_code;
@@ -248,34 +248,34 @@ void bs_shader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shader) {
     }
 
     // Load the shader from memory, compile and return it
-    bs_shaderMem(vscode, fscode, gscode, shader);
+    bs_shaderMem(shader, vscode, fscode, gscode);
     free(vscode);
     free(fscode);
     free(gscode);
 }
 
 /* COMPUTE SHADERS */
-void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs_Texture *tex) {
+void bs_loadMemComputeShader(bs_ComputeShader *shader, const char *cs_code, bs_Texture *tex) {
     if(cs_code == NULL)
         return;
 
-    bs_loadShaderCode(compute_shader->id, &compute_shader->cs_id, cs_code, GL_COMPUTE_SHADER);
+    bs_loadShaderCode(shader->id, &shader->cs_id, cs_code, GL_COMPUTE_SHADER);
 
-    compute_shader->id = glCreateProgram();
-    glLinkProgram(compute_shader->id);
-    glUseProgram(compute_shader->id);
+    shader->id = glCreateProgram();
+    glLinkProgram(shader->id);
+    glUseProgram(shader->id);
 
     // TODO: Check if texture is still bound
-    compute_shader->tex = tex;
-    glBindImageTexture(0, compute_shader->tex->id, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+    shader->tex = tex;
+    glBindImageTexture(0, shader->tex->id, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 }
 
-void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Texture *tex) {
+void bs_loadComputeShader(bs_ComputeShader *shader, const char *cs_path, bs_Texture *tex) {
     int cs_err_code;
     int len;
 
     char *cscode = bs_fileContents(cs_path, &len, &cs_err_code);
-    bs_loadMemComputeShader(cscode, compute_shader, tex);
+    bs_loadMemComputeShader(shader, cscode, tex);
     free(cscode);
 }
 
@@ -338,7 +338,7 @@ void bs_pushSSBO(void *data, int offset, int size) {
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, size, data);
 }
 
-int bs_uniformLoc(int id, char *name) {
+int bs_uniformLoc(int id, const char *name) {
     return glGetUniformLocation(id, name);
 }
 

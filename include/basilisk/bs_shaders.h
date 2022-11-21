@@ -9,17 +9,13 @@ void bs_shaderReplaceAlloc(int amount);
 void bs_replaceInAllShaders(char *old_str, char *new_str);
 void bs_freeReplaceBlock();
 
-void bs_shaderMem(char *vs_code, char *fs_code, char *gs_code, bs_Shader *shader);
-void bs_shader(char *vs_path, char *fs_path, char *gs_path, bs_Shader *shader);
-void bs_loadMemComputeShader(char *cs_code, bs_ComputeShader *compute_shader, bs_Texture *tex);
-void bs_loadComputeShader(char *cs_path, bs_ComputeShader *compute_shader, bs_Texture *tex);
-
-// Deprecated
-#define bs_loadShader bs_shader
-#define bs_loadMemShader bs_shaderMem
+void bs_shaderMem(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code);
+void bs_shader(bs_Shader *shader, const char *vs_path, const char *fs_path, const char *gs_path);
+void bs_cShaderMem(bs_ComputeShader *shader, const char *cs_code, bs_Texture *tex);
+void bs_cShaderMem(bs_ComputeShader *shader, const char *cs_path, bs_Texture *tex);
 
 /* --- COMPUTE SHADERS --- */
-int bs_uniformLoc(int id, char *name);
+int bs_uniformLoc(int id, const char *name);
 void bs_switchShader(int id);
 void bs_switchShaderCompute(int id);
 

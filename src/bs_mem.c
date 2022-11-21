@@ -33,7 +33,7 @@ int bs_memcmpU32(const void *a, const void *b) {
 
 /* --- STRING FUNCTIONS --- */
 char* 
-bs_replaceFirstSubstring(char* str, char* old_str, char* new_str) {
+bs_replaceFirstSubstring(const char* str, const char* old_str, const char* new_str) {
     int new_len = strlen(new_str);
     int old_len = strlen(old_str);
     int str_len = strlen(str);
@@ -62,7 +62,7 @@ bs_replaceFirstSubstring(char* str, char* old_str, char* new_str) {
 }
 
 char* 
-bs_fileContents(char *path, int *content_len, int *errcode) {
+bs_fileContents(const char *path, int *content_len, int *errcode) {
     if(path == 0) {
         *errcode = 1;
         return NULL;

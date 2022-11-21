@@ -3,7 +3,7 @@
 
 #include <bs_types.h>
 
-void bs_loadModel(char *model_path, bs_Model *model, int settings);
+void bs_model(bs_Model *model, const char *model_path, int settings);
 void bs_animate(bs_Anim *anim, int frame);
 void bs_pushAnims();
 bs_Anim *bs_getAnims();

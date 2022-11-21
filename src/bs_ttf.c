@@ -319,11 +319,10 @@ int bs_loadFont(char *path) {
 	    "FragColor = vec4(1.0);" \
 	"}";
 
-    bs_loadMemShader(vs, fs, 0, &shader00);
-
+    bs_shaderMem(&shader00, vs, fs, 0);
 
     int err;
-    void *buf = bs_readFileToString(path, &ttf.data_len, &err);
+    void *buf = bs_fileContents(path, &ttf.data_len, &err);
     if(err != 0)
         return 1;
 

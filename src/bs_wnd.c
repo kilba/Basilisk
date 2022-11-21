@@ -32,7 +32,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return 0;
 }
 
-void bs_initWnd(int width, int height, char *title) {
+void bs_initWnd(int width, int height, const char *title) {
     w = width;
     h = height;
 
@@ -58,7 +58,6 @@ void bs_initWnd(int width, int height, char *title) {
         MessageBox(NULL, "Window Registration Failed!", "Error!",
             MB_ICONEXCLAMATION | MB_OK);
 
-        printf("%d\n", GetLastError());
         return;
     }
 
@@ -74,7 +73,6 @@ void bs_initWnd(int width, int height, char *title) {
         MessageBox(NULL, "Window Creation Failed!", "Error!",
             MB_ICONEXCLAMATION | MB_OK);
 
-        printf("%d\n", GetLastError());
         return;
     }
 

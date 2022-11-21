@@ -463,7 +463,7 @@ void bs_loadAnims(cgltf_data* data, bs_Model *model) {
 	bs_loadAnim(data, i, model);
 }
 
-void bs_loadModel(char *model_path, bs_Model *model, int settings) {
+void bs_model(bs_Model *model, const char *model_path, int settings) {
     cgltf_options options = {0};
     cgltf_data* data = NULL;
     load_settings = settings;

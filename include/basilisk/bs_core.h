@@ -78,7 +78,7 @@ void bs_objPushMesh(bs_Mesh *mesh);
 int bs_checkError();
 
 /* --- INITIALIZATION --- */
-void bs_init(int width, int height, char *title);
+void bs_init(int width, int height, const char *title);
 void bs_startRender(void (*render)());
 void bs_setGlobalVars();
 

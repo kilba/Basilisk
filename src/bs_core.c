@@ -750,7 +750,7 @@ void bs_initMeshSelection() {
 
     bs_attachRenderbuffer();
 
-    bs_loadMemShader(vs_selection, fs_selection, 0, &selection.shader);
+    bs_shaderMem(&selection.shader, vs_selection, fs_selection, 0);
     selection.model_loc = bs_uniformLoc(selection.shader.id, "model");
     selection.count = 1;
 
@@ -758,7 +758,7 @@ void bs_initMeshSelection() {
 }
 
 void bs_modelInit();
-void bs_init(int width, int height, char *title) {
+void bs_init(int width, int height, const char *title) {
     bs_initWnd(width, height, title);
     // bs_printHardwareInfo();
 
