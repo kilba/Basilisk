@@ -182,9 +182,9 @@ struct bs_Uniform {
 
 struct bs_Shader {
     bs_Uniform uniforms[BS_UNIFORM_TYPE_COUNT];
-    int attribs;
     uint8_t attrib_sizes[BS_MAX_ATTRIB_COUNT];
     int attrib_count;
+    int attribs;
 
     // OpenGL Variables
     unsigned int id;

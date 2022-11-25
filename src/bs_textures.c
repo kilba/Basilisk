@@ -1,6 +1,4 @@
 // GL
-#include "bs_types.h"
-#include "lodepng.h"
 #include <glad/glad.h>
 #include <cglm/cglm.h>
 
@@ -255,4 +253,40 @@ bs_U32 bs_textureArrayAppendPNG(char *path) {
 
     curr_texture->frame.z++;
     return 0;
+}
+
+void bs_textureRGBA16f(bs_Texture *tex, bs_ivec2 dim) {
+    bs_texture(tex, dim, BS_TEX2D);
+    bs_textureMinMag(BS_NEAREST, BS_NEAREST);
+    bs_pushTexture(GL_RGBA16F, GL_RGBA, BS_FLOAT);
+}
+
+void bs_textureLinRGBA16f(bs_Texture *tex, bs_ivec2 dim) {
+    bs_texture(tex, dim, BS_TEX2D);
+    bs_textureMinMag(BS_LINEAR, BS_LINEAR);
+    bs_pushTexture(GL_RGBA16F, GL_RGBA, BS_FLOAT);
+}
+
+void bs_textureRGBA32f(bs_Texture *tex, bs_ivec2 dim) {
+    bs_texture(tex, dim, BS_TEX2D);
+    bs_textureMinMag(BS_NEAREST, BS_NEAREST);
+    bs_pushTexture(GL_RGBA32F, GL_RGBA, BS_FLOAT);
+}
+
+void bs_textureLinRGBA32f(bs_Texture *tex, bs_ivec2 dim) {
+    bs_texture(tex, dim, BS_TEX2D);
+    bs_textureMinMag(BS_LINEAR, BS_LINEAR);
+    bs_pushTexture(GL_RGBA32F, GL_RGBA, BS_FLOAT);
+}
+
+void bs_texture_11_11_10(bs_Texture *tex, bs_ivec2 dim) {
+    bs_texture(tex, dim, BS_TEX2D);
+    bs_textureMinMag(BS_NEAREST, BS_NEAREST);
+    bs_pushTexture(GL_R11F_G11F_B10F, GL_RGB, BS_FLOAT);
+}
+
+void bs_textureLin_11_11_10(bs_Texture *tex, bs_ivec2 dim) {
+    bs_texture(tex, dim, BS_TEX2D);
+    bs_textureMinMag(BS_LINEAR, BS_LINEAR);
+    bs_pushTexture(GL_R11F_G11F_B10F, GL_RGB, BS_FLOAT);
 }

@@ -274,8 +274,10 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
 
 void bs_loadJoints(cgltf_data *data, bs_Mesh *mesh, cgltf_mesh *c_mesh) {
     cgltf_skin *skin = c_mesh->node->skin;
+    mesh->joints = NULL;
+
     if(skin == NULL)
-	    return;
+	return;
 
     mesh->joints = malloc(skin->joints_count * sizeof(bs_Joint));
     mesh->joint_count = skin->joints_count;
@@ -327,6 +329,7 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
     memcpy(&model->meshes[mesh_index].pos, node->translation, sizeof(bs_vec3));
     memcpy(&model->meshes[mesh_index].rot, node->rotation, sizeof(bs_vec4));
     memcpy(&model->meshes[mesh_index].sca, node->scale, sizeof(bs_vec4));
+   
     bs_mat4 local = GLM_MAT4_IDENTITY_INIT;
     glm_translate(local, node->translation);
     glm_quat_rotate(local, (versor){ node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3] }, local);
@@ -451,6 +454,7 @@ void bs_loadAnim(cgltf_data* data, int index, bs_Model *model) {
 
 void bs_loadAnims(cgltf_data* data, bs_Model *model) {
     anim_count += data->animations_count;
+
     if(data->animations_count == 0)
 	return;
 
@@ -480,12 +484,13 @@ void bs_model(bs_Model *model, const char *model_path, int settings) {
     cgltf_load_buffers(&options, data, bin_path);
     int mesh_count = data->meshes_count;
 
+    model->textures = NULL;
     model->meshes = malloc(mesh_count * sizeof(bs_Mesh));
     model->mesh_count = mesh_count;
     model->prim_count = 0;
     model->vertex_count = 0;
     model->index_count = 0;
-
+ 
     model->name = malloc(path_len);
     strcpy(model->name, model_path);
     bs_loadModelTextures(data, model);
@@ -545,5 +550,11 @@ void bs_freeModel(bs_Model *model) {
 	    free(prim->indices);
 	    free(prim->vertices);
 	}
+
+	free(mesh->joints);
+	free(mesh->prims);
     }
+
+    free(model->textures);
+    free(model->meshes);
 }

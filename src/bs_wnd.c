@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <glad/glad.h>
+#include <glad/glad_wgl.h>
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -99,9 +100,29 @@ void bs_initWnd(int width, int height, const char *title) {
     dc = GetDC(hwnd);
     // int pf = ChoosePixelFormat(dc, &pfd);
     SetPixelFormat(dc, pixel_format, &pfd);
-    rc = wglCreateContext(dc);
-    wglMakeCurrent(dc, rc);
+    HGLRC temprc = wglCreateContext(dc);
+
+    wglMakeCurrent(dc, temprc);
     gladLoadGL();
+/*
+    int gl43Attribs[] = {
+	    WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+	    WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+	    WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+	    0
+    };
+
+    rc = wglCreateContextAttribsARB(dc, 0, gl43Attribs);
+    if(rc == NULL) {
+	printf("%d\n", GetLastError());
+	exit(1);
+    }
+    
+    wglMakeCurrent(NULL, NULL);
+    wglDeleteContext(temprc);
+    wglMakeCurrent(dc, rc);
+
+    */
     glViewport(0, 0, width, height);
 
     ShowWindow(hwnd, SW_SHOW);

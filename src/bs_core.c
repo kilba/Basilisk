@@ -1,5 +1,4 @@
 // GL
-#include "bs_types.h"
 #include <glad/glad.h>
 #include <cglm/cglm.h>
 
@@ -280,7 +279,6 @@ int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
 
 /* --- Rendering models with attributes --- */
 int bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes) {
-
     bs_batchResizeCheck(prim->index_count, prim->vertex_count);
     for(int i = 0; i < prim->index_count; i++) {
         curr_batch->indices[curr_batch->index_draw_count+i] = prim->indices[i] + curr_batch->vertex_draw_count;
@@ -517,16 +515,40 @@ void bs_framebufCulling(int setting) {
     curr_framebuf->culling = setting;
 }
 
-void bs_attachColorbuffer(int attachment) { 
+void bs_attachBuffer(int attachment, bs_Texture buf) {
     bs_framebufResizeCheck();
-    
+
     bs_Framebuf *framebuf = curr_framebuf;
-    bs_Texture *tex = framebuf->bufs + framebuf->buf_count;
     framebuf->clear |= GL_COLOR_BUFFER_BIT;
 
-    bs_textureRGBA(tex, framebuf->dim);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, GL_TEXTURE_2D, tex->id, 0);
-    framebuf->buf_count++;
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, GL_TEXTURE_2D, buf.id, 0);
+    framebuf->bufs[framebuf->buf_count++] = buf;
+}
+
+void bs_attachColorbufferType(int attachment, int type) {
+    bs_Framebuf *framebuf = curr_framebuf;
+    bs_Texture tex;
+
+    switch(type) {
+	case GL_RGBA    : bs_textureRGBA(&tex, framebuf->dim); break;
+	case GL_RGBA16F : bs_textureRGBA16f(&tex, framebuf->dim); break;
+	case GL_RGBA32F : bs_textureRGBA32f(&tex, framebuf->dim); break;
+	default: return;
+    }
+
+    bs_attachBuffer(attachment, tex);
+}
+
+void bs_attachColorbuffer16(int attachment) {
+    bs_attachColorbufferType(attachment, GL_RGBA16F);
+}
+
+void bs_attachColorbuffer32(int attachment) {
+    bs_attachColorbufferType(attachment, GL_RGBA32F);
+}
+
+void bs_attachColorbuffer(int attachment) { 
+    bs_attachColorbufferType(attachment, GL_RGBA);
 }
 
 void bs_attachRenderbuffer() {

@@ -39,4 +39,12 @@ void bs_textureCubeLin(bs_Texture *texture, int dim, char *paths[6]);
 void bs_textureArray(bs_Texture *tex, bs_ivec2 max_dim, int num_textures);
 bs_U32 bs_textureArrayAppendPNG(char *path);
 
+void bs_textureRGBA16f(bs_Texture *tex, bs_ivec2 dim);
+void bs_textureLinRGBA16f(bs_Texture *tex, bs_ivec2 dim);
+void bs_textureRGBA32f(bs_Texture *tex, bs_ivec2 dim);
+void bs_textureLinRGBA32f(bs_Texture *tex, bs_ivec2 dim);
+
+void bs_texture_11_11_10(bs_Texture *tex, bs_ivec2 dim);
+void bs_textureLin_11_11_10(bs_Texture *tex, bs_ivec2 dim);
+
 #endif /* BS_TEXTURES_H */

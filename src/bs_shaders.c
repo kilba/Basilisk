@@ -1,5 +1,4 @@
 // GL
-#include "bs_types.h"
 #include <glad/glad.h>
 #include <cglm/cglm.h>
 
@@ -98,25 +97,25 @@ void bs_setDefShaderUniforms(bs_Shader *shader, const char *shader_code){
 
 void bs_setDefShaderAttribs(bs_Shader *shader, const char *vs_code) {
     const char *def_attribs [] = { 
-	"bs_Pos", 
-	"bs_Tex", 
-	"bs_Col", 
-	"bs_Nor",
-	"bs_BID",
-	"bs_Wei",
-	"bs_V4_",
-	"bs_V4I"
+	"in vec3 bs_Pos", 
+	"in vec2 bs_Tex", 
+	"in vec4 bs_Col", 
+	"in vec3 bs_Nor",
+	"in ivec4 bs_BID",
+	"in vec4 bs_Wei",
+	"in vec4 bs_V4_",
+	"in ivec4 bs_V4I"
     };
 
     int values[] = { 
-	BS_POS,
-	BS_TEX,
-	BS_COL,
-	BS_NOR,
-	BS_BID,
-	BS_WEI,
-	BS_V4_,
-	BS_V4I
+	BS_VAL_POS,
+	BS_VAL_TEX,
+	BS_VAL_COL,
+	BS_VAL_NOR,
+	BS_VAL_BID,
+	BS_VAL_WEI,
+	BS_VAL_V4_,
+	BS_VAL_V4I
     };
 
     uint8_t sizes[] = {

@@ -31,6 +31,9 @@ int bs_pushModel(bs_Model *model);
 /* --- FRAMEBUFFERS --- */
 void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim);
 void bs_framebufCulling(int setting);
+void bs_attachBuffer(int attachment, bs_Texture buf);
+void bs_attachColorbuffer16(int attachment);
+void bs_attachColorbuffer32(int attachment);
 void bs_attachColorbuffer(int attachment);
 void bs_attachRenderbuffer();
 void bs_attachDepthBuffer();
@@ -152,14 +155,14 @@ void bs_blendFunc(int val0, int val1);
 #define BS_CCW 0x0901
 
 /* BATCH ATTRIBUTE TYPES  */
-#define BS_POS 1
-#define BS_TEX 2
-#define BS_COL 4
-#define BS_NOR 8
-#define BS_BID 16
-#define BS_WEI 32
-#define BS_V4_ 64
-#define BS_V4I 128
+#define BS_VAL_POS 1
+#define BS_VAL_TEX 2
+#define BS_VAL_COL 4
+#define BS_VAL_NOR 8
+#define BS_VAL_BID 16
+#define BS_VAL_WEI 32
+#define BS_VAL_V4_ 64
+#define BS_VAL_V4I 128
 
 /* RENDER MODES */
 #define BS_POINTS 0x0000

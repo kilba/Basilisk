@@ -1,4 +1,3 @@
-#include "bs_types.h"
 #include <bs_core.h>
 #include <bs_wnd.h>
 #include <bs_textures.h>
