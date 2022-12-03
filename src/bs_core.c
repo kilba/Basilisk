@@ -515,14 +515,21 @@ void bs_framebufCulling(int setting) {
     curr_framebuf->culling = setting;
 }
 
+void bs_setBuffer(int attachment, bs_Texture buf) {
+    bs_Framebuf *framebuf = curr_framebuf;
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, GL_TEXTURE_2D, buf.id, 0);
+    framebuf->bufs[framebuf->buf_count] = buf;
+}
+
 void bs_attachBuffer(int attachment, bs_Texture buf) {
     bs_framebufResizeCheck();
 
     bs_Framebuf *framebuf = curr_framebuf;
     framebuf->clear |= GL_COLOR_BUFFER_BIT;
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, GL_TEXTURE_2D, buf.id, 0);
-    framebuf->bufs[framebuf->buf_count++] = buf;
+    bs_setBuffer(attachment, buf);
+    framebuf->buf_count++;
 }
 
 void bs_attachColorbufferType(int attachment, int type) {
@@ -875,4 +882,8 @@ void bs_blendEquation(int val) {
 
 void bs_blendFunc(int val0, int val1) {
     glBlendFunc(val0, val1);
+}
+
+void bs_viewport(int x, int y, int w, int h) {
+    glViewport(x, y, w, h);
 }

@@ -57,6 +57,7 @@
     typedef struct bs_Camera bs_Camera;
     typedef struct bs_Framebuf bs_Framebuf;
     typedef struct bs_Batch bs_Batch;
+    typedef struct bs_MeshAnim bs_MeshAnim;
     typedef struct bs_Anim bs_Anim;
     typedef struct bs_Material bs_Material;
     typedef struct bs_Joint bs_Joint;
@@ -248,8 +249,15 @@ struct bs_Batch {
     unsigned int VAO, VBO, EBO;
 };
 
+struct bs_MeshAnim {
+    bs_mat4 *joints;
+    int num_joints;
+};
+
 struct bs_Anim {
     bs_mat4 *matrices;
+    bs_MeshAnim *mesh_anims;
+    int num_mesh_anims;
 
     int joint_count;
     int frame_count;

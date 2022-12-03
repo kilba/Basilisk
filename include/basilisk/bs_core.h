@@ -31,6 +31,7 @@ int bs_pushModel(bs_Model *model);
 /* --- FRAMEBUFFERS --- */
 void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim);
 void bs_framebufCulling(int setting);
+void bs_setBuffer(int attachment, bs_Texture buf);
 void bs_attachBuffer(int attachment, bs_Texture buf);
 void bs_attachColorbuffer16(int attachment);
 void bs_attachColorbuffer32(int attachment);
@@ -111,6 +112,7 @@ void bs_clearColor(float r, float g, float b, float a);
 void bs_frontFace(int face);
 void bs_blendEquation(int val);
 void bs_blendFunc(int val0, int val1);
+void bs_viewport(int x, int y, int w, int h);
 
 /* --- CONSTANTS --- */
 #define BS_BATCH_INCR_BY 1024 

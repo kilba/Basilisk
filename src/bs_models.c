@@ -379,9 +379,28 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 	// }
 }
 
-void bs_loadAnim(cgltf_data* data, int index, bs_Model *model) {
+void bs_checkMeshAnimResize(bs_Anim *anim) {
+    const int realloc_by = 8;
+    if((anim->num_mesh_anims % realloc_by) != 0)
+	return;
+
+    printf("Reallocing anims...\n");
+    size_t size = (realloc_by + anim->num_mesh_anims) * sizeof(bs_MeshAnim);
+    anim->mesh_anims = realloc(anim->mesh_anims, size);
+}
+
+void bs_animation(int bind_point, bs_Anim *anim, bs_Mesh *mesh) {
+    bs_checkMeshAnimResize(anim);
+    bs_MeshAnim *mesh_anim = anim->mesh_anims + anim->num_mesh_anims;
+
+    mesh_anim->joints = malloc(mesh->joint_count * sizeof(bs_mat4));
+
+    anim->num_mesh_anims++;
+}
+
+void bs_loadAnim(cgltf_data* data, int index, int old_anim_offset, bs_Model *model) {
     cgltf_animation *c_anim = &data->animations[index];
-    bs_Anim *anim = &anims[index];
+    bs_Anim *anim = &anims[index + old_anim_offset];
 
     int joint_count = c_anim->samplers_count / 3;
     int frame_count = cgltf_accessor_unpack_floats(c_anim->samplers[0].input, NULL, 0);
@@ -392,6 +411,9 @@ void bs_loadAnim(cgltf_data* data, int index, bs_Model *model) {
     anim->name = malloc(name_len + 1);
     strcpy(anim->name, c_anim->name);
 
+    anim->mesh_anims = NULL;
+    anim->num_mesh_anims = 0;
+    
     anim->joint_count = joint_count;
     anim->frame_count = frame_count;
     anim->frame_offset_shader = anim_offset;
@@ -412,8 +434,8 @@ void bs_loadAnim(cgltf_data* data, int index, bs_Model *model) {
 	for(int j = 0; j < frame_count; j++) {
 	    int idx = i + (j * joint_count);
 	    bs_mat4 *joint = &joints[idx];
-
 	    bs_mat4 joint_mat = GLM_MAT4_IDENTITY_INIT;
+
 	    vec3   tra;
 	    versor rot;
 	    vec3   sca;
@@ -434,37 +456,56 @@ void bs_loadAnim(cgltf_data* data, int index, bs_Model *model) {
     anim->matrices = malloc(ssbo_size);
 
     bs_Mesh *mesh = model->meshes;
+
+    // For each FRAME in animation
     for(int i = 0; i < frame_count; i++) {
-	for(int j = 0; j < joint_count; j++) {
+	// For each JOINT in mesh
+	for(int j = 0; j < mesh->joint_count; j++) {
 	    bs_Joint *change_joint = &mesh->joints[j];
 	    bs_Joint *parent = mesh->joints[j].parent;
-	    int idx = j + i * joint_count;
+	    int idx = j + i * mesh->joint_count;
 
+	    // RESULT_JOINT  = (BIND MATRIX) * (LOCAL INVERSE)
+	    // RESULT_JOINT *= (ANIMATION JOINT OF CURRENT FRAME)
+	    // RESULT_JOINT *= (INVERSE BIND MATRIX)
+	    // RESULT_JOINT  = (JOINT PARENT) * (RESULT_JOINT)
+	    
 	    glm_mat4_mul(change_joint->bind_matrix, change_joint->local_inv, change_joint->mat);
 	    glm_mat4_mul(change_joint->mat, joints[idx], change_joint->mat);
 	    glm_mat4_mul(change_joint->mat, change_joint->bind_matrix_inv, change_joint->mat);
 	    glm_mat4_mul(parent->mat, change_joint->mat, change_joint->mat);
-
+	    
 	    memcpy(anim->matrices + idx, change_joint->mat, sizeof(bs_mat4));
+
 	}
     }
-
-    free(joints);
 }
 
 void bs_loadAnims(cgltf_data* data, bs_Model *model) {
+    int old_anim_count = anim_count;
     anim_count += data->animations_count;
 
     if(data->animations_count == 0)
 	return;
 
     if(anim_count > allocated_anims) {
-	allocated_anims = anim_count + 4;
+	allocated_anims = anim_count + 8;
 	anims = realloc(anims, allocated_anims * sizeof(bs_Anim));
     }
 
     for(int i = 0; i < data->animations_count; i++)
-	bs_loadAnim(data, i, model);
+	bs_loadAnim(data, i, old_anim_count, model);
+}
+
+void bs_cgltfError(int err) {
+    switch(err) {
+	case cgltf_result_success: return;
+	case cgltf_result_unknown_format: printf("GLTF ERROR: \"UNKNOWN FORMAT\"\n"); break;
+	case cgltf_result_invalid_json: printf("GLTF ERROR: \"INVALID JSON\"\n"); break;
+	case cgltf_result_invalid_gltf: printf("GLTF ERROR: \"INVALID GLTF\"\n"); break;
+	case cgltf_result_file_not_found: printf("GLTF ERROR: \"FILE NOT FOUND\"\n"); break;
+	default: printf("GLTF ERROR (code %d)\n", err); break;
+    }
 }
 
 void bs_model(bs_Model *model, const char *model_path, int settings) {
@@ -472,16 +513,13 @@ void bs_model(bs_Model *model, const char *model_path, int settings) {
     cgltf_data* data = NULL;
     load_settings = settings;
 
-    // Get path to GLTF binary data
-    char bin_path[256];
+    int err;
+    err = cgltf_parse_file(&options, model_path, &data);
+    bs_cgltfError(err);
+    err = cgltf_load_buffers(&options, data, model_path);
+    bs_cgltfError(err);
+    
     int path_len = strlen(model_path);
-    strncpy(bin_path, model_path, path_len-4);
-    strcat(bin_path, "bin");
-
-    // TODO: Check if exists
-    // Load the GLTF json and binary data
-    cgltf_parse_file(&options, model_path, &data);
-    cgltf_load_buffers(&options, data, bin_path);
     int mesh_count = data->meshes_count;
 
     model->textures = NULL;
@@ -519,10 +557,13 @@ void bs_animate(bs_Anim *anim, int frame) {
 void bs_pushAnims() {
     int ssbo_size = anim_offset * sizeof(bs_mat4);
     anim_ssbo = bs_SSBO(NULL, ssbo_size + 16, 3);
+
     for(int i = 0; i < anim_count; i++) {
 	bs_Anim *anim = anims + i;
-	int size = anim->joint_count * anim->frame_count * sizeof(bs_mat4);
-	bs_pushSSBO(anim->matrices, 16 + anim->frame_offset_shader * sizeof(bs_mat4), size);
+	int size   = anim->joint_count * anim->frame_count * sizeof(bs_mat4);
+	int offset = 16 + anim->frame_offset_shader * sizeof(bs_mat4);
+
+	bs_pushSSBO(anim->matrices, offset, size);
 	free(anim->matrices);
     }
 }
@@ -534,15 +575,18 @@ bs_Anim *bs_getAnims() {
 bs_Anim *bs_getAnimFromName(char *name) {
     for(int i = 0; i < anim_count; i++) {
 	bs_Anim *anim = anims + i;
-	if(strcmp(name, anim->name))
+	if(strcmp(name, anim->name) == 0)
 	    return anim;
     }
 
     return NULL;
 }
 
+int bs_numAnims() {
+    return anim_count;
+}
+
 void bs_freeModel(bs_Model *model) {
-    // Free primitive data
     for(int m = 0; m < model->mesh_count; m++) {
 	bs_Mesh *mesh = model->meshes + m;
 	for(int p = 0; p < mesh->prim_count; p++) {
