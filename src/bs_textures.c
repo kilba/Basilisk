@@ -113,6 +113,9 @@ void bs_texSplitVert(int frame_count) {
 }
 
 void bs_selectTextureTarget(bs_Texture *texture, int tex_unit, int target) {
+    if(curr_texture == texture)
+	return;
+
     curr_texture = texture;
     glActiveTexture(GL_TEXTURE0 + tex_unit);
     glBindTexture(target, texture->id);

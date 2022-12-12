@@ -101,25 +101,7 @@ typedef                 float bs_mat3[3][3];
 
 typedef bs_vec4 	bs_quat;
 
-/* --- ARRAY -> VECTORS --- */
-// ARRAY -> VECTORS (INT)
-#define BS_AIVEC2(arr) (bs_ivec2){ arr.x, arr.y }
-#define BS_AIVEC3(arr) (bs_ivec3){ arr.x, arr.y, arr.z }
-#define BS_AIVEC4(arr) (bs_ivec4){ arr.x, arr.y, arr.z, arr.w }
-#define BS_AIV2(arr) BS_AIVEC2(arr)
-#define BS_AIV3(arr) BS_AIVEC3(arr)
-#define BS_AIV4(arr) BS_AIVEC4(arr)
-
-// ARRAY -> VECTORS
-#define BS_AVEC2(arr) (bs_vec2){ arr.x, arr.y }
-#define BS_AVEC3(arr) (bs_vec3){ arr.x, arr.y, arr.z }
-#define BS_AVEC4(arr) (bs_vec4){ arr.x, arr.y, arr.z, arr.w }
-#define BS_AV2(arr) BS_AVEC2(arr)
-#define BS_AV3(arr) BS_AVEC3(arr)
-#define BS_AV4(arr) BS_AVEC4(arr)
-
-/* --- COORDS -> VECTOR --- */
-// COORDS -> VECTOR
+/* --- VECX --- */
 #define BS_VEC2(x, y) (bs_vec2){ x, y }
 #define BS_VEC3(x, y, z) (bs_vec3){ x, y, z }
 #define BS_VEC4(x, y, z, w) (bs_vec4) { x, y, z, w }
@@ -127,7 +109,7 @@ typedef bs_vec4 	bs_quat;
 #define BS_V3(x, y, z) BS_VEC3(x, y, z)
 #define BS_V4(x, y, z, w) BS_VEC4(x, y, z, w)
 
-// COORDS -> VECTOR (INT)
+/* --- IVECX --- */
 #define BS_IVEC2(x, y) (bs_ivec2){ x, y }
 #define BS_IVEC3(x, y, z) (bs_ivec3){ x, y, z }
 #define BS_IVEC4(x, y, z, w) (bs_ivec4) { x, y, z, w }
@@ -135,10 +117,8 @@ typedef bs_vec4 	bs_quat;
 #define BS_IV3(x, y, z) BS_IVEC3(x, y, z)
 #define BS_IV4(x, y, z, w) BS_IVEC4(x, y, z, w)
 
-// "COORDS" -> COLOR
 #define BS_RGBA(r, g, b, a) (bs_RGBA) { r, g, b, a }
 
-// COORDS -> QUATERNIONS
 #define BS_QUAT(x, y, z, w) (bs_quat){ x, y, z, w }
 
 /* --- TEXTURES --- */
@@ -252,6 +232,8 @@ struct bs_Batch {
 struct bs_MeshAnim {
     bs_mat4 *joints;
     int num_joints;
+    int num_frames;
+    int shader_offset;
 };
 
 struct bs_Anim {
@@ -368,6 +350,9 @@ struct bs_Model {
 
 #define BS_IV4_0 BS_IVEC4_0
 #define BS_IV4_1 BS_IVEC4_1
+
+/* --- QUATERNION CONSTANTS --- */
+#define BS_QUAT_IDENTITY BS_QUAT(0.0, 0.0, 0.0, 1.0)
 
 /* --- COLOR CONSTANTS --- */
 // bs_RGBA Constants

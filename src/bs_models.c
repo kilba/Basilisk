@@ -216,7 +216,8 @@ void bs_readIndices(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim
 }
 
 void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_index, int prim_index) {
-    cgltf_mesh *c_mesh = &data->meshes[mesh_index];
+    cgltf_mesh *c_mesh = data->meshes + mesh_index;
+    cgltf_primitive *c_prim = c_mesh->primitives + prim_index;
     bs_Prim *prim = &mesh->prims[prim_index];
 
     prim->material.tex = NULL;
@@ -384,16 +385,46 @@ void bs_checkMeshAnimResize(bs_Anim *anim) {
     if((anim->num_mesh_anims % realloc_by) != 0)
 	return;
 
-    printf("Reallocing anims...\n");
     size_t size = (realloc_by + anim->num_mesh_anims) * sizeof(bs_MeshAnim);
     anim->mesh_anims = realloc(anim->mesh_anims, size);
 }
 
 void bs_animation(int bind_point, bs_Anim *anim, bs_Mesh *mesh) {
+    if(anim->joint_count != mesh->joint_count) {
+	printf("Mismatching number of joints in animation and mesh\n");
+	return;
+    }
+
     bs_checkMeshAnimResize(anim);
     bs_MeshAnim *mesh_anim = anim->mesh_anims + anim->num_mesh_anims;
 
-    mesh_anim->joints = malloc(mesh->joint_count * sizeof(bs_mat4));
+    mesh_anim->joints = malloc(anim->frame_count * mesh->joint_count * sizeof(bs_mat4));
+    mesh_anim->num_joints = mesh->joint_count;
+    mesh_anim->num_frames = anim->frame_count;
+    mesh_anim->shader_offset = anim_offset;
+    anim_offset += anim->frame_count * anim->joint_count;
+
+    // For each FRAME in animation
+    for(int i = 0; i < anim->frame_count; i++) {
+	// For each JOINT in mesh
+	for(int j = 0; j < mesh->joint_count; j++) {
+	    bs_Joint *change_joint = &mesh->joints[j];
+	    bs_Joint *parent = mesh->joints[j].parent;
+	    int idx = j + i * mesh->joint_count;
+
+	    // RESULT_JOINT  = (BIND MATRIX) * (LOCAL INVERSE)
+	    // RESULT_JOINT *= (ANIMATION JOINT OF CURRENT FRAME)
+	    // RESULT_JOINT *= (INVERSE BIND MATRIX)
+	    // RESULT_JOINT  = (JOINT PARENT) * (RESULT_JOINT)
+	    
+	    glm_mat4_mul(change_joint->bind_matrix, change_joint->local_inv, change_joint->mat);
+	    glm_mat4_mul(change_joint->mat, anim->matrices[idx], change_joint->mat);
+	    glm_mat4_mul(change_joint->mat, change_joint->bind_matrix_inv, change_joint->mat);
+	    glm_mat4_mul(parent->mat, change_joint->mat, change_joint->mat);
+	    
+	    memcpy(mesh_anim->joints + idx, change_joint->mat, sizeof(bs_mat4));
+	}
+    }
 
     anim->num_mesh_anims++;
 }
@@ -416,8 +447,8 @@ void bs_loadAnim(cgltf_data* data, int index, int old_anim_offset, bs_Model *mod
     
     anim->joint_count = joint_count;
     anim->frame_count = frame_count;
-    anim->frame_offset_shader = anim_offset;
-    anim_offset += frame_count * joint_count;
+    //anim->frame_offset_shader = anim_offset;
+    //anim_offset += frame_count * joint_count;
 
     int i, i3 = 0; 
     for(i = 0; i < joint_count; i++, i3+=3) {
@@ -451,34 +482,7 @@ void bs_loadAnim(cgltf_data* data, int index, int old_anim_offset, bs_Model *mod
 	    memcpy(joint, joint_mat, sizeof(bs_mat4));
 	}
     }
-    
-    int ssbo_size = frame_count * joint_count * sizeof(bs_mat4);
-    anim->matrices = malloc(ssbo_size);
-
-    bs_Mesh *mesh = model->meshes;
-
-    // For each FRAME in animation
-    for(int i = 0; i < frame_count; i++) {
-	// For each JOINT in mesh
-	for(int j = 0; j < mesh->joint_count; j++) {
-	    bs_Joint *change_joint = &mesh->joints[j];
-	    bs_Joint *parent = mesh->joints[j].parent;
-	    int idx = j + i * mesh->joint_count;
-
-	    // RESULT_JOINT  = (BIND MATRIX) * (LOCAL INVERSE)
-	    // RESULT_JOINT *= (ANIMATION JOINT OF CURRENT FRAME)
-	    // RESULT_JOINT *= (INVERSE BIND MATRIX)
-	    // RESULT_JOINT  = (JOINT PARENT) * (RESULT_JOINT)
-	    
-	    glm_mat4_mul(change_joint->bind_matrix, change_joint->local_inv, change_joint->mat);
-	    glm_mat4_mul(change_joint->mat, joints[idx], change_joint->mat);
-	    glm_mat4_mul(change_joint->mat, change_joint->bind_matrix_inv, change_joint->mat);
-	    glm_mat4_mul(parent->mat, change_joint->mat, change_joint->mat);
-	    
-	    memcpy(anim->matrices + idx, change_joint->mat, sizeof(bs_mat4));
-
-	}
-    }
+    anim->matrices = joints;
 }
 
 void bs_loadAnims(cgltf_data* data, bs_Model *model) {
@@ -531,6 +535,7 @@ void bs_model(bs_Model *model, const char *model_path, int settings) {
  
     model->name = malloc(path_len);
     strcpy(model->name, model_path);
+
     bs_loadModelTextures(data, model);
     for(int i = 0; i < mesh_count; i++) {
 	bs_loadMesh(data, model, i);
@@ -541,14 +546,22 @@ void bs_model(bs_Model *model, const char *model_path, int settings) {
     cgltf_free(data);
 }
 
-void bs_animate(bs_Anim *anim, int frame) {
-    /* TODO: Log warning */
-    if(anim == NULL)
+void bs_animate(bs_Anim *anim, int bind_point, int frame) {
+    if(anim == NULL) {
+	printf("Anim is NULL\n");
 	return;
+    }
+
+    if(bind_point >= anim->num_mesh_anims) {
+	printf("Mesh Anim is NULL\n");
+	return;
+    }
+
+    bs_MeshAnim *mesh_anim = anim->mesh_anims + bind_point;
 
     frame %= anim->frame_count;
     frame *= anim->joint_count;
-    frame += anim->frame_offset_shader;
+    frame += mesh_anim->shader_offset;
 
     bs_selectSSBO(anim_ssbo);
     bs_pushSSBO(&frame, 0, 4);
@@ -557,7 +570,7 @@ void bs_animate(bs_Anim *anim, int frame) {
 void bs_pushAnims() {
     int ssbo_size = anim_offset * sizeof(bs_mat4);
     anim_ssbo = bs_SSBO(NULL, ssbo_size + 16, 3);
-
+/*
     for(int i = 0; i < anim_count; i++) {
 	bs_Anim *anim = anims + i;
 	int size   = anim->joint_count * anim->frame_count * sizeof(bs_mat4);
@@ -566,13 +579,26 @@ void bs_pushAnims() {
 	bs_pushSSBO(anim->matrices, offset, size);
 	free(anim->matrices);
     }
+*/
+    for(int i = 0; i < anim_count; i++) {
+	bs_Anim *anim = anims + i;
+	for(int j = 0; j < anim->num_mesh_anims; j++) {
+	    bs_MeshAnim *mesh_anim = anim->mesh_anims + j;
+
+	    int size   = mesh_anim->num_joints * anim->frame_count * sizeof(bs_mat4);
+	    int offset = 16 + mesh_anim->shader_offset * sizeof(bs_mat4);
+	    
+	    bs_pushSSBO(mesh_anim->joints, offset, size);
+//	    free(mesh_anim->joints);
+	}
+    }
 }
 
-bs_Anim *bs_getAnims() {
+bs_Anim *bs_anims() {
     return anims;
 }
 
-bs_Anim *bs_getAnimFromName(char *name) {
+bs_Anim *bs_animFromName(const char *name) {
     for(int i = 0; i < anim_count; i++) {
 	bs_Anim *anim = anims + i;
 	if(strcmp(name, anim->name) == 0)

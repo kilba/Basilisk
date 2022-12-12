@@ -205,6 +205,8 @@ uint32_t bs_loca(bs_locaInfo *loca, int id) {
     return offset;
 }
 
+#define BS_FLAGSET(flag, cmp) ((flag >> cmp) & 0x01)
+
 void bs_glyf(bs_glyfInfo *glyf, int id) {
     if(glyf->buf == NULL) {
 	glyf->buf = bs_findTable("glyf");
@@ -237,16 +239,17 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
 	int flag = bs_memU8(glyf->buf, flag_offset);
 	int16_t xcoord;
 
+
 	// If xcoord is 8-bit
-	if((flag >> GLYF_X_SHORT) & 0x01) {
+	if(BS_FLAGSET(flag, GLYF_X_SHORT)) {
 	    xcoord = bs_memU8(glyf->buf, xcoord_offset);
 	    xcoord_offset += 1;
 	    xcoord_size += 1;
 
-	    if(!((flag >> GLYF_X_SAME) & 0x01))
+	    if(!BS_FLAGSET(flag, GLYF_X_SAME))
 		xcoord *= -1;
 	} else {
-	    if((flag >> GLYF_X_SAME) & 0x01) {
+	    if(BS_FLAGSET(flag, GLYF_X_SAME)) {
 		xcoord = 0;
 	    } else {
 		xcoord = bs_memU16(glyf->buf, xcoord_offset);
@@ -266,6 +269,7 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
     for(int i = 0; i < num_points; i++, flag_offset++) {
 	int flag = bs_memU8(glyf->buf, flag_offset);
 	int16_t ycoord;
+
 
 	// If ycoord is 8-bit
 	if((flag >> GLYF_Y_SHORT) & 0x01) {

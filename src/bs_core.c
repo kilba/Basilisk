@@ -143,14 +143,39 @@ void bs_selectBatch(bs_Batch *batch) {
 
 void bs_batchResizeCheck(int index_count, int vertex_count) {
     bs_Batch *batch = curr_batch;
-    if(((batch->index_draw_count+index_count) < batch->allocated_index_count) && ((batch->vertex_draw_count+vertex_count) < batch->allocated_vertex_count))
-	return;
+    if((batch->index_draw_count + index_count) < batch->allocated_index_count)
+	if((batch->vertex_draw_count + vertex_count) < batch->allocated_vertex_count)
+	    return;
 
     int new_index_count = batch->index_draw_count + BS_BATCH_INCR_BY + index_count;
     int new_vertex_count = batch->vertex_draw_count + BS_BATCH_INCR_BY + vertex_count;
 //    printf("Allocating:\n    index : %d\n    vertex: %d\n", new_index_count, new_vertex_count);
 
     bs_batchBufferSize(new_index_count, new_vertex_count);
+}
+
+void bs_pushIndex(int idx) {
+    curr_batch->indices[curr_batch->index_draw_count++] = curr_batch->vertex_draw_count + idx;
+}
+
+void bs_pushIndices(int *idxs, int num_elems) {
+    for(int i = 0; i < num_elems; i++)
+	bs_pushIndex(idxs[i]);
+}
+
+void bs_pushIndexVa(int num_elems, ...) {
+    va_list ptr;
+    va_start(ptr, num_elems);
+
+    for(int i = 0; i < num_elems; i++)
+	bs_pushIndex(va_arg(ptr, int));
+
+    va_end(ptr);
+}
+
+void bs_pushAttrib(uint8_t **data_ptr, void *data, uint8_t size) {
+    memcpy(*data_ptr, data, size);
+    *data_ptr += size;
 }
 
 void bs_pushVertex(
@@ -167,30 +192,15 @@ void bs_pushVertex(
 
     uint8_t *data_ptr = (uint8_t *)batch->vertices + batch->vertex_draw_count * batch->attrib_size_bytes;
     uint8_t *sizes = batch->shader->attrib_sizes;
-
-    memcpy(data_ptr, &pos, sizes[0]);
-    data_ptr += sizes[0];
-
-    memcpy(data_ptr, &tex, sizes[1]);
-    data_ptr += sizes[1];
-
-    memcpy(data_ptr, &col, sizes[2]);
-    data_ptr += sizes[2];
-
-    memcpy(data_ptr, &nor, sizes[3]);
-    data_ptr += sizes[3];
-
-    memcpy(data_ptr, &bid, sizes[4]);
-    data_ptr += sizes[4];
-
-    memcpy(data_ptr, &wei, sizes[5]); 
-    data_ptr += sizes[5];
-
-    memcpy(data_ptr, &v4_, sizes[6]);
-    data_ptr += sizes[6];
-
-    memcpy(data_ptr, &v4i, sizes[7]);
-    data_ptr += sizes[7];
+    
+    bs_pushAttrib(&data_ptr, &pos, sizes[0]);
+    bs_pushAttrib(&data_ptr, &tex, sizes[1]);
+    bs_pushAttrib(&data_ptr, &col, sizes[2]);
+    bs_pushAttrib(&data_ptr, &nor, sizes[3]);
+    bs_pushAttrib(&data_ptr, &bid, sizes[4]);
+    bs_pushAttrib(&data_ptr, &wei, sizes[5]);
+    bs_pushAttrib(&data_ptr, &v4_, sizes[6]);
+    bs_pushAttrib(&data_ptr, &v4i, sizes[7]);
     
     curr_batch->vertex_draw_count++;
 } 
@@ -198,19 +208,14 @@ void bs_pushVertex(
 int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
     bs_batchResizeCheck(6, 4);
 
-    int indices[] = {
-        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
-        curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+3,
-    };
+    bs_pushIndexVa(6, 0, 1, 2, 2, 1, 3);
 
-    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 6 * sizeof(int));
-    
     bs_pushVertex(p0, (bs_vec2){ 0.0, 0.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Bottom Left
     bs_pushVertex(p1, (bs_vec2){ 1.0, 0.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Bottom right
     bs_pushVertex(p2, (bs_vec2){ 0.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Top Left
     bs_pushVertex(p3, (bs_vec2){ 1.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Top Right
 
-    return curr_batch->index_draw_count += 6;
+    return curr_batch->index_draw_count;
 }
 
 int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col) {
@@ -219,19 +224,14 @@ int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim
     dim.x += pos.x;
     dim.y += pos.y;
 
-    int indices[] = {
-        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
-        curr_batch->vertex_draw_count+2, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+3,
-    };
-
-    memcpy(curr_batch->indices + curr_batch->index_draw_count, indices, 6 * sizeof(int));
+    bs_pushIndexVa(6, 0, 1, 2, 2, 1, 3);
 
     bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Bottom Left
     bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Bottom right
     bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Top Left
     bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Top Right
 
-    return curr_batch->index_draw_count += 6;
+    return curr_batch->index_draw_count;
 }
 
 int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
@@ -261,10 +261,8 @@ int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 
 int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     bs_batchResizeCheck(3, 3);
-    int indices[] = {
-        curr_batch->vertex_draw_count+0, curr_batch->vertex_draw_count+1, curr_batch->vertex_draw_count+2,
-    };
-    memcpy(&curr_batch->indices[curr_batch->index_draw_count], indices, 3 * sizeof(int));
+    
+    bs_pushIndexVa(3, 0, 1, 2),
 
     bs_pushVertex(pos1, (bs_vec2){ 0.0, 0.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
     bs_pushVertex(pos2, (bs_vec2){ 1.0, 0.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
@@ -280,9 +278,8 @@ int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
 /* --- Rendering models with attributes --- */
 int bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes) {
     bs_batchResizeCheck(prim->index_count, prim->vertex_count);
-    for(int i = 0; i < prim->index_count; i++) {
-        curr_batch->indices[curr_batch->index_draw_count+i] = prim->indices[i] + curr_batch->vertex_draw_count;
-    }
+
+    bs_pushIndices(prim->indices, prim->index_count);
 
     float *vertex = prim->vertices;
     for(int i = 0; i < prim->vertex_count; i++, vertex += prim->vertex_size) {
@@ -298,7 +295,7 @@ int bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes) {
         );
     }
 
-    return curr_batch->index_draw_count += prim->index_count;
+    return curr_batch->index_draw_count;
 }
 
 int bs_pushMeshA(bs_Mesh *mesh, bs_vec4 attributes) {
@@ -345,21 +342,10 @@ void bs_batchBufferSize(int index_count, int vertex_count) {
 
 void bs_batch(bs_Batch *batch, bs_Shader *shader) {
     // Default values
-    batch->camera = &def_camera;
+    memset(batch, 0, sizeof(bs_Batch));
     batch->draw_mode = BS_TRIANGLES;
-    batch->vertex_draw_count = 0;
-    batch->index_draw_count = 0;
-    batch->attrib_count = 0;
-    batch->attrib_offset = 0;
-    batch->attrib_size_bytes = 0;
-    batch->allocated_vertex_count = 0;
-    batch->allocated_index_count = 0;
+    batch->camera = &def_camera;
     batch->shader = shader;
-    batch->vertices = NULL;
-    batch->indices = NULL;
-
-    if(batch->shader == NULL)
-	batch->shader = &texture_shader;
 
     // Create buffer/array objects
     glGenVertexArrays(1, &batch->VAO);
@@ -387,22 +373,20 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
 
     // Calculate attrib sizes
     int i = 0, j = 1;
-    for(; i < total_attrib_count; i++, j*=2) {
+    for(; i < total_attrib_count; i++, j *= 2) {
         struct Attrib_Data *data = &attrib_data[i];
 
-        if((batch->shader->attribs & j) == j) {
+        if((batch->shader->attribs & j) == j)
             batch->attrib_size_bytes += data->size;
-        }
     }
 
     // Add attributes
     i = 0; j = 1;
-    for(; i < total_attrib_count; i++, j*=2) {
+    for(; i < total_attrib_count; i++, j *= 2) {
         struct Attrib_Data *data = &attrib_data[i];
 
-        if((batch->shader->attribs & j) == j) {
+        if((batch->shader->attribs & j) == j)
             bs_attrib(data->type, data->count, data->size, data->normalized);
-        }
     }
 
     batch_count++;
@@ -652,8 +636,15 @@ unsigned char *bs_framebufData(int x, int y, int w, int h) {
 }
 
 unsigned char *bs_screenshot() {
-    bs_ivec2 res = bs_resolution();
+    bs_ivec2 res = curr_framebuf->dim;
     return bs_framebufData(0, 0, res.x, res.y);
+}
+
+void bs_screenshotFile(const char *file_name) {
+    unsigned char *data = bs_screenshot();
+    bs_ivec2 res = curr_framebuf->dim;
+    lodepng_encode24_file(file_name, data, res.x, res.y);
+    free(data);
 }
 
 void bs_polygonLine() {
@@ -680,6 +671,8 @@ void bs_setGlobalVars() {
 }
 
 /* --- Mesh Selection --- */
+// TODO: This is wayyy too abstract for bs_core
+// Maybe just remove this and create it as a package
 char *vs_selection = \
     "#version 430\n" \
     "layout (location = 0) in vec3 bs_Pos;" \

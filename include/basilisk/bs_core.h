@@ -4,6 +4,11 @@
 #include <bs_types.h>
 
 /* --- RENDERING --- */
+void bs_pushIndex(int idx);
+void bs_pushIndices(int *idxs, int num_elems);
+void bs_pushIndexVa(int num_elems, ...);
+
+void bs_pushAttrib(uint8_t **data_ptr, void *data, uint8_t size);
 void bs_pushVertex(
     bs_vec3  pos,
     bs_vec2  tex,
@@ -47,6 +52,7 @@ void bs_noReadBuf();
 
 unsigned char *bs_framebufData(int x, int y, int w, int h);
 unsigned char *bs_screenshot();
+void bs_screenshotFile(const char *file_name);
 
 void bs_polygonLine();
 void bs_polygonFill();
