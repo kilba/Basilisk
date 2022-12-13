@@ -124,6 +124,7 @@ typedef bs_vec4 	bs_quat;
 /* --- TEXTURES --- */
 struct bs_Texture {
     bs_ivec3 frame;
+    int num_frames;
 
     int w, h;
     float texw, texh;
@@ -333,11 +334,11 @@ struct bs_Model {
 #define BS_V4_0 BS_VEC4_0
 #define BS_V4_1 BS_VEC4_1
 
-#define BS_IVEC2_0 (bs_ivec4){ 0, 0 }
-#define BS_IVEC2_1 (bs_ivec4){ 1, 1 }
+#define BS_IVEC2_0 (bs_ivec2){ 0, 0 }
+#define BS_IVEC2_1 (bs_ivec2){ 1, 1 }
 
-#define BS_IVEC3_0 (bs_ivec4){ 0, 0, 0 }
-#define BS_IVEC3_1 (bs_ivec4){ 1, 1, 1 }
+#define BS_IVEC3_0 (bs_ivec3){ 0, 0, 0 }
+#define BS_IVEC3_1 (bs_ivec3){ 1, 1, 1 }
 
 #define BS_IVEC4_0 (bs_ivec4){ 0, 0, 0, 0 }
 #define BS_IVEC4_1 (bs_ivec4){ 1, 1, 1, 1 }

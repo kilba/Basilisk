@@ -3,13 +3,16 @@
 
 #include <bs_types.h>
 
+void bs_v2print(bs_vec2 v);
+void bs_v3print(bs_vec3 v);
+void bs_v4print(bs_vec4 v);
+void bs_iv2print(bs_ivec2 v);
+void bs_iv3print(bs_ivec3 v);
+void bs_iv4print(bs_ivec4 v);
+void bs_qprint(bs_quat q);
+void bs_m3print(bs_mat3 m);
+void bs_m4print(bs_mat4 m);
 void bs_print(const int info_type, char *format, ...);
-void bs_printV2(bs_vec2 v);
-void bs_printV3(bs_vec3 v);
-void bs_printV4(bs_vec4 v);
-
-void bsdbg_tick();
-void bsdbg_init();
 
 #define BS_CLE 0
 #define BS_INF 1

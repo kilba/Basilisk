@@ -24,9 +24,8 @@ void bs_texture(bs_Texture *texture, bs_ivec2 dim, int type) {
     glBindTexture(type, texture->id);
 
     curr_texture = texture;
-    curr_texture->frame.x = 0;
-    curr_texture->frame.y = 0;
-    curr_texture->frame.z = 0;
+    curr_texture->frame = BS_IV3_0;
+    curr_texture->num_frames = 1;
 
     curr_texture->w = dim.x;
     curr_texture->h = dim.y;
@@ -102,13 +101,15 @@ void bs_textureMipmaps() {
     glGenerateMipmap(curr_texture->type);
 }
 
-void bs_texSplit(int frame_count) {
+void bs_textureSplit(int frame_count) {
     bs_Texture *tex = curr_texture;
+    tex->num_frames = frame_count;
     tex->texw = 1.0 / (float)frame_count;
 }
 
-void bs_texSplitVert(int frame_count) {
+void bs_textureSplitVert(int frame_count) {
     bs_Texture *tex = curr_texture;
+    tex->num_frames = frame_count;
     tex->texh = 1.0 / (float)frame_count;
 }
 

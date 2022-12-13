@@ -90,6 +90,10 @@ float bs_signv3(bs_vec3 p1, bs_vec3 p2, bs_vec3 p3) {
     return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
 }
 
+bs_vec3 bs_v3mid(bs_vec3 a, bs_vec3 b) {
+    return BS_V3((a.x + b.x) / 2.0, (a.y + b.y) / 2.0, (a.z + b.z) / 2.0);
+}
+
 bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3) {
     float d1, d2, d3;
     bool has_neg, has_pos;
@@ -170,9 +174,73 @@ bs_quat bs_qIntegrate(bs_vec4 quat, bs_vec3 dv, float dt) {
     return bs_qNormalize(quat);
 }
 
+/* --- BEZIER --- */
+double bs_bezierScalar(double p0, double p1, double p2, double p3, double t) {
+    double curve;
+
+    curve  =     pow(1.0 - t, 3.0) * p0;
+    curve += 3 * pow(1.0 - t, 2.0) * t * p1;
+    curve += 3 * pow(1.0 - t, 1.0) * pow(t, 2.0) * p2;
+    curve +=     pow(t, 3.0) * p3;
+
+    return curve;
+}
+
+void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *arr, int num_elems) {
+    double t = 0.0;
+    double incr;
+    int i = 0;
+
+    incr = 1.0 / (double)num_elems;
+
+    for(; i < num_elems; i++, t += incr) {
+	float x = bs_bezierScalar(p0.x, p1.x, p2.x, p3.x, t);
+	float y = bs_bezierScalar(p0.y, p1.y, p2.y, p3.y, t);
+	float z = bs_bezierScalar(p0.z, p1.z, p2.z, p3.z, t);
+
+	arr[i] = BS_V3(x, y, z);
+    }
+}
+
+/* --- VECTOR ADDITION --- */
+bs_vec3 bs_v3add(bs_vec3 a, bs_vec3 b) {
+    return BS_V3(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+bs_vec3 bs_v3addv2(bs_vec3 a, bs_vec2 b) {
+    return BS_V3(a.x + b.x, a.y + b.y, a.z);
+}
+
+/* --- VECTOR SUBTRACTION --- */
+bs_vec3 bs_v3sub(bs_vec3 a, bs_vec3 b) {
+    return BS_V3(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+bs_vec3 bs_v3subv2(bs_vec3 a, bs_vec2 b) {
+    return BS_V3(a.x - b.x, a.y - b.y, a.z);
+}
+
+/* --- VECTOR MULTIPLICATION --- */
+bs_vec3 bs_v3mul(bs_vec3 a, bs_vec3 b) {
+    return BS_V3(a.x * b.x, a.y * b.y, a.z * b.z);
+}
+
+bs_vec3 bs_v3muls(bs_vec3 a, float s) {
+    return BS_V3(a.x * s, a.y * s, a.z * s);
+}
+
+/* --- VECTOR DIVISION --- */
+bs_vec3 bs_v3div(bs_vec3 a, bs_vec3 b) {
+    return BS_V3(a.x / b.x, a.y / b.y, a.z / b.z);
+}
+
+bs_vec3 bs_v3divs(bs_vec3 a, float s) {
+    return BS_V3(a.x / s, a.y / s, a.z / s);
+}
+
 /* --- RANDOM --- */
 float bs_randRange(float min, float max) {
-    float val = ((float)rand()/RAND_MAX)*max + min;
+    float val = ((float)rand() / RAND_MAX) * max + min;
     return val;
 }
 
