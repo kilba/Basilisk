@@ -350,14 +350,7 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
 
 void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 	if(data->textures_count == 0)
-		return;
-
-	int64_t ids[data->textures_count];
-
-	for(int i = 0; i < data->textures_count; i++) {
-		// Getting the pointers to all images in the form of a 64 bit int
-		ids[i] = (int64_t)data->textures[i].image;
-	}
+	    return;
 
  	model->textures = malloc(data->textures_count * sizeof(bs_Texture));
 	for(int i = 0; i < data->textures_count; i++) {
@@ -369,8 +362,6 @@ void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 		//bs_textureSettings(BS_LINEAR, BS_LINEAR);
 		//bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
 	}
-
- 	curr_tex_ptr = ids[0];
 
 	// for(int i = 0; i < data->textures_count; i++) {
 	// 	ids[i] -= curr_tex_ptr;

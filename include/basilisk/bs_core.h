@@ -47,8 +47,6 @@ void bs_attachDepthStencilBuffer();
 void bs_setDrawBufs(int n, ...);
 void bs_startFramebufRender(bs_Framebuf *framebuf);
 void bs_endFramebufRender();
-void bs_noDrawBuf();
-void bs_noReadBuf();
 
 unsigned char *bs_framebufData(int x, int y, int w, int h);
 unsigned char *bs_screenshot();
@@ -77,12 +75,6 @@ void bs_batchBufferSize(int index_count, int vertex_count);
 void bs_batchShader(bs_Batch *batch, bs_Shader *shader);
 int bs_batchSize();
 void bs_batchResizeCheck(int index_count, int vertex_count);
-
-bool bs_ptIsOverMesh(bs_ivec2 coord, bs_Mesh *mesh, bs_mat4 model, bs_Camera *cam);
-void bs_objRead(bs_mat4 model, bs_Camera *cam);
-int bs_objUnderPt(bs_ivec2 pt);
-bs_Texture *bs_objEndRead();
-void bs_objPushMesh(bs_Mesh *mesh);
 
 // This is deprecated!
 int bs_checkError();

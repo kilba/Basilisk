@@ -597,14 +597,6 @@ void bs_setDrawBufs(int n, ...) {
     glDrawBuffers(n, values);
 }
 
-void bs_noDrawBuf() {
-    glDrawBuffer(GL_NONE);
-}
-
-void bs_noReadBuf() {
-    glDrawBuffer(GL_NONE);
-}
-
 void bs_startFramebufRender(bs_Framebuf *framebuf) {
     glEnable(GL_DEPTH_TEST);
     glCullFace(framebuf->culling);
@@ -670,115 +662,6 @@ void bs_setGlobalVars() {
     bs_setUniformBlockData(global_unifs, &globals);
 }
 
-/* --- Mesh Selection --- */
-// TODO: This is wayyy too abstract for bs_core
-// Maybe just remove this and create it as a package
-char *vs_selection = \
-    "#version 430\n" \
-    "layout (location = 0) in vec3 bs_Pos;" \
-    "layout (location = 1) in vec4 bs_Color;" \
-
-    "uniform mat4 bs_Proj;" \
-    "uniform mat4 bs_View;" \
-    "uniform mat4 model;" \
-
-    "out vec4 color;" \
-
-    "void main() {" \
-	"color = bs_Color;" \
-	"gl_Position = bs_Proj * bs_View * model * vec4(bs_Pos, 1.0);" \
-    "}";
-
-char *fs_selection = \
-    "#version 430\n" \
-    "layout (location = 0) out vec4 FragColor;" \
-    "in vec4 color;" \
-
-    "void main() {" \
-	"FragColor = color;" \
-    "}";
-
-struct {
-    int model_loc;
-    unsigned int count;
-
-    bs_Batch batch;
-    bs_Shader shader;
-    bs_Framebuf fbo;
-} selection;
-
-void bs_objRead(bs_mat4 model, bs_Camera *cam) {
-    bs_startFramebufRender(&selection.fbo);
-    selection.batch.camera = cam;
-
-    bs_selectBatch(&selection.batch);
-
-    bs_uniform_mat4(selection.model_loc, model);
-}
-
-void bs_objPushMesh(bs_Mesh *mesh) {
-    bs_Prim *prim = &mesh->prims[0];
-    bs_RGBA old = prim->material.col; 
-
-    prim->material.col = (bs_RGBA){ 0, 0, 0, 255 };
-    int *hex = (int *)&prim->material.col;
-    *hex += selection.count;
-
-    bs_pushMesh(mesh);
-    
-    prim->material.col = old;
-    selection.count++;
-}
-
-int bs_objUnderPt(bs_ivec2 pt) {
-    bs_fRGBA background = bs_getBackgroundColorF();
-    glClearColor(0.0, 0.0, 0.0, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    bs_pushBatch();
-
-    bs_renderBatch(0, bs_batchSize());
-    bs_clearBatch();
-
-    bs_ivec2 res = bs_wndResolution();
-    pt.x = bs_clamp(pt.x, 0.0, res.x);
-    pt.y = bs_clamp(pt.y, 0.0, res.y);
-
-    int hex;
-    glReadPixels(pt.x, pt.y, 1, 1, BS_CHANNEL_RGBA, BS_UBYTE, &hex); 
-    hex -= 0xFF000000; /* Alpha channel will always be 255, set to 0 */
-
-    // TODO: Detta är shit, gör istället att inget selectas om "pt" är utanför window
-    if(hex > selection.count)
-	hex = 0;
-
-    selection.count = 1;
-
-    glClearColor(background.r, background.g, background.b, background.a);
-    
-    return hex-1;
-}
-
-bs_Texture *bs_objEndRead() {
-    bs_endFramebufRender();
-    return &selection.fbo.bufs[0];
-}
-
-void bs_initMeshSelection() {
-    bs_ivec2 res = bs_resolution();
-
-    bs_framebuf(&selection.fbo, res);
-    bs_attachColorbuffer(0);
-
-    bs_attachRenderbuffer();
-
-    bs_shaderMem(&selection.shader, vs_selection, fs_selection, 0);
-    selection.model_loc = bs_uniformLoc(selection.shader.id, "model");
-    selection.count = 1;
-
-    bs_batch(&selection.batch, &selection.shader);
-}
-
 void bs_modelInit();
 void bs_init(int width, int height, const char *title) {
     bs_initWnd(width, height, title);
@@ -788,9 +671,6 @@ void bs_init(int width, int height, const char *title) {
     bs_ortho(def_camera.proj, 0, width, 0, height, 0.01, 1000.0);
 
     global_unifs = bs_initUniformBlock(sizeof(bs_Globals), 0);
-
-    // Load default shaders
-    bs_initMeshSelection();
 }
 
 void bs_startRender(void (*render)()) {
