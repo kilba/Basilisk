@@ -22,6 +22,7 @@ void bs_pushVertex(
 
 int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
 int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col);
+int bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col);
 int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
@@ -54,6 +55,8 @@ void bs_screenshotFile(const char *file_name);
 
 void bs_polygonLine();
 void bs_polygonFill();
+void bs_additiveBlending();
+void bs_defaultBlending();
 
 /* --- BATCHING --- */
 void bs_batch(bs_Batch *batch, bs_Shader *shader);

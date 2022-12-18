@@ -19,6 +19,7 @@ bs_vec3 bs_v3mid(bs_vec3 a, bs_vec3 b);
 bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3);
 bs_vec3 bs_triangleNormal(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
 bs_vec3 bs_triangleCenter(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
+bs_vec2 bs_v2rot(bs_vec2 pt, bs_vec2 origin, float angle); 
 
 /* --- QUATERNIONS --- */
 void bs_qToMat3(bs_vec4 q, bs_mat3 *out);

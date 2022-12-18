@@ -351,13 +351,11 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
 void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
 	if(data->textures_count == 0)
 	    return;
+    
+	return;
 
- 	model->textures = malloc(data->textures_count * sizeof(bs_Texture));
+	model->textures = malloc(data->textures_count * sizeof(bs_Texture));
 	for(int i = 0; i < data->textures_count; i++) {
-		char texture_path[256] = "resources/models/";
-		strcat(texture_path, data->images[i].name);
-		strcat(texture_path, ".png");
-
 		//bs_loadTex2D(model->textures+i, texture_path);
 		//bs_textureSettings(BS_LINEAR, BS_LINEAR);
 		//bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);

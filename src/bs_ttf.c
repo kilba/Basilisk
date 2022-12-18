@@ -235,29 +235,35 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
     glyf->points[id].coords = malloc(num_points * 2 * sizeof(uint16_t));
     glyf->points[id].num_points = num_points;
 
+    int16_t xcoord_prev = 0;
     for(int i = 0; i < num_points; i++, flag_offset++) {
 	int flag = bs_memU8(glyf->buf, flag_offset);
 	int16_t xcoord;
 
-
+	printf("%d | %d\n",BS_FLAGSET(flag, GLYF_X_SHORT), BS_FLAGSET(flag, GLYF_X_SAME));
 	// If xcoord is 8-bit
 	if(BS_FLAGSET(flag, GLYF_X_SHORT)) {
 	    xcoord = bs_memU8(glyf->buf, xcoord_offset);
 	    xcoord_offset += 1;
 	    xcoord_size += 1;
 
-	    if(!BS_FLAGSET(flag, GLYF_X_SAME))
-		xcoord *= -1;
+	    if(!BS_FLAGSET(flag, GLYF_X_SAME)) {
+		xcoord = -xcoord;
+	    } else {
+		xcoord += xcoord_prev;
+	    }
 	} else {
 	    if(BS_FLAGSET(flag, GLYF_X_SAME)) {
-		xcoord = 0;
+		xcoord = xcoord_prev;
 	    } else {
 		xcoord = bs_memU16(glyf->buf, xcoord_offset);
+		xcoord += xcoord_prev;
 		xcoord_offset += 2;
 		xcoord_size += 2;
 	    }
 	}
 
+	xcoord_prev = xcoord;
 	glyf->points[id].coords[i].x = xcoord;
     }
 

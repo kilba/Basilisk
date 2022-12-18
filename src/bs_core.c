@@ -218,7 +218,7 @@ int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
     return curr_batch->index_draw_count;
 }
 
-int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col) {
+int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex0, bs_vec2 tex1, bs_RGBA col) {
     bs_batchResizeCheck(6, 4);
 
     dim.x += pos.x;
@@ -226,10 +226,39 @@ int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim
 
     bs_pushIndexVa(6, 0, 1, 2, 2, 1, 3);
 
-    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Bottom Left
-    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Bottom right
-    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ tex_dim0.x, tex_dim0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Top Left
-    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex_dim1.x, tex_dim0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Top Right
+    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ tex0.x, tex1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
+    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex1.x, tex1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
+    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ tex0.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
+    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex1.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
+
+    return curr_batch->index_draw_count;
+}
+
+int bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col) {
+    bs_batchResizeCheck(6, 4);
+    bs_Texture *tex = bs_selectedTexture();
+
+    dim.x += pos.x;
+    dim.y += pos.y;
+
+    bs_pushIndexVa(6, 0, 1, 2, 2, 1, 3);
+
+    bs_vec3 p0, p1, p2, p3;
+    p0 = BS_V2_Z(bs_v2rot(BS_V2(pos.x, pos.y), BS_V2_0, angle), pos.z);
+    p1 = BS_V2_Z(bs_v2rot(BS_V2(dim.x, pos.y), BS_V2_0, angle), pos.z);
+    p2 = BS_V2_Z(bs_v2rot(BS_V2(pos.x, dim.y), BS_V2_0, angle), pos.z);
+    p3 = BS_V2_Z(bs_v2rot(BS_V2(dim.x, dim.y), BS_V2_0, angle), pos.z);
+
+    bs_vec2 tex0, tex1;
+    tex0.x = tex->texw * (float)tex->frame.x;
+    tex1.y = tex->texh * (float)tex->frame.y;
+    tex1.x = tex0.x + tex->texw;
+    tex0.y = tex0.y + tex->texh;
+
+    bs_pushVertex(p0, (bs_vec2){ tex0.x, tex1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
+    bs_pushVertex(p1, (bs_vec2){ tex1.x, tex1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
+    bs_pushVertex(p2, (bs_vec2){ tex0.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
+    bs_pushVertex(p3, (bs_vec2){ tex1.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
 
     return curr_batch->index_draw_count;
 }
@@ -237,26 +266,26 @@ int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim
 int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     bs_Texture *tex = bs_selectedTexture();
 
-    bs_vec2 tex_dim0, tex_dim1;
-    tex_dim0.x = tex->texw * (float)tex->frame.x;
-    tex_dim0.y = tex->texh * (float)tex->frame.y;
-    tex_dim1.x = tex_dim0.x + tex->texw;
-    tex_dim1.y = tex_dim0.y + tex->texh;
+    bs_vec2 tex0, tex1;
+    tex0.x = tex->texw * (float)tex->frame.x;
+    tex0.y = tex->texh * (float)tex->frame.y;
+    tex1.x = tex0.x + tex->texw;
+    tex1.y = tex0.y + tex->texh;
 
-    return bs_pushRectCoord(pos, dim, tex_dim0, tex_dim1, col);
+    return bs_pushRectCoord(pos, dim, tex0, tex1, col);
 }
 
 int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     bs_batchResizeCheck(6, 4);
     bs_Texture *tex = bs_selectedTexture();
 
-    bs_vec2 tex_dim0, tex_dim1;
-    tex_dim0.x = tex->texw * (float)tex->frame.x;
-    tex_dim1.y = tex->texh * (float)tex->frame.y;
-    tex_dim1.x = tex_dim0.x + tex->texw;
-    tex_dim0.y = tex_dim0.y + tex->texh;
+    bs_vec2 tex0, tex1;
+    tex0.x = tex->texw * (float)tex->frame.x;
+    tex1.y = tex->texh * (float)tex->frame.y;
+    tex1.x = tex0.x + tex->texw;
+    tex0.y = tex0.y + tex->texh;
 
-    return bs_pushRectCoord(pos, dim, tex_dim0, tex_dim1, col);
+    return bs_pushRectCoord(pos, dim, tex0, tex1, col);
 }
 
 int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
@@ -647,6 +676,16 @@ void bs_polygonFill() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
+void bs_additiveBlending() {
+    glBlendFunc(GL_ONE, GL_ONE);
+    glBlendEquation(GL_FUNC_ADD);
+}
+
+void bs_defaultBlending() {
+    glBlendFunc(GL_SRC_ALPHA, BS_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(BS_FUNC_ADD);
+}
+
 // TODO: Remove this
 typedef struct {
     bs_ivec2 res;
@@ -681,7 +720,7 @@ void bs_startRender(void (*render)()) {
     glCullFace(culling);
     glFrontFace(BS_CCW);
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    bs_defaultBlending();
 
     srand(time(0));
 

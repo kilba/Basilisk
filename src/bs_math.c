@@ -108,6 +108,15 @@ bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3) {
     return !(has_neg && has_pos);
 }
 
+bs_vec2 bs_v2rot(bs_vec2 pt, bs_vec2 origin, float angle) {
+    angle = angle * BS_PI / 180.0;
+
+    return BS_V2(
+	cos(angle) * (pt.x - origin.x) - sin(angle) * (pt.y - origin.y) + origin.x,
+	sin(angle) * (pt.x - origin.x) + cos(angle) * (pt.y - origin.y) + origin.y
+    );
+}
+
 /* --- QUATERNIONS --- */
 void bs_qToMat3(bs_vec4 q, bs_mat3 *out) {
     float qx2 = q.x + q.x;
