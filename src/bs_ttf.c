@@ -82,6 +82,7 @@
 	#define GLYF_REPEAT 	3
 	#define GLYF_X_SAME 	4
 	#define GLYF_Y_SAME 	5
+	#define GLYF_OVERLAP 	6
 
     #define GLYF_XCOORDS(offset, num_flags)         /* 1 | uint8  ARRAY */ \
 	offset + num_flags
@@ -240,7 +241,15 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
 	int flag = bs_memU8(glyf->buf, flag_offset);
 	int16_t xcoord;
 
-	printf("%d | %d\n",BS_FLAGSET(flag, GLYF_X_SHORT), BS_FLAGSET(flag, GLYF_X_SAME));
+	printf(
+	    "XSHORT: %d | ONCURVE: %d | REPEAT: %d | XSAME: %d | OVERLAP: %d | =", 
+	    BS_FLAGSET(flag, GLYF_X_SHORT), 
+	    BS_FLAGSET(flag, GLYF_ON_CURVE),
+	    BS_FLAGSET(flag, GLYF_REPEAT),
+	    BS_FLAGSET(flag, GLYF_X_SAME),
+	    BS_FLAGSET(flag, GLYF_OVERLAP)
+	);
+
 	// If xcoord is 8-bit
 	if(BS_FLAGSET(flag, GLYF_X_SHORT)) {
 	    xcoord = bs_memU8(glyf->buf, xcoord_offset);
@@ -263,6 +272,7 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
 	    }
 	}
 
+	printf("%d\n", xcoord);
 	xcoord_prev = xcoord;
 	glyf->points[id].coords[i].x = xcoord;
     }
@@ -355,8 +365,6 @@ int bs_loadFont(char *path) {
     for(int i = 0; i < ttf.glyf.points[36].num_points; i++) {
 	int16_t x = ttf.glyf.points[36].coords[i].x;
 	int16_t y = ttf.glyf.points[36].coords[i].y;
-	printf("%d, ", x);
-	printf("%d\n", y);
 	bs_pushRect((bs_vec3){ (float)x / 10.0 + 650.0, (float)y / 10.0 + 150.0 }, (bs_vec2){ 4.0, 4.0 }, (bs_RGBA){ 255, 0, 0, 255 });
     }
 

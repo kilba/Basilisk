@@ -3,6 +3,9 @@
 
 #include <bs_types.h>
 
+#define BS_PI 3.142857
+#define BS_SIN_45 0.70710678
+
 double bs_clamp(double d, double min, double max);
 int bs_sign(float x);
 int bs_closestDivisible(int val, int div);
@@ -15,11 +18,11 @@ bs_vec3 bs_cross(bs_vec3 v0, bs_vec3 v1);
 float bs_dot(bs_vec3 v0, bs_vec3 v1);
 bool bs_triangleIsCCW(bs_vec3 a, bs_vec3 b, bs_vec3 c, bs_vec3 normal);
 float bs_signv3(bs_vec3 p1, bs_vec3 p2, bs_vec3 p3);
-bs_vec3 bs_v3mid(bs_vec3 a, bs_vec3 b);
 bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3);
 bs_vec3 bs_triangleNormal(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
 bs_vec3 bs_triangleCenter(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
 bs_vec2 bs_v2rot(bs_vec2 pt, bs_vec2 origin, float angle); 
+bs_vec3 bs_v3mid(bs_vec3 a, bs_vec3 b);
 
 /* --- QUATERNIONS --- */
 void bs_qToMat3(bs_vec4 q, bs_mat3 *out);
@@ -34,22 +37,30 @@ void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *
 /* --- VECTOR ADDITION --- */
 bs_vec3 bs_v3add(bs_vec3 a, bs_vec3 b);
 bs_vec3 bs_v3addv2(bs_vec3 a, bs_vec2 b);
+bs_vec4 bs_v4add(bs_vec4 a, bs_vec4 b);
+bs_vec4 bs_v4addv3(bs_vec4 a, bs_vec3 b);
 
 /* --- VECTOR SUBTRACTION --- */
 bs_vec3 bs_v3sub(bs_vec3 a, bs_vec3 b);
 bs_vec3 bs_v3subv2(bs_vec3 a, bs_vec2 b);
+bs_vec4 bs_v4sub(bs_vec4 a, bs_vec4 b);
+bs_vec4 bs_v4subv3(bs_vec4 a, bs_vec3 b);
 
 /* --- VECTOR MULTIPLICATION --- */
 bs_vec3 bs_v3mul(bs_vec3 a, bs_vec3 b);
 bs_vec3 bs_v3muls(bs_vec3 a, float s);
+bs_vec4 bs_v4mul(bs_vec4 a, bs_vec4 b);
+bs_vec4 bs_v4muls(bs_vec4 a, float s);
 
 /* --- VECTOR DIVISION --- */
 bs_vec3 bs_v3div(bs_vec3 a, bs_vec3 b);
 bs_vec3 bs_v3divs(bs_vec3 a, float s);
+bs_vec4 bs_v4div(bs_vec4 a, bs_vec4 b);
+bs_vec4 bs_v4divs(bs_vec4 a, float s);
 
 /* --- RANDOM --- */
-float bs_randRange(float min, float max);
 int bs_randRangeI(int min, int max);
+float bs_randRange(float min, float max);
 bs_vec3 bs_randTrianglePt(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2);
 
 #endif /* BS_MATH_H */

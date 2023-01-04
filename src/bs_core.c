@@ -24,82 +24,11 @@
 
 #include <time.h>
 
-// Shaders
-bs_Shader texture_shader;
-
 bs_Camera def_camera;
 bs_Batch *curr_batch;
 
 bs_Framebuf *curr_framebuf = NULL;
 bs_UniformBuffer global_unifs;
-
-int batch_count = 0;
-int culling = BS_DIR_BACK;
-
-// TODO: Extract to bs_debug.c
-void bs_printHardwareInfo() {
-    const GLubyte* vendor = glGetString(GL_VENDOR);
-    const GLubyte* renderer = glGetString(GL_RENDERER);
-    bs_print(BS_CLE, "%s\n", vendor);
-    bs_print(BS_CLE, "%s\n", renderer);
-}
-
-#ifdef _WIN32
-    BITMAPINFOHEADER createBitmapHeader(int width, int height) {
-        BITMAPINFOHEADER bi;
-
-        // create a bitmap
-        bi.biSize = sizeof(BITMAPINFOHEADER);
-        bi.biWidth = width;
-        bi.biHeight = -height;
-        bi.biPlanes = 1;
-        bi.biBitCount = 24;
-        bi.biCompression = BI_RGB;
-        bi.biSizeImage = 0;
-        bi.biXPelsPerMeter = 0;
-        bi.biYPelsPerMeter = 0;
-        bi.biClrUsed = 0;
-        bi.biClrImportant = 0;
-
-        return bi;
-    }
-
-    unsigned char* getScreenTexture(int x, int y, int w, int h) {
-        HWND hWnd = GetDesktopWindow();
-
-        HDC hwindowDC = GetDC(hWnd);
-        HDC hwindowCompatibleDC = CreateCompatibleDC(hwindowDC);
-        SetStretchBltMode(hwindowCompatibleDC, COLORONCOLOR);
-
-        int screenx = x;
-        int screeny = y;
-        int width = w;
-        int height = h;
-
-        HBITMAP hbwindow = CreateCompatibleBitmap(hwindowDC, width, height);
-        BITMAPINFOHEADER bi = createBitmapHeader(width, height);
-
-        SelectObject(hwindowCompatibleDC, hbwindow);
-
-        BITMAP bmp;
-        GetObject(hbwindow, sizeof(BITMAP), (LPVOID)&bmp);
-
-        DWORD dwBmpSize = ((width * bi.biBitCount + 31) / 32) * 4 * height;
-        HANDLE hDIB = GlobalAlloc(GHND, dwBmpSize);
-        unsigned char* lpbitmap = (unsigned char*)GlobalLock(hDIB);
- 
-        // copy from the window device context to the bitmap device context
-        StretchBlt(hwindowCompatibleDC, 0, 0, width, height, hwindowDC, screenx, screeny, width, height, SRCCOPY);   //change SRCCOPY to NOTSRCCOPY for wacky colors !
-        GetDIBits(hwindowCompatibleDC, hbwindow, 0, height, lpbitmap, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
-
-        // GlobalFree(hDIB);
-        DeleteDC(hwindowCompatibleDC);
-        ReleaseDC(hWnd, hwindowDC);
-
-        // return lpbitmap;
-        return bmp.bmBits;
-    }
-#endif
 
 int bs_checkError() {
     GLenum err = glGetError();
@@ -111,23 +40,23 @@ bs_Camera *bs_defCamera() {
     return &def_camera;
 }
 
-void bs_ortho(bs_mat4 mat, int left, int right, int bottom, int top, float nearZ, float farZ) {
-    glm_ortho(left, right, bottom, top, nearZ, farZ, mat);
+void bs_persp(bs_Camera *cam, float aspect, float fovy, float nearZ, float farZ) {
+    glm_perspective(glm_rad(fovy), aspect, nearZ, farZ, cam->proj);
+}
+
+void bs_ortho(bs_Camera *cam, int left, int right, int bottom, int top, float nearZ, float farZ) {
+    glm_ortho(left, right, bottom, top, nearZ, farZ, cam->proj);
 
     int x_res = bs_sign(left - right);
     int y_res = bs_sign(top - bottom);
 }
 
-void bs_lookat(bs_mat4 mat, bs_vec3 eye, bs_vec3 center, bs_vec3 up) {
-    glm_lookat((vec3){ eye.x, eye.y, eye.z }, (vec3){ center.x, center.y, center.z }, (vec3){ up.x, up.y, up.z }, mat);
+void bs_lookat(bs_Camera *cam, bs_vec3 eye, bs_vec3 center, bs_vec3 up) {
+    glm_lookat((vec3){ eye.x, eye.y, eye.z }, (vec3){ center.x, center.y, center.z }, (vec3){ up.x, up.y, up.z }, cam->view);
 }
 
-void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up) {
-    glm_look((vec3){ eye.x, eye.y, eye.z }, (vec3){ dir.x, dir.y, dir.z }, (vec3){ up.x, up.y, up.z }, mat);
-}
-
-void bs_persp(bs_mat4 mat, float aspect, float fovy, float nearZ, float farZ) {
-    glm_perspective(glm_rad(fovy), aspect, nearZ, farZ, mat);
+void bs_look(bs_Camera *cam, bs_vec3 eye, bs_vec3 dir, bs_vec3 up) {
+    glm_look((vec3){ eye.x, eye.y, eye.z }, (vec3){ dir.x, dir.y, dir.z }, (vec3){ up.x, up.y, up.z }, cam->view);
 }
 
 /* --- BATCHED RENDERING --- */
@@ -149,7 +78,6 @@ void bs_batchResizeCheck(int index_count, int vertex_count) {
 
     int new_index_count = batch->index_draw_count + BS_BATCH_INCR_BY + index_count;
     int new_vertex_count = batch->vertex_draw_count + BS_BATCH_INCR_BY + vertex_count;
-//    printf("Allocating:\n    index : %d\n    vertex: %d\n", new_index_count, new_vertex_count);
 
     bs_batchBufferSize(new_index_count, new_vertex_count);
 }
@@ -244,10 +172,10 @@ int bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col) {
     bs_pushIndexVa(6, 0, 1, 2, 2, 1, 3);
 
     bs_vec3 p0, p1, p2, p3;
-    p0 = BS_V2_Z(bs_v2rot(BS_V2(pos.x, pos.y), BS_V2_0, angle), pos.z);
-    p1 = BS_V2_Z(bs_v2rot(BS_V2(dim.x, pos.y), BS_V2_0, angle), pos.z);
-    p2 = BS_V2_Z(bs_v2rot(BS_V2(pos.x, dim.y), BS_V2_0, angle), pos.z);
-    p3 = BS_V2_Z(bs_v2rot(BS_V2(dim.x, dim.y), BS_V2_0, angle), pos.z);
+    p0 = BS_V2_Z(bs_v2rot(BS_V2(pos.x, pos.y), BS_V2(pos.x, pos.y), angle), pos.z);
+    p1 = BS_V2_Z(bs_v2rot(BS_V2(dim.x, pos.y), BS_V2(pos.x, pos.y), angle), pos.z);
+    p2 = BS_V2_Z(bs_v2rot(BS_V2(pos.x, dim.y), BS_V2(pos.x, pos.y), angle), pos.z);
+    p3 = BS_V2_Z(bs_v2rot(BS_V2(dim.x, dim.y), BS_V2(pos.x, pos.y), angle), pos.z);
 
     bs_vec2 tex0, tex1;
     tex0.x = tex->texw * (float)tex->frame.x;
@@ -417,8 +345,6 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
         if((batch->shader->attribs & j) == j)
             bs_attrib(data->type, data->count, data->size, data->normalized);
     }
-
-    batch_count++;
 }
 
 void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size) {
@@ -518,14 +444,8 @@ void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim) {
     framebuf->buf_alloc = 4;
     framebuf->bufs = malloc(framebuf->buf_alloc * sizeof(bs_Texture));
 
-    bs_framebufCulling(culling);
-
     glGenFramebuffers(1, &framebuf->FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuf->FBO);
-}
-
-void bs_framebufCulling(int setting) {
-    curr_framebuf->culling = setting;
 }
 
 void bs_setBuffer(int attachment, bs_Texture buf) {
@@ -628,7 +548,6 @@ void bs_setDrawBufs(int n, ...) {
 
 void bs_startFramebufRender(bs_Framebuf *framebuf) {
     glEnable(GL_DEPTH_TEST);
-    glCullFace(framebuf->culling);
 
     glViewport(0, 0, framebuf->dim.x, framebuf->dim.y);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuf->FBO);
@@ -644,9 +563,6 @@ void bs_endFramebufRender() {
 
     bs_ivec2 res = bs_resolution();
     glViewport(0, 0, res.x, res.y);
-
-    // TODO: Resetting culling after every framebuf is uneccesary, put after main render loop
-    glCullFace(culling);
 }
 
 unsigned char *bs_framebufData(int x, int y, int w, int h) {
@@ -686,12 +602,6 @@ void bs_defaultBlending() {
     glBlendEquation(BS_FUNC_ADD);
 }
 
-// TODO: Remove this
-typedef struct {
-    bs_ivec2 res;
-    float elapsed;
-} bs_Globals;
-
 void bs_setGlobalVars() {
     bs_Globals globals;
 
@@ -706,8 +616,8 @@ void bs_init(int width, int height, const char *title) {
     bs_initWnd(width, height, title);
     // bs_printHardwareInfo();
 
-    bs_lookat(def_camera.view, BS_V3(0, 0, 300), BS_V3(0.0, 0.0, -1.0), BS_V3(0.0, 1.0, 0.0));
-    bs_ortho(def_camera.proj, 0, width, 0, height, 0.01, 1000.0);
+    bs_lookat(&def_camera, BS_V3(0, 0, 300), BS_V3(0.0, 0.0, -1.0), BS_V3(0.0, 1.0, 0.0));
+    bs_ortho(&def_camera, 0, width, 0, height, 0.01, 1000.0);
 
     global_unifs = bs_initUniformBlock(sizeof(bs_Globals), 0);
 }
@@ -717,7 +627,7 @@ void bs_startRender(void (*render)()) {
     glEnable(GL_DEPTH_TEST);
 
     glEnable(GL_CULL_FACE);
-    glCullFace(culling);
+    glCullFace(BS_FACE_BACK);
     glFrontFace(BS_CCW);
 
     bs_defaultBlending();

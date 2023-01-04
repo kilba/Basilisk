@@ -29,8 +29,6 @@
 #  define BS_ALIGN_MAT BS_ALIGN(16)
 #endif
 
-#define BS_PI 3.142857
-
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -51,6 +49,7 @@
     typedef struct bs_RGBA bs_RGBA;
     typedef struct bs_RGB bs_RGB;
 
+    typedef struct bs_Globals bs_Globals;
     typedef struct bs_Texture bs_Texture;
     typedef struct bs_Uniform bs_Uniform;
     typedef struct bs_Shader bs_Shader;
@@ -66,8 +65,7 @@
     typedef struct bs_Prim bs_Prim;
     typedef struct bs_Mesh bs_Mesh;
     typedef struct bs_Model bs_Model;
-#endif
-
+#endif 
 
 typedef int64_t bs_I64, bs_long;
 typedef int32_t bs_I32, bs_int;
@@ -111,6 +109,15 @@ typedef bs_vec4 	bs_quat;
 #define BS_V3(x, y, z) BS_VEC3(x, y, z)
 #define BS_V4(x, y, z, w) BS_VEC4(x, y, z, w)
 
+#define BS_PTR(a) (float *)&a
+
+#define BS_IVEC2_TO_VEC2(a) (bs_vec2){ (float)a.x, (float)a.y }
+#define BS_IVEC3_TO_VEC3(a) (bs_vec3){ (float)a.x, (float)a.y, (float)a.z }
+#define BS_IVEC4_TO_VEC4(a) (bs_vec4){ (float)a.x, (float)a.y, (float)a.z, (float)a.w }
+#define BS_IV2_TO_V2(a) BS_IVEC2_TO_VEC2(a)
+#define BS_IV3_TO_V3(a) BS_IVEC3_TO_VEC3(a)
+#define BS_IV4_TO_V4(a) BS_IVEC4_TO_VEC4(a)
+
 #define BS_VEC2_Z(a, b) (bs_vec3){ a.x, a.y, b }
 #define BS_V2_Z(a, b) BS_VEC2_Z(a, b)
 
@@ -137,6 +144,14 @@ typedef bs_vec4 	bs_quat;
 #define BS_IV2(x, y) BS_IVEC2(x, y)
 #define BS_IV3(x, y, z) BS_IVEC3(x, y, z)
 #define BS_IV4(x, y, z, w) BS_IVEC4(x, y, z, w)
+
+#define BS_VEC2_TO_IVEC2(a) (bs_ivec2) { (int)a.x, (int)a.y }
+#define BS_VEC3_TO_IVEC3(a) (bs_ivec3) { (int)a.x, (int)a.y, (int)a.z }
+#define BS_VEC4_TO_IVEC4(a) (bs_ivec4) { (int)a.x, (int)a.y, (int)a.z, (int)a.w }
+#define BS_V2_TO_IV2(a) BS_VEC2_TO_IVEC2(a)
+#define BS_V3_TO_IV3(a) BS_VEC3_TO_IVEC3(a)
+#define BS_V4_TO_IV4(a) BS_VEC4_TO_IVEC4(a)
+
 
 #define BS_RGBA(r, g, b, a) (bs_RGBA) { r, g, b, a }
 
@@ -175,6 +190,11 @@ enum {
     BS_V4I,
 
     BS_MAX_ATTRIB_COUNT
+};
+
+struct bs_Globals {
+    bs_ivec2 res;
+    float elapsed;
 };
 
 // TODO: Remove this shit

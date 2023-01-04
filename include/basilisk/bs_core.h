@@ -36,7 +36,6 @@ int bs_pushModel(bs_Model *model);
 
 /* --- FRAMEBUFFERS --- */
 void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim);
-void bs_framebufCulling(int setting);
 void bs_setBuffer(int attachment, bs_Texture buf);
 void bs_attachBuffer(int attachment, bs_Texture buf);
 void bs_attachColorbuffer16(int attachment);
@@ -90,10 +89,10 @@ void bs_setGlobalVars();
 /* --- MATRICES / CAMERAS --- */
 bs_Camera *bs_defCamera();
 void bs_setMatrices(bs_Shader *shader);
-void bs_ortho(bs_mat4 mat, int left, int right, int bottom, int top, float nearZ, float farZ);
-void bs_persp(bs_mat4 mat, float aspect, float fovy, float nearZ, float farZ);
-void bs_lookat(bs_mat4 mat, bs_vec3 eye, bs_vec3 center, bs_vec3 up);
-void bs_look(bs_mat4 mat, bs_vec3 eye, bs_vec3 dir, bs_vec3 up);
+void bs_persp(bs_Camera *cam, float aspect, float fovy, float nearZ, float farZ);
+void bs_ortho(bs_Camera *cam, int left, int right, int bottom, int top, float nearZ, float farZ);
+void bs_lookat(bs_Camera *cam, bs_vec3 eye, bs_vec3 center, bs_vec3 up);
+void bs_look(bs_Camera *cam, bs_vec3 eye, bs_vec3 dir, bs_vec3 up);
 
 /* --- OPENGL RENDERING LOGIC LAYER --- */
 void bs_enable(int val);
@@ -116,7 +115,7 @@ void bs_blendFunc(int val0, int val1);
 void bs_viewport(int x, int y, int w, int h);
 
 /* --- CONSTANTS --- */
-#define BS_BATCH_INCR_BY 1024 
+#define BS_BATCH_INCR_BY 1024 * 8
 /* OPENGL FILTERING SETTINGS */
 #define BS_NEAREST 0x2600
 #define BS_NEAREST_MIPMAP_LINEAR 0x2702
@@ -145,14 +144,14 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_COLOR_BUFFER_BIT 0x00004000
 
 /* FACES */
-#define BS_DIR_FRONT_RIGHT 0x0401
-#define BS_DIR_BACK_LEFT 0x0402
-#define BS_DIR_BACK_RIGHT 0x0403
-#define BS_DIR_FRONT 0x0404
-#define BS_DIR_BACK 0x0405
-#define BS_DIR_LEFT 0x0406
-#define BS_DIR_RIGHT 0x0407
-#define BS_DIR_FRONT_AND_BACK 0x0408
+#define BS_FACE_FRONT_RIGHT 0x0401
+#define BS_FACE_BACK_LEFT 0x0402
+#define BS_FACE_BACK_RIGHT 0x0403
+#define BS_FACE_FRONT 0x0404
+#define BS_FACE_BACK 0x0405
+#define BS_FACE_LEFT 0x0406
+#define BS_FACE_RIGHT 0x0407
+#define BS_FACE_FRONT_AND_BACK 0x0408
 
 #define BS_CW  0x0900
 #define BS_CCW 0x0901
@@ -207,6 +206,8 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_FUNC_ADD 0x8006
 #define BS_FUNC_REVERSE_SUBTRACT 0x800B
 #define BS_FUNC_SUBTRACT 0x800A
+#define BS_MIN 0x8007
+#define BS_MAX 0x8008
 
 #define BS_ZERO 0
 #define BS_ONE 1
@@ -218,6 +219,8 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_ONE_MINUS_DST_ALPHA 0x0305
 #define BS_DST_COLOR 0x0306
 #define BS_ONE_MINUS_DST_COLOR 0x0307
+#define BS_CONSTANT_ALPHA 0x8003
+#define BS_ONE_MINUS_CONSTANT_ALPHA 0x8004
 
 /* DATATYPES */
 #define BS_SBYTE 0x1400
