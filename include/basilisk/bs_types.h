@@ -187,6 +187,7 @@ enum {
     BS_BID,
     BS_WEI,
     BS_V4_,
+    BS_V1_,
 
     BS_MAX_ATTRIB_COUNT
 };

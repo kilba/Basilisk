@@ -4,6 +4,7 @@
 #include <bs_types.h>
 
 /* --- RENDERING --- */
+void bs_setV1_(float v);
 void bs_setV4_(bs_vec4 v);
 
 void bs_pushIndex(int idx);
@@ -162,6 +163,7 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_VAL_BID 16
 #define BS_VAL_WEI 32
 #define BS_VAL_V4_ 64
+#define BS_VAL_V1_ 128
 
 /* RENDER MODES */
 #define BS_POINTS 0x0000

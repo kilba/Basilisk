@@ -30,6 +30,7 @@ bs_Batch *curr_batch;
 bs_Framebuf *curr_framebuf = NULL;
 bs_UniformBuffer global_unifs;
 
+float v1_ = 0.0;
 bs_vec4 v4_ = BS_V4_0;
 
 int bs_checkError() {
@@ -40,6 +41,10 @@ int bs_checkError() {
 /* --- MATRICES / CAMERAS --- */
 bs_Camera *bs_defCamera() {
     return &def_camera;
+}
+
+void bs_setV1_(float v) {
+    v1_ = v;
 }
 
 void bs_setV4_(bs_vec4 v) {
@@ -131,7 +136,8 @@ void bs_pushVertex(
     bs_pushAttrib(&data_ptr, &nor, sizes[3]);
     bs_pushAttrib(&data_ptr, &bid, sizes[4]);
     bs_pushAttrib(&data_ptr, &wei, sizes[5]);
-    bs_pushAttrib(&data_ptr, &v4_, sizes[6]);
+    bs_pushAttrib(&data_ptr, &v1_, sizes[6]);
+    bs_pushAttrib(&data_ptr, &v4_, sizes[7]);
     
     curr_batch->vertex_draw_count++;
 } 
@@ -325,7 +331,8 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
         { BS_FLOAT, 3, sizeof(bs_vec3) , false }, /* Normal */
         { BS_INT  , 4, sizeof(bs_ivec4), false }, /* Bone Ids */
         { BS_FLOAT, 4, sizeof(bs_vec4) , false }, /* Weights */
-        { BS_FLOAT, 4, sizeof(bs_vec4) , false }, /* Vec4 Attrib */
+        { BS_FLOAT, 4, sizeof(bs_vec4) , false }, /* V4_ Attrib */
+        { BS_FLOAT, 1, sizeof(float)   , false }, /* V1_ Attrib */
     };
     int total_attrib_count = sizeof(attrib_data) / sizeof(struct Attrib_Data);
 

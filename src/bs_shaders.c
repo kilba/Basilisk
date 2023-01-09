@@ -96,42 +96,26 @@ void bs_setDefShaderUniforms(bs_Shader *shader, const char *shader_code){
 }
 
 void bs_setDefShaderAttribs(bs_Shader *shader, const char *vs_code) {
-    const char *def_attribs [] = { 
-	"in vec3 bs_Pos", 
-	"in vec2 bs_Tex", 
-	"in vec4 bs_Col", 
-	"in vec3 bs_Nor",
-	"in ivec4 bs_BID",
-	"in vec4 bs_Wei",
-	"in vec4 bs_V4_",
-	"in ivec4 bs_V4I"
-    };
-
-    int values[] = { 
-	BS_VAL_POS,
-	BS_VAL_TEX,
-	BS_VAL_COL,
-	BS_VAL_NOR,
-	BS_VAL_BID,
-	BS_VAL_WEI,
-	BS_VAL_V4_,
-    };
-
-    uint8_t sizes[] = {
-	sizeof(bs_vec3),  /* BS_POS */
-	sizeof(bs_vec2),  /* BS_TEX */
-	sizeof(bs_RGBA),  /* BS_COL */
-	sizeof(bs_vec3),  /* BS_NOR */
-	sizeof(bs_ivec4), /* BS_BID */
-	sizeof(bs_vec4),  /* BS_WEI */
-	sizeof(bs_vec4),  /* BS_V4_ */
+    struct {
+	char *name;
+	int value;
+	int size;
+    } attribs[] = {
+	{ "in vec3 bs_Pos" , BS_VAL_POS, sizeof(bs_vec3) },
+	{ "in vec2 bs_Tex" , BS_VAL_TEX, sizeof(bs_vec2) },
+	{ "in vec4 bs_Col" , BS_VAL_COL, sizeof(bs_RGBA) },
+	{ "in vec3 bs_Nor" , BS_VAL_NOR, sizeof(bs_vec3) },
+	{ "in ivec4 bs_BID", BS_VAL_BID, sizeof(bs_ivec4) },
+	{ "in vec4 bs_Wei" , BS_VAL_WEI, sizeof(bs_vec4) },
+	{ "in float bs_V1_", BS_VAL_V1_, sizeof(float) },
+	{ "in vec4 bs_V4_" , BS_VAL_V4_, sizeof(bs_vec4) },
     };
 
     for(int i = 0; i < BS_MAX_ATTRIB_COUNT; i++) {
 	shader->attrib_sizes[i] = 0;
-	if(strstr(vs_code, def_attribs[i])) {
-	    shader->attrib_sizes[i] = sizes[i];
-	    shader->attribs |= values[i];
+	if(strstr(vs_code, attribs[i].name)) {
+	    shader->attrib_sizes[i] = attribs[i].size;
+	    shader->attribs |= attribs[i].value;
 	    shader->attrib_count++;
 	}
     }
