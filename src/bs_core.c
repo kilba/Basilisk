@@ -30,6 +30,8 @@ bs_Batch *curr_batch;
 bs_Framebuf *curr_framebuf = NULL;
 bs_UniformBuffer global_unifs;
 
+bs_vec4 v4_ = BS_V4_0;
+
 int bs_checkError() {
     GLenum err = glGetError();
     return err; 
@@ -38,6 +40,10 @@ int bs_checkError() {
 /* --- MATRICES / CAMERAS --- */
 bs_Camera *bs_defCamera() {
     return &def_camera;
+}
+
+void bs_setV4_(bs_vec4 v) {
+    v4_ = v;
 }
 
 void bs_persp(bs_Camera *cam, float aspect, float fovy, float nearZ, float farZ) {
@@ -112,9 +118,7 @@ void bs_pushVertex(
     bs_vec3  nor,
     bs_RGBA  col,
     bs_ivec4 bid,
-    bs_vec4  wei,
-    bs_vec4  v4_,
-    bs_ivec4 v4i
+    bs_vec4  wei
 ) {
     bs_Batch *batch = curr_batch;
 
@@ -128,36 +132,48 @@ void bs_pushVertex(
     bs_pushAttrib(&data_ptr, &bid, sizes[4]);
     bs_pushAttrib(&data_ptr, &wei, sizes[5]);
     bs_pushAttrib(&data_ptr, &v4_, sizes[6]);
-    bs_pushAttrib(&data_ptr, &v4i, sizes[7]);
     
     curr_batch->vertex_draw_count++;
 } 
 
-int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
+int bs_pushQuadFlipped(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
     bs_batchResizeCheck(6, 4);
 
     bs_pushIndexVa(6, 0, 1, 2, 2, 1, 3);
 
-    bs_pushVertex(p0, (bs_vec2){ 0.0, 0.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Bottom Left
-    bs_pushVertex(p1, (bs_vec2){ 1.0, 0.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Bottom right
-    bs_pushVertex(p2, (bs_vec2){ 0.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Top Left
-    bs_pushVertex(p3, (bs_vec2){ 1.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0); // Top Right
-
-    return curr_batch->index_draw_count;
-}
-
+    bs_pushVertex(p0, (bs_vec2){ 0.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(p1, (bs_vec2){ 1.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(p2, (bs_vec2){ 0.0, 0.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(p3, (bs_vec2){ 1.0, 0.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
+    
+    return curr_batch->index_draw_count;    
+}    
+    
+int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {    
+    bs_batchResizeCheck(6, 4);    
+    
+    bs_pushIndexVa(6, 0, 1, 2, 2, 1, 3);    
+    
+    bs_pushVertex(p0, (bs_vec2){ 0.0, 0.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0); 
+    bs_pushVertex(p1, (bs_vec2){ 1.0, 0.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0); 
+    bs_pushVertex(p2, (bs_vec2){ 0.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0); 
+    bs_pushVertex(p3, (bs_vec2){ 1.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0); 
+    
+    return curr_batch->index_draw_count;    
+}    
+    
 int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex0, bs_vec2 tex1, bs_RGBA col) {
-    bs_batchResizeCheck(6, 4);
-
-    dim.x += pos.x;
-    dim.y += pos.y;
+    bs_batchResizeCheck(6, 4);    
+    
+    dim.x += pos.x;    
+    dim.y += pos.y;    
 
     bs_pushIndexVa(6, 0, 1, 2, 2, 1, 3);
 
-    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ tex0.x, tex1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
-    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex1.x, tex1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
-    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ tex0.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
-    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex1.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
+    bs_pushVertex((bs_vec3){ pos.x, pos.y, pos.z }, (bs_vec2){ tex0.x, tex1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
+    bs_pushVertex((bs_vec3){ dim.x, pos.y, pos.z }, (bs_vec2){ tex1.x, tex1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
+    bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ tex0.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
+    bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex1.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
 
     return curr_batch->index_draw_count;
 }
@@ -183,10 +199,10 @@ int bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col) {
     tex1.x = tex0.x + tex->texw;
     tex0.y = tex0.y + tex->texh;
 
-    bs_pushVertex(p0, (bs_vec2){ tex0.x, tex1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
-    bs_pushVertex(p1, (bs_vec2){ tex1.x, tex1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
-    bs_pushVertex(p2, (bs_vec2){ tex0.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
-    bs_pushVertex(p3, (bs_vec2){ tex1.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
+    bs_pushVertex(p0, (bs_vec2){ tex0.x, tex1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(p1, (bs_vec2){ tex1.x, tex1.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(p2, (bs_vec2){ tex0.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(p3, (bs_vec2){ tex1.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
 
     return curr_batch->index_draw_count;
 }
@@ -221,9 +237,9 @@ int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     
     bs_pushIndexVa(3, 0, 1, 2),
 
-    bs_pushVertex(pos1, (bs_vec2){ 0.0, 0.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
-    bs_pushVertex(pos2, (bs_vec2){ 1.0, 0.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
-    bs_pushVertex(pos3, (bs_vec2){ 0.0, 1.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0, BS_V4_0, BS_IV4_0);
+    bs_pushVertex(pos1, (bs_vec2){ 0.0, 0.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(pos2, (bs_vec2){ 1.0, 0.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(pos3, (bs_vec2){ 0.0, 1.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0);
 
     return curr_batch->index_draw_count += 3;
 }
@@ -232,8 +248,7 @@ int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
     return bs_pushTriangle(start, end, end, color);
 }
 
-/* --- Rendering models with attributes --- */
-int bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes) {
+int bs_pushPrim(bs_Prim *prim) {
     bs_batchResizeCheck(prim->index_count, prim->vertex_count);
 
     bs_pushIndices(prim->indices, prim->index_count);
@@ -246,42 +261,28 @@ int bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes) {
 	    *(bs_vec3  *)(vertex + prim->offset_nor),
             prim->material.col, 
 	    *(bs_ivec4 *)(vertex + prim->offset_bid),
-	    *(bs_vec4  *)(vertex + prim->offset_wei),
-            attributes,
-	    BS_IV4_0
+	    *(bs_vec4  *)(vertex + prim->offset_wei)
         );
     }
 
     return curr_batch->index_draw_count;
 }
 
-int bs_pushMeshA(bs_Mesh *mesh, bs_vec4 attributes) {
+int bs_pushMesh(bs_Mesh *mesh) {
     int ret = 0;
     for(int i = 0; i < mesh->prim_count; i++) {
         bs_Prim *prim = &mesh->prims[i];
-        ret += bs_pushPrimA(prim, attributes);
+        ret += bs_pushPrim(prim);
     }
     return ret;
-}
-
-int bs_pushModelA(bs_Model *model, bs_vec4 attributes) {
-    int ret = 0;
-    for(int i = 0; i < model->mesh_count; i++) {
-        ret += bs_pushMeshA(&model->meshes[i], attributes);
-    }
-    return ret;
-}
-
-int bs_pushPrim(bs_Prim *prim) {
-    return bs_pushPrimA(prim, BS_V4_0);
-}
-
-int bs_pushMesh(bs_Mesh *mesh) {
-    return bs_pushMeshA(mesh, BS_V4_0);
 }
 
 int bs_pushModel(bs_Model *model) {
-    return bs_pushModelA(model, BS_V4_0);
+    int ret = 0;
+    for(int i = 0; i < model->mesh_count; i++) {
+        ret += bs_pushMesh(&model->meshes[i]);
+    }
+    return ret;
 }
 
 void bs_batchBufferSize(int index_count, int vertex_count) {

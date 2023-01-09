@@ -115,7 +115,6 @@ void bs_setDefShaderAttribs(bs_Shader *shader, const char *vs_code) {
 	BS_VAL_BID,
 	BS_VAL_WEI,
 	BS_VAL_V4_,
-	BS_VAL_V4I
     };
 
     uint8_t sizes[] = {
@@ -126,7 +125,6 @@ void bs_setDefShaderAttribs(bs_Shader *shader, const char *vs_code) {
 	sizeof(bs_ivec4), /* BS_BID */
 	sizeof(bs_vec4),  /* BS_WEI */
 	sizeof(bs_vec4),  /* BS_V4_ */
-	sizeof(bs_ivec4), /* BS_V4I */
     };
 
     for(int i = 0; i < BS_MAX_ATTRIB_COUNT; i++) {

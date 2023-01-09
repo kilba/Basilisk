@@ -4,6 +4,8 @@
 #include <bs_types.h>
 
 /* --- RENDERING --- */
+void bs_setV4_(bs_vec4 v);
+
 void bs_pushIndex(int idx);
 void bs_pushIndices(int *idxs, int num_elems);
 void bs_pushIndexVa(int num_elems, ...);
@@ -15,11 +17,10 @@ void bs_pushVertex(
     bs_vec3  nor,
     bs_RGBA  col,
     bs_ivec4 bid,
-    bs_vec4  wei,
-    bs_vec4  v4_,
-    bs_ivec4 v4i
+    bs_vec4  wei
 );
 
+int bs_pushQuadFlipped(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
 int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
 int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col);
 int bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col);
@@ -27,9 +28,6 @@ int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
 int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
-int bs_pushPrimA(bs_Prim *prim, bs_vec4 attributes); 
-int bs_pushMeshA(bs_Mesh *mesh, bs_vec4 attributes);
-int bs_pushModelA(bs_Model *model, bs_vec4 attributes);
 int bs_pushPrim(bs_Prim *prim); 
 int bs_pushMesh(bs_Mesh *mesh);
 int bs_pushModel(bs_Model *model);
@@ -164,7 +162,6 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_VAL_BID 16
 #define BS_VAL_WEI 32
 #define BS_VAL_V4_ 64
-#define BS_VAL_V4I 128
 
 /* RENDER MODES */
 #define BS_POINTS 0x0000
