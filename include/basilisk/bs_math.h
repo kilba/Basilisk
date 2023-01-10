@@ -35,24 +35,30 @@ double bs_bezierScalar(double p0, double p1, double p2, double p3, double t);
 void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *arr, int num_elems);
 
 /* --- VECTOR ADDITION --- */
+bs_vec2 bs_v2add(bs_vec2 a, bs_vec2 b);
 bs_vec3 bs_v3add(bs_vec3 a, bs_vec3 b);
 bs_vec3 bs_v3addv2(bs_vec3 a, bs_vec2 b);
 bs_vec4 bs_v4add(bs_vec4 a, bs_vec4 b);
 bs_vec4 bs_v4addv3(bs_vec4 a, bs_vec3 b);
 
 /* --- VECTOR SUBTRACTION --- */
+bs_vec2 bs_v2sub(bs_vec2 a, bs_vec2 b);
 bs_vec3 bs_v3sub(bs_vec3 a, bs_vec3 b);
 bs_vec3 bs_v3subv2(bs_vec3 a, bs_vec2 b);
 bs_vec4 bs_v4sub(bs_vec4 a, bs_vec4 b);
 bs_vec4 bs_v4subv3(bs_vec4 a, bs_vec3 b);
 
 /* --- VECTOR MULTIPLICATION --- */
+bs_vec2 bs_v2mul(bs_vec2 a, bs_vec2 b);
+bs_vec2 bs_v2muls(bs_vec2 a, float s);
 bs_vec3 bs_v3mul(bs_vec3 a, bs_vec3 b);
 bs_vec3 bs_v3muls(bs_vec3 a, float s);
 bs_vec4 bs_v4mul(bs_vec4 a, bs_vec4 b);
 bs_vec4 bs_v4muls(bs_vec4 a, float s);
 
 /* --- VECTOR DIVISION --- */
+bs_vec2 bs_v2div(bs_vec2 a, bs_vec2 b);
+bs_vec2 bs_v2divs(bs_vec2 a, float s);
 bs_vec3 bs_v3div(bs_vec3 a, bs_vec3 b);
 bs_vec3 bs_v3divs(bs_vec3 a, float s);
 bs_vec4 bs_v4div(bs_vec4 a, bs_vec4 b);

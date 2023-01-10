@@ -212,6 +212,11 @@ void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *
 }
 
 /* --- VECTOR ADDITION --- */
+// VEC2
+bs_vec2 bs_v2add(bs_vec2 a, bs_vec2 b) {
+    return BS_V2(a.x + b.x, a.y + b.y);
+}
+
 // VEC3
 bs_vec3 bs_v3add(bs_vec3 a, bs_vec3 b) {
     return BS_V3(a.x + b.x, a.y + b.y, a.z + b.z);
@@ -231,6 +236,11 @@ bs_vec4 bs_v4addv3(bs_vec4 a, bs_vec3 b) {
 }
 
 /* --- VECTOR SUBTRACTION --- */
+// VEC2
+bs_vec2 bs_v2sub(bs_vec2 a, bs_vec2 b) {
+    return BS_V2(a.x - b.x, a.y - b.y);
+}
+
 // VEC3
 bs_vec3 bs_v3sub(bs_vec3 a, bs_vec3 b) {
     return BS_V3(a.x - b.x, a.y - b.y, a.z - b.z);
@@ -250,6 +260,15 @@ bs_vec4 bs_v4subv3(bs_vec4 a, bs_vec3 b) {
 }
 
 /* --- VECTOR MULTIPLICATION --- */
+// VEC2
+bs_vec2 bs_v2mul(bs_vec2 a, bs_vec2 b) {
+    return BS_V2(a.x * b.x, a.y * b.y);
+}
+
+bs_vec2 bs_v2muls(bs_vec2 a, float s) {
+    return BS_V2(a.x * s, a.y * s);
+}
+
 // VEC3
 bs_vec3 bs_v3mul(bs_vec3 a, bs_vec3 b) {
     return BS_V3(a.x * b.x, a.y * b.y, a.z * b.z);
@@ -269,6 +288,15 @@ bs_vec4 bs_v4muls(bs_vec4 a, float s) {
 }
 
 /* --- VECTOR DIVISION --- */
+// VEC2
+bs_vec2 bs_v2div(bs_vec2 a, bs_vec2 b) {
+    return BS_V2(a.x / b.x, a.y / b.y);
+}
+
+bs_vec2 bs_v2divs(bs_vec2 a, float s) {
+    return BS_V2(a.x / s, a.y / s);
+}
+
 // VEC3
 bs_vec3 bs_v3div(bs_vec3 a, bs_vec3 b) {
     return BS_V3(a.x / b.x, a.y / b.y, a.z / b.z);

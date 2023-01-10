@@ -41,7 +41,7 @@ void bs_textureDataRaw(unsigned char *data) {
     curr_texture->data = data;
 }
 
-bs_U32 bs_textureDataFile(char *path, bool update_dimensions) {
+bs_U32 bs_textureDataFile(const char *path, bool update_dimensions) {
     unsigned int w, h;
     bs_U32 err = lodepng_decode32_file(&curr_texture->data, &w, &h, path);
 
@@ -240,7 +240,7 @@ void bs_textureArray(bs_Texture *tex, bs_ivec2 max_dim, int num_textures) {
     bs_textureMinMag(BS_NEAREST, BS_NEAREST);
 }
 
-bs_U32 bs_textureArrayAppendPNG(char *path) {
+bs_U32 bs_textureArrayAppendPNG(const char *path) {
     bs_U32 err = bs_textureDataFile(path, true);
     if(err != 0)
 	return err;
