@@ -45,6 +45,8 @@
     typedef struct bs_uvec3 bs_uvec3;
     typedef struct bs_uvec4 bs_uvec4;
 
+    typedef struct bs_aabb bs_aabb;
+
     typedef struct bs_fRGBA bs_fRGBA;
     typedef struct bs_RGBA bs_RGBA;
     typedef struct bs_RGB bs_RGB;
@@ -156,6 +158,11 @@ typedef bs_vec4 	bs_quat;
 #define BS_RGBA(r, g, b, a) (bs_RGBA) { r, g, b, a }
 
 #define BS_QUAT(x, y, z, w) (bs_quat){ x, y, z, w }
+
+struct bs_aabb {
+    bs_vec3 min;
+    bs_vec3 max;
+};
 
 /* --- TEXTURES --- */
 struct bs_Texture {

@@ -501,16 +501,16 @@ void bs_cgltfError(int err) {
     }
 }
 
-void bs_model(bs_Model *model, const char *model_path, int settings) {
+int bs_model(bs_Model *model, const char *model_path, int settings) {
     cgltf_options options = {0};
     cgltf_data* data = NULL;
     load_settings = settings;
 
     int err;
     err = cgltf_parse_file(&options, model_path, &data);
-    bs_cgltfError(err);
+    if(err != cgltf_result_success) return err;
     err = cgltf_load_buffers(&options, data, model_path);
-    bs_cgltfError(err);
+    if(err != cgltf_result_success) return err;
     
     int path_len = strlen(model_path);
     int mesh_count = data->meshes_count;
@@ -533,6 +533,7 @@ void bs_model(bs_Model *model, const char *model_path, int settings) {
 
     bs_loadAnims(data, model);
     cgltf_free(data);
+    return 0;
 }
 
 void bs_animate(bs_Anim *anim, int bind_point, int frame) {

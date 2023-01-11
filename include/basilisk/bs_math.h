@@ -13,7 +13,8 @@ double bs_fMap(double input, double input_start, double input_end, double output
 void bs_eul2quat(bs_quat q, bs_vec3 eul);
 
 // void bs_normv3(bs_vec3 *v);
-bs_vec3 bs_normalize(bs_vec3 v);
+bs_vec2 bs_v2normalize(bs_vec2 v);
+bs_vec3 bs_v3normalize(bs_vec3 v);
 bs_vec3 bs_cross(bs_vec3 v0, bs_vec3 v1);
 float bs_dot(bs_vec3 v0, bs_vec3 v1);
 bool bs_triangleIsCCW(bs_vec3 a, bs_vec3 b, bs_vec3 c, bs_vec3 normal);
@@ -23,6 +24,7 @@ bs_vec3 bs_triangleNormal(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
 bs_vec3 bs_triangleCenter(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
 bs_vec2 bs_v2rot(bs_vec2 pt, bs_vec2 origin, float angle); 
 bs_vec3 bs_v3mid(bs_vec3 a, bs_vec3 b);
+bs_vec3 bs_v3furthest(bs_vec3 *arr, int num_indices, bs_vec3 dir);
 
 /* --- QUATERNIONS --- */
 void bs_qToMat3(bs_vec4 q, bs_mat3 *out);
@@ -63,6 +65,11 @@ bs_vec3 bs_v3div(bs_vec3 a, bs_vec3 b);
 bs_vec3 bs_v3divs(bs_vec3 a, float s);
 bs_vec4 bs_v4div(bs_vec4 a, bs_vec4 b);
 bs_vec4 bs_v4divs(bs_vec4 a, float s);
+
+/* --- VECTOR COMPARISON --- */
+bool bs_v2cmp(bs_vec2 a, bs_vec2 b);
+bool bs_v3cmp(bs_vec3 a, bs_vec3 b);
+bool bs_v4cmp(bs_vec4 a, bs_vec4 b);
 
 /* --- RANDOM --- */
 int bs_randRangeI(int min, int max);

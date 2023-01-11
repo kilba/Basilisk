@@ -43,7 +43,29 @@ void bs_eul2quat(bs_quat q, bs_vec3 eul) {
     q.z = cr * cp * sy - sr * sp * cy;
 }
 
-bs_vec3 bs_normalize(bs_vec3 v) {
+bs_vec3 bs_v3furthest(bs_vec3 *arr, int num_indices, bs_vec3 dir) {
+    bs_vec3 pt = BS_V3_0;
+    float far = 0.0;
+
+    for(int i = 0; i < num_indices; i++) {
+	float dot = bs_dot(dir, arr[i]);
+	if(dot > far) {
+	    far = dot;
+	    pt = arr[i];
+	}
+    }
+
+    return pt;
+}
+
+bs_vec2 bs_v2normalize(bs_vec2 v) {
+    float w = sqrt(v.x * v.x + v.y * v.y);
+    v.x /= w;
+    v.y /= w;
+    return v;
+}
+
+bs_vec3 bs_v3normalize(bs_vec3 v) {
     float w = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
     v.x /= w;
     v.y /= w;
@@ -67,7 +89,7 @@ bs_vec3 bs_triangleNormal(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2) {
     bs_vec3 a = BS_V3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
     bs_vec3 b = BS_V3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
     bs_vec3 c = bs_cross(a, b);
-    c = bs_normalize(c);
+    c = bs_v3normalize(c);
     return c;
 }
 
@@ -313,6 +335,19 @@ bs_vec4 bs_v4div(bs_vec4 a, bs_vec4 b) {
 
 bs_vec4 bs_v4divs(bs_vec4 a, float s) {
     return BS_V4(a.x / s, a.y / s, a.z / s, a.w / s);
+}
+
+/* --- VECTOR COMPARISON --- */
+bool bs_v2cmp(bs_vec2 a, bs_vec2 b) {
+    return (a.x == b.x) & (a.y == b.y);
+}
+
+bool bs_v3cmp(bs_vec3 a, bs_vec3 b) {
+    return (a.x == b.x) & (a.y == b.y) & (a.z == b.z);
+}
+
+bool bs_v4cmp(bs_vec4 a, bs_vec4 b) {
+    return (a.x == b.x) & (a.y == b.y) & (a.z == b.z) & (a.w == b.w);
 }
 
 /* --- RANDOM --- */

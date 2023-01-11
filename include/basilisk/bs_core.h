@@ -29,6 +29,7 @@ int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
 int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
+int bs_pushAABB(bs_aabb aabb, bs_RGBA color);
 int bs_pushPrim(bs_Prim *prim); 
 int bs_pushMesh(bs_Mesh *mesh);
 int bs_pushModel(bs_Model *model);

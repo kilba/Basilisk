@@ -243,15 +243,39 @@ int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     
     bs_pushIndexVa(3, 0, 1, 2),
 
-    bs_pushVertex(pos1, (bs_vec2){ 0.0, 0.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0);
-    bs_pushVertex(pos2, (bs_vec2){ 1.0, 0.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0);
-    bs_pushVertex(pos3, (bs_vec2){ 0.0, 1.0 }, BS_V3_0, color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(pos1, BS_V2(0.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(pos2, BS_V2(1.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(pos3, BS_V2(0.0, 1.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_draw_count += 3;
+    return curr_batch->index_draw_count;
 }
 
 int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
     return bs_pushTriangle(start, end, end, color);
+}
+
+int bs_pushAABB(bs_aabb aabb, bs_RGBA color) {
+    bs_batchResizeCheck(36, 8);
+    bs_pushIndexVa(36,
+	2, 7, 6, 2, 3, 7, // Bottom
+	0, 4, 5, 0, 5, 1, // Top
+	0, 2, 6, 0, 6, 4, // Left	
+	1, 7, 3, 1, 5, 7, // Right
+	0, 1, 2, 2, 1, 3, // Front
+	4, 6, 7, 4, 7, 5  // Back
+    );
+
+    bs_pushVertex(BS_V3(aabb.min.x, aabb.min.y, aabb.min.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(BS_V3(aabb.max.x, aabb.min.y, aabb.min.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(BS_V3(aabb.min.x, aabb.max.y, aabb.min.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(BS_V3(aabb.max.x, aabb.max.y, aabb.min.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    
+    bs_pushVertex(BS_V3(aabb.min.x, aabb.min.y, aabb.max.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(BS_V3(aabb.max.x, aabb.min.y, aabb.max.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(BS_V3(aabb.min.x, aabb.max.y, aabb.max.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(BS_V3(aabb.max.x, aabb.max.y, aabb.max.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+
+    return curr_batch->index_draw_count;
 }
 
 int bs_pushPrim(bs_Prim *prim) {
