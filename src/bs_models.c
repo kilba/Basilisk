@@ -559,7 +559,7 @@ void bs_animate(bs_Anim *anim, int bind_point, int frame) {
 
 void bs_pushAnims() {
     int ssbo_size = anim_offset * sizeof(bs_mat4);
-    anim_ssbo = bs_SSBO(NULL, ssbo_size + 16, 3);
+    anim_ssbo = bs_SSBO(NULL, ssbo_size + 16, 1);
 /*
     for(int i = 0; i < anim_count; i++) {
 	bs_Anim *anim = anims + i;

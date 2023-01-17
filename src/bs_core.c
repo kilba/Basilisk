@@ -240,7 +240,6 @@ int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 
 int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     bs_batchResizeCheck(3, 3);
-    
     bs_pushIndexVa(3, 0, 1, 2),
 
     bs_pushVertex(pos1, BS_V2(0.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
@@ -251,7 +250,13 @@ int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
 }
 
 int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
-    return bs_pushTriangle(start, end, end, color);
+    bs_batchResizeCheck(2, 2);
+    bs_pushIndexVa(2, 0, 1),
+
+    bs_pushVertex(start, BS_V2(0.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(end, BS_V2(1.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
+
+    return curr_batch->index_draw_count;
 }
 
 int bs_pushAABB(bs_aabb aabb, bs_RGBA color) {
@@ -265,6 +270,7 @@ int bs_pushAABB(bs_aabb aabb, bs_RGBA color) {
 	4, 6, 7, 4, 7, 5  // Back
     );
 
+    // TODO: Set correct normals
     bs_pushVertex(BS_V3(aabb.min.x, aabb.min.y, aabb.min.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
     bs_pushVertex(BS_V3(aabb.max.x, aabb.min.y, aabb.min.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
     bs_pushVertex(BS_V3(aabb.min.x, aabb.max.y, aabb.min.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
@@ -432,7 +438,7 @@ void bs_freeBatchData() {
     curr_batch->indices = NULL;
 }
 
-void bs_renderBatch(int start_index, int draw_count) {
+void bs_renderBatchData() {
     bs_switchShader(curr_batch->shader->id);
 
     bs_Uniform *view = &curr_batch->shader->uniforms[UNIFORM_VIEW];
@@ -442,8 +448,16 @@ void bs_renderBatch(int start_index, int draw_count) {
 	bs_uniform_mat4(view->loc, curr_batch->camera->view);
     if(proj->is_valid)
 	bs_uniform_mat4(proj->loc, curr_batch->camera->proj);
+}
 
+void bs_renderBatch(int start_index, int draw_count) {
+    bs_renderBatchData();
     glDrawElements(curr_batch->draw_mode, draw_count, BS_UINT, (void*)(start_index * sizeof(GLuint)));
+}
+
+void bs_renderBatchVertices(int start_index, int draw_count) {
+    bs_renderBatchData();
+    glDrawArrays(curr_batch->draw_mode, start_index, draw_count);
 }
 
 void bs_clearBatch() {

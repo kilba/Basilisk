@@ -12,6 +12,10 @@ int bs_sign(float x) {
     return (x > 0) - (x < 0);
 }
 
+float bs_fsign(float x) {
+    return (x > 0) - (x < 0);
+}
+
 int bs_closestDivisible(int val, int div) {
     int q = val / div;
      
@@ -43,19 +47,25 @@ void bs_eul2quat(bs_quat q, bs_vec3 eul) {
     q.z = cr * cp * sy - sr * sp * cy;
 }
 
-bs_vec3 bs_v3furthest(bs_vec3 *arr, int num_indices, bs_vec3 dir) {
-    bs_vec3 pt = BS_V3_0;
-    float far = 0.0;
+bs_aabb bs_v3bounds(bs_vec3 *arr, int num_indices) {
+    bs_aabb aabb = { BS_V3_0, BS_V3_0 };
+    float far = -99999.0;
+    float near = 99999.0;
 
     for(int i = 0; i < num_indices; i++) {
-	float dot = bs_dot(dir, arr[i]);
+	float dot = bs_dot(BS_V3_1, arr[i]);
 	if(dot > far) {
 	    far = dot;
-	    pt = arr[i];
+	    aabb.min = arr[i];
+	}
+
+	if(dot < near) {
+	    near = dot;
+	    aabb.max = arr[i];
 	}
     }
 
-    return pt;
+    return aabb;
 }
 
 bs_vec2 bs_v2normalize(bs_vec2 v) {

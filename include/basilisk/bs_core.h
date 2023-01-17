@@ -69,6 +69,7 @@ void bs_bufferRange(int target, int bind_point, int buffer, int offset, int size
 void bs_selectBatch(bs_Batch *batch);
 void bs_pushBatch();
 void bs_renderBatch(int start_index, int draw_count);
+void bs_renderBatchVertices(int start_index, int draw_count);
 
 void bs_freeBatchData();
 void bs_clearBatch();

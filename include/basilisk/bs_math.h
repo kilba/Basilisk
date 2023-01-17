@@ -8,6 +8,7 @@
 
 double bs_clamp(double d, double min, double max);
 int bs_sign(float x);
+float bs_fsign(float x);
 int bs_closestDivisible(int val, int div);
 double bs_fMap(double input, double input_start, double input_end, double output_start, double output_end);
 void bs_eul2quat(bs_quat q, bs_vec3 eul);
@@ -24,7 +25,7 @@ bs_vec3 bs_triangleNormal(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
 bs_vec3 bs_triangleCenter(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
 bs_vec2 bs_v2rot(bs_vec2 pt, bs_vec2 origin, float angle); 
 bs_vec3 bs_v3mid(bs_vec3 a, bs_vec3 b);
-bs_vec3 bs_v3furthest(bs_vec3 *arr, int num_indices, bs_vec3 dir);
+bs_aabb bs_v3bounds(bs_vec3 *arr, int num_indices);
 
 /* --- QUATERNIONS --- */
 void bs_qToMat3(bs_vec4 q, bs_mat3 *out);
