@@ -17,6 +17,7 @@ void bs_textureWrap(int mode, int value);
 void bs_textureSplit(int frame_count);
 void bs_textureSplitVert(int frame_count);
 
+void bs_setTexture(bs_Texture *texture);
 void bs_selectTextureTarget(bs_Texture *texture, int tex_unit, int target);
 void bs_selectTexture(bs_Texture *texture, int tex_unit);
 bs_Texture *bs_selectedTexture();
@@ -39,6 +40,7 @@ void bs_textureCubeLin(bs_Texture *texture, int dim, char *paths[6]);
 
 void bs_textureArray(bs_Texture *tex, bs_ivec2 max_dim, int num_textures);
 bs_U32 bs_textureArrayAppendPNG(const char *path);
+bs_U32 bs_textureArrayAppendPNGSheet(const char *path, int frames);
 
 void bs_textureRGBA16f(bs_Texture *tex, bs_ivec2 dim);
 void bs_textureLinRGBA16f(bs_Texture *tex, bs_ivec2 dim);

@@ -157,7 +157,9 @@ typedef bs_vec4 	bs_quat;
 
 #define BS_RGBA(r, g, b, a) (bs_RGBA) { r, g, b, a }
 
-#define BS_QUAT(x, y, z, w) (bs_quat){ x, y, z, w }
+#define BS_QUAT(x, y, z, w) (bs_quat) { x, y, z, w }
+
+#define BS_AABB(a, b) (bs_aabb) { a, b }
 
 struct bs_aabb {
     bs_vec3 min;

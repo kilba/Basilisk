@@ -24,6 +24,7 @@
 
 #include <time.h>
 
+bs_Texture def_texture;
 bs_Camera def_camera;
 bs_Batch *curr_batch;
 
@@ -136,8 +137,8 @@ void bs_pushVertex(
     bs_pushAttrib(&data_ptr, &nor, sizes[3]);
     bs_pushAttrib(&data_ptr, &bid, sizes[4]);
     bs_pushAttrib(&data_ptr, &wei, sizes[5]);
-    bs_pushAttrib(&data_ptr, &v1_, sizes[6]);
-    bs_pushAttrib(&data_ptr, &v4_, sizes[7]);
+    bs_pushAttrib(&data_ptr, &v4_, sizes[6]);
+    bs_pushAttrib(&data_ptr, &v1_, sizes[7]);
     
     curr_batch->vertex_draw_count++;
 } 
@@ -431,6 +432,19 @@ void bs_pushBatch() {
     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, curr_batch->index_draw_count * sizeof(int), curr_batch->indices);
 }
 
+void bs_minimizeBatch() {
+    bs_Batch *batch = curr_batch;
+
+    int new_vertex_size = batch->vertex_draw_count * batch->attrib_size_bytes;
+    int new_index_size = batch->index_draw_count * sizeof(int);
+
+    batch->vertices = realloc(batch->vertices, new_vertex_size);
+    batch->indices  = realloc(batch->indices , new_index_size);
+
+    batch->allocated_index_count = new_index_size;
+    batch->allocated_vertex_count = new_vertex_size;
+}
+
 void bs_freeBatchData() {
     free(curr_batch->vertices);
     free(curr_batch->indices);
@@ -484,7 +498,7 @@ void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim) {
     curr_framebuf = framebuf;
 
     framebuf->dim = dim;
-    framebuf->clear = GL_DEPTH_BUFFER_BIT;
+    framebuf->clear = GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
     framebuf->depth_index = 0;
     framebuf->buf_count = 0;
     framebuf->buf_alloc = 4;
@@ -494,20 +508,19 @@ void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim) {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuf->FBO);
 }
 
-void bs_setBuffer(int attachment, bs_Texture buf) {
+void bs_setBuffer(int type, int idx, bs_Texture buf) {
     bs_Framebuf *framebuf = curr_framebuf;
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, GL_TEXTURE_2D, buf.id, 0);
-    framebuf->bufs[framebuf->buf_count] = buf;
+    glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, buf.id, 0);
+    framebuf->bufs[idx] = buf;
 }
 
-void bs_attachBuffer(int attachment, bs_Texture buf) {
-    bs_framebufResizeCheck();
-
+void bs_attachBufferType(int type, bs_Texture buf) {
     bs_Framebuf *framebuf = curr_framebuf;
-    framebuf->clear |= GL_COLOR_BUFFER_BIT;
 
-    bs_setBuffer(attachment, buf);
+    bs_framebufResizeCheck();
+    bs_setBuffer(type, framebuf->buf_count, buf);
+
     framebuf->buf_count++;
 }
 
@@ -522,7 +535,8 @@ void bs_attachColorbufferType(int attachment, int type) {
 	default: return;
     }
 
-    bs_attachBuffer(attachment, tex);
+    framebuf->clear |= GL_COLOR_BUFFER_BIT;
+    bs_attachBufferType(BS_COLOR, tex);
 }
 
 void bs_attachColorbuffer16(int attachment) {
@@ -551,32 +565,32 @@ void bs_attachDepthBufferType(int type) {
 
     bs_Framebuf *framebuf = curr_framebuf;
     bs_Texture *tex = framebuf->bufs + framebuf->buf_count;
-    framebuf->clear |= GL_DEPTH_BUFFER_BIT;
+    framebuf->clear |= BS_DEPTH_BUFFER_BIT;
     framebuf->depth_index = framebuf->buf_count;
     framebuf->buf_count++;
 
     if(tex->type == BS_CUBEMAP) {
 	bs_depthCube(tex, framebuf->dim.x);
-	glFramebufferTexture(GL_FRAMEBUFFER, type, tex->id, 0);
+	bs_attachBufferType(type, *tex);
 	return;
     }
 
-    if(type == GL_DEPTH_STENCIL_ATTACHMENT) {
+    if(type == BS_DEPTH_STENCIL) {
 	bs_depthStencil(tex, framebuf->dim);
-	framebuf->clear |= GL_STENCIL_BUFFER_BIT;
+	framebuf->clear |= BS_STENCIL_BUFFER_BIT;
     } else {
 	bs_depth(tex, framebuf->dim);
     }
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, tex->id, 0);
+    bs_attachBufferType(type, *tex);
 }
 
 void bs_attachDepthBuffer() {
-    bs_attachDepthBufferType(GL_DEPTH_ATTACHMENT);
+    bs_attachDepthBufferType(BS_DEPTH);
 }
 
 void bs_attachDepthStencilBuffer() {
-    bs_attachDepthBufferType(GL_DEPTH_STENCIL_ATTACHMENT);
+    bs_attachDepthBufferType(BS_DEPTH_STENCIL);
 }
 
 void bs_setDrawBufs(int n, ...) {
@@ -638,6 +652,14 @@ void bs_polygonFill() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
+void bs_disableColor() {
+    glColorMask(false, false, false, false);
+}
+
+void bs_enableColor() {
+    glColorMask(true, true, true, true);
+}
+
 void bs_additiveBlending() {
     glBlendFunc(GL_ONE, GL_ONE);
     glBlendEquation(GL_FUNC_ADD);
@@ -665,6 +687,15 @@ void bs_init(int width, int height, const char *title) {
     bs_lookat(&def_camera, BS_V3(0, 0, 300), BS_V3(0.0, 0.0, -1.0), BS_V3(0.0, 1.0, 0.0));
     bs_ortho(&def_camera, 0, width, 0, height, 0.01, 1000.0);
 
+    def_texture.frame = BS_IV3_0;
+    def_texture.num_frames = 1;
+    def_texture.h = 0;
+    def_texture.w = 0;
+    def_texture.texh = 1.0;
+    def_texture.texw = 1.0;
+
+    bs_setTexture(&def_texture);
+
     global_unifs = bs_initUniformBlock(sizeof(bs_Globals), 0);
 }
 
@@ -684,6 +715,10 @@ void bs_startRender(void (*render)()) {
 }
 
 /* --- OpenGL Rendering Logic Abstraction --- */
+void bs_lineWidth(float w) {
+    glLineWidth(w);
+}
+
 void bs_enable(int val) {
     glEnable(val);
 }

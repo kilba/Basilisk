@@ -15,7 +15,6 @@ add_library(${PROJECT_NAME}
     src/bs_abstract.c
 
     external/glad/glad.c
-    external/glad/glad_wgl.c
     external/lodepng/lodepng.c
 )
 

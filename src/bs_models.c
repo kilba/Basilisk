@@ -560,16 +560,7 @@ void bs_animate(bs_Anim *anim, int bind_point, int frame) {
 void bs_pushAnims() {
     int ssbo_size = anim_offset * sizeof(bs_mat4);
     anim_ssbo = bs_SSBO(NULL, ssbo_size + 16, 1);
-/*
-    for(int i = 0; i < anim_count; i++) {
-	bs_Anim *anim = anims + i;
-	int size   = anim->joint_count * anim->frame_count * sizeof(bs_mat4);
-	int offset = 16 + anim->frame_offset_shader * sizeof(bs_mat4);
-
-	bs_pushSSBO(anim->matrices, offset, size);
-	free(anim->matrices);
-    }
-*/
+ 
     for(int i = 0; i < anim_count; i++) {
 	bs_Anim *anim = anims + i;
 	for(int j = 0; j < anim->num_mesh_anims; j++) {
@@ -579,8 +570,11 @@ void bs_pushAnims() {
 	    int offset = 16 + mesh_anim->shader_offset * sizeof(bs_mat4);
 	    
 	    bs_pushSSBO(mesh_anim->joints, offset, size);
-//	    free(mesh_anim->joints);
+	    //free(mesh_anim->joints);
 	}
+
+	//free(anim->mesh_anims);
+	//free(anim->matrices);
     }
 }
 

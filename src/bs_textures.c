@@ -113,6 +113,10 @@ void bs_textureSplitVert(int frame_count) {
     tex->texh = 1.0 / (float)frame_count;
 }
 
+void bs_setTexture(bs_Texture *texture) {
+    curr_texture = texture;
+}
+
 void bs_selectTextureTarget(bs_Texture *texture, int tex_unit, int target) {
     if(curr_texture == texture)
 	return;
@@ -256,6 +260,32 @@ bs_U32 bs_textureArrayAppendPNG(const char *path) {
     );
 
     curr_texture->frame.z++;
+    return 0;
+}
+
+bs_U32 bs_textureArrayAppendPNGSheet(const char *path, int frames) {
+    bs_U32 err = bs_textureDataFile(path, true);
+    if(err != 0)
+	return err;
+
+    int frame_width = curr_texture->w / frames;
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, curr_texture->w);
+    for(int i = 0; i < frames; i++) {
+	glPixelStorei(GL_UNPACK_SKIP_PIXELS, i * frame_width);
+	glTexSubImage3D(
+	    curr_texture->type,
+	    0,
+	    0, 0, curr_texture->frame.z,
+	    frame_width, curr_texture->h, 1,
+	    BS_CHANNEL_RGBA,
+	    BS_UBYTE,
+	    curr_texture->data
+	);
+	curr_texture->frame.z++;
+    }
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+
     return 0;
 }
 

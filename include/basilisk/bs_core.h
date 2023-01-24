@@ -36,8 +36,8 @@ int bs_pushModel(bs_Model *model);
 
 /* --- FRAMEBUFFERS --- */
 void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim);
-void bs_setBuffer(int attachment, bs_Texture buf);
-void bs_attachBuffer(int attachment, bs_Texture buf);
+void bs_setBuffer(int type, int idx, bs_Texture buf);
+void bs_attachBufferType(int type, bs_Texture buf);
 void bs_attachColorbuffer16(int attachment);
 void bs_attachColorbuffer32(int attachment);
 void bs_attachColorbuffer(int attachment);
@@ -71,6 +71,7 @@ void bs_pushBatch();
 void bs_renderBatch(int start_index, int draw_count);
 void bs_renderBatchVertices(int start_index, int draw_count);
 
+void bs_minimizeBatch();
 void bs_freeBatchData();
 void bs_clearBatch();
 void bs_batchBufferSize(int index_count, int vertex_count);
@@ -79,7 +80,10 @@ void bs_batchShader(bs_Batch *batch, bs_Shader *shader);
 int bs_batchSize();
 void bs_batchResizeCheck(int index_count, int vertex_count);
 
-// This is deprecated!
+void bs_disableColor();
+void bs_enableColor();
+
+    // This is deprecated!
 int bs_checkError();
 
 /* --- INITIALIZATION --- */
@@ -96,6 +100,7 @@ void bs_lookat(bs_Camera *cam, bs_vec3 eye, bs_vec3 center, bs_vec3 up);
 void bs_look(bs_Camera *cam, bs_vec3 eye, bs_vec3 dir, bs_vec3 up);
 
 /* --- OPENGL RENDERING LOGIC LAYER --- */
+void bs_lineWidth(float w);
 void bs_enable(int val);
 void bs_disable(int val);
 void bs_stencilFunc(int val0, int val1, int val2);
@@ -116,7 +121,7 @@ void bs_blendFunc(int val0, int val1);
 void bs_viewport(int x, int y, int w, int h);
 
 /* --- CONSTANTS --- */
-#define BS_BATCH_INCR_BY 1024 * 8
+#define BS_BATCH_INCR_BY 1024
 /* OPENGL FILTERING SETTINGS */
 #define BS_NEAREST 0x2600
 #define BS_NEAREST_MIPMAP_LINEAR 0x2702
@@ -138,6 +143,11 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_TEX1D 0x0DE0
 #define BS_TEX2D 0x0DE1
 #define BS_CUBEMAP 0x8513
+
+#define BS_COLOR 0x8CE0
+#define BS_DEPTH 0x8D00
+#define BS_STENCIL 0x8D20
+#define BS_DEPTH_STENCIL 0x821A
 
 /* CLEAR BUFFER BITS */
 #define BS_DEPTH_BUFFER_BIT 0x00000100

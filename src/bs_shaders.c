@@ -107,8 +107,8 @@ void bs_setDefShaderAttribs(bs_Shader *shader, const char *vs_code) {
 	{ "in vec3 bs_Nor" , BS_VAL_NOR, sizeof(bs_vec3) },
 	{ "in ivec4 bs_BID", BS_VAL_BID, sizeof(bs_ivec4) },
 	{ "in vec4 bs_Wei" , BS_VAL_WEI, sizeof(bs_vec4) },
-	{ "in float bs_V1_", BS_VAL_V1_, sizeof(float) },
 	{ "in vec4 bs_V4_" , BS_VAL_V4_, sizeof(bs_vec4) },
+	{ "in float bs_V1_", BS_VAL_V1_, sizeof(float) },
     };
 
     for(int i = 0; i < BS_MAX_ATTRIB_COUNT; i++) {
