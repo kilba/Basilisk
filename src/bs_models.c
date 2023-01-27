@@ -33,53 +33,23 @@ int attrib_offset = 0;
 int load_settings = 0;
 
 /* --- VERTEX PARSING --- */
-void bs_posData(int accessor_index, bs_Prim *prim, cgltf_data *data) {
-    int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-    int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
+void bs_modelAttribData(int accessor_idx, int offset, bs_Prim *prim, cgltf_data *data) {
+    cgltf_accessor *accessor = data->accessors + accessor_idx;
+    int num_floats = cgltf_accessor_unpack_floats(accessor, NULL, 0);
+    int num_comps = cgltf_num_components(accessor->type);
 
-    int offset = 0;
     for(int i = 0; i < num_floats / num_comps; i++, offset += prim->vertex_size) {
-	cgltf_accessor_read_float(&data->accessors[accessor_index], i, (float *)prim->vertices + offset, num_comps);
+	cgltf_accessor_read_float(accessor, i, (float *)prim->vertices + offset, num_comps);
     }
 }
 
-void bs_norData(int accessor_index, bs_Prim *prim, cgltf_data *data) {
-    int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-    int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
+void bs_modelAttribDataI(int accessor_idx, int offset, bs_Prim *prim, cgltf_data *data) {
+    cgltf_accessor *accessor = data->accessors + accessor_idx;
+    int num_floats = cgltf_accessor_unpack_floats(accessor, NULL, 0);
+    int num_comps = cgltf_num_components(accessor->type);
 
-    int offset = prim->offset_nor;
     for(int i = 0; i < num_floats / num_comps; i++, offset += prim->vertex_size) {
-	cgltf_accessor_read_float(&data->accessors[accessor_index], i, (float *)prim->vertices + offset, num_comps);
-    }
-}
-
-void bs_texData(int accessor_index, bs_Prim *prim, cgltf_data *data) {
-    int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-    int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
-
-    int offset = prim->offset_tex;
-    for(int i = 0; i < num_floats / num_comps; i++, offset += prim->vertex_size) {
-	cgltf_accessor_read_float(&data->accessors[accessor_index], i, (float *)prim->vertices + offset, num_comps);
-    }
-}
-
-void bs_bidData(int accessor_index, bs_Prim *prim, cgltf_data *data) {
-    int num_ints = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-    int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
-
-    int offset = prim->offset_bid;
-    for(int i = 0; i < num_ints / num_comps; i++, offset += prim->vertex_size) {
-	cgltf_accessor_read_uint(&data->accessors[accessor_index], i, (unsigned int *)prim->vertices + offset, num_comps);
-    }
-}
-
-void bs_weiData(int accessor_index, bs_Prim *prim, cgltf_data *data) {
-    int num_floats = cgltf_accessor_unpack_floats(&data->accessors[accessor_index], NULL, 0);
-    int num_comps = cgltf_num_components(data->accessors[accessor_index].type);
-
-    int offset = prim->offset_wei;
-    for(int i = 0; i < num_floats / num_comps; i++, offset += prim->vertex_size) {
-	cgltf_accessor_read_float(&data->accessors[accessor_index], i, (float *)prim->vertices + offset, num_comps);
+	cgltf_accessor_read_uint(accessor, i, (unsigned int *)prim->vertices + offset, num_comps);
     }
 }
 
@@ -258,11 +228,11 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     	int type = c_mesh->primitives[prim_index].attributes[i].type;
 
     	switch(type) {
-	    case cgltf_attribute_type_position : bs_posData(index, prim, data); break;
-	    case cgltf_attribute_type_normal   : bs_norData(index, prim, data); break;
-	    case cgltf_attribute_type_texcoord : bs_texData(index, prim, data); break;
-	    case cgltf_attribute_type_joints   : bs_bidData(index, prim, data); break;
-	    case cgltf_attribute_type_weights  : bs_weiData(index, prim, data); break;
+	    case cgltf_attribute_type_position : bs_modelAttribData (index, 0, prim, data); break;
+	    case cgltf_attribute_type_normal   : bs_modelAttribData (index, prim->offset_nor, prim, data); break;
+	    case cgltf_attribute_type_texcoord : bs_modelAttribData (index, prim->offset_tex, prim, data); break;
+	    case cgltf_attribute_type_joints   : bs_modelAttribDataI(index, prim->offset_bid, prim, data); break;
+	    case cgltf_attribute_type_weights  : bs_modelAttribData (index, prim->offset_wei, prim, data); break;
     	}
     }
 

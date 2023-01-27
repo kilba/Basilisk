@@ -80,6 +80,8 @@ void bs_batchShader(bs_Batch *batch, bs_Shader *shader);
 int bs_batchSize();
 void bs_batchResizeCheck(int index_count, int vertex_count);
 
+void bs_disableColorI(int i);
+void bs_enableColorI(int i);
 void bs_disableColor();
 void bs_enableColor();
 

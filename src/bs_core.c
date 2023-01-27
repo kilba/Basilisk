@@ -651,6 +651,14 @@ void bs_polygonFill() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
+void bs_disableColorI(int i) {
+    glColorMaski(i, false, false, false, false);
+}
+
+void bs_enableColorI(int i) {
+    glColorMaski(i, true, true, true, true);
+}
+
 void bs_disableColor() {
     glColorMask(false, false, false, false);
 }
