@@ -26,7 +26,7 @@
 
 bs_Texture def_texture;
 bs_Camera def_camera;
-bs_Batch *curr_batch;
+bs_Batch *curr_batch = NULL;
 
 bs_Framebuf *curr_framebuf = NULL;
 bs_UniformBuffer global_unifs;
@@ -511,6 +511,8 @@ void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim) {
 void bs_setBuffer(int type, int idx, bs_Texture buf) {
     bs_Framebuf *framebuf = curr_framebuf;
 
+    printf("ATTACHING0... %d\n", type);
+    printf("ATTACHING1... %d\n", framebuf->buf_count);
     glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, buf.id, 0);
     framebuf->bufs[idx] = buf;
 }
@@ -524,7 +526,7 @@ void bs_attachBufferType(int type, bs_Texture buf) {
     framebuf->buf_count++;
 }
 
-void bs_attachColorbufferType(int attachment, int type) {
+void bs_attachColorbufferType(int type) {
     bs_Framebuf *framebuf = curr_framebuf;
     bs_Texture tex;
 
@@ -536,19 +538,19 @@ void bs_attachColorbufferType(int attachment, int type) {
     }
 
     framebuf->clear |= GL_COLOR_BUFFER_BIT;
-    bs_attachBufferType(BS_COLOR, tex);
+    bs_attachBufferType(BS_COLOR + curr_framebuf->buf_count, tex);
 }
 
-void bs_attachColorbuffer16(int attachment) {
-    bs_attachColorbufferType(attachment, GL_RGBA16F);
+void bs_attachColorbuffer16() {
+    bs_attachColorbufferType(GL_RGBA16F);
 }
 
-void bs_attachColorbuffer32(int attachment) {
-    bs_attachColorbufferType(attachment, GL_RGBA32F);
+void bs_attachColorbuffer32() {
+    bs_attachColorbufferType(GL_RGBA32F);
 }
 
-void bs_attachColorbuffer(int attachment) { 
-    bs_attachColorbufferType(attachment, GL_RGBA);
+void bs_attachColorbuffer() { 
+    bs_attachColorbufferType(GL_RGBA);
 }
 
 void bs_attachRenderbuffer() {
@@ -567,7 +569,6 @@ void bs_attachDepthBufferType(int type) {
     bs_Texture *tex = framebuf->bufs + framebuf->buf_count;
     framebuf->clear |= BS_DEPTH_BUFFER_BIT;
     framebuf->depth_index = framebuf->buf_count;
-    framebuf->buf_count++;
 
     if(tex->type == BS_CUBEMAP) {
 	bs_depthCube(tex, framebuf->dim.x);
