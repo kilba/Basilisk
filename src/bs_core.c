@@ -511,8 +511,6 @@ void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim) {
 void bs_setBuffer(int type, int idx, bs_Texture buf) {
     bs_Framebuf *framebuf = curr_framebuf;
 
-    printf("ATTACHING0... %d\n", type);
-    printf("ATTACHING1... %d\n", framebuf->buf_count);
     glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, buf.id, 0);
     framebuf->bufs[idx] = buf;
 }
