@@ -17,6 +17,7 @@
 #include <winreg.h>
 
 bs_Texture *curr_texture;
+int filter = BS_NEAREST;
 
 /* TEXTURE INITIALIZATION */
 void bs_texture(bs_Texture *texture, bs_ivec2 dim, int type) {
@@ -134,31 +135,6 @@ bs_Texture *bs_selectedTexture() {
     return curr_texture;
 }
 
-/* Functions for easier texture initialization */
-void bs_depth(bs_Texture *texture, bs_ivec2 dim) {
-    bs_texture(texture, dim, BS_TEX2D);
-    bs_textureMinMag(BS_NEAREST, BS_NEAREST);
-    bs_pushTexture(BS_CHANNEL_DEPTH, BS_CHANNEL_DEPTH, BS_FLOAT);
-}
-
-void bs_depthLin(bs_Texture *texture, bs_ivec2 dim) {
-    bs_texture(texture, dim, BS_TEX2D);
-    bs_textureMinMag(BS_LINEAR, BS_LINEAR);
-    bs_pushTexture(BS_CHANNEL_DEPTH, BS_CHANNEL_DEPTH, BS_FLOAT);
-}
-
-void bs_textureRGBA(bs_Texture *texture, bs_ivec2 dim) {
-    bs_texture(texture, dim, BS_TEX2D);
-    bs_textureMinMag(BS_NEAREST, BS_NEAREST);
-    bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
-}
-
-void bs_textureLinRGBA(bs_Texture *texture, bs_ivec2 dim) {
-    bs_texture(texture, dim, BS_TEX2D);
-    bs_textureMinMag(BS_LINEAR, BS_LINEAR);
-    bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
-}
-
 void bs_texturePNG(bs_Texture *texture, char *path) {
     if(path == NULL)
 	return;
@@ -177,12 +153,6 @@ void bs_textureLinPNG(bs_Texture *texture, char *path) {
     bs_textureMinMag(BS_LINEAR, BS_LINEAR);
     bs_textureDataFile(path, true);
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
-}
-
-void bs_depthStencil(bs_Texture *texture, bs_ivec2 dim) {
-    bs_texture(texture, dim, BS_TEX2D);
-    bs_textureMinMag(BS_NEAREST, BS_NEAREST);
-    bs_pushTexture(BS_CHANNEL_DEPTH24_STENCIL8, BS_CHANNEL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
 }
 
 void bs_depthCube(bs_Texture *texture, int dim) {
@@ -289,38 +259,61 @@ bs_U32 bs_textureArrayAppendPNGSheet(const char *path, int frames) {
     return 0;
 }
 
-void bs_textureRGBA16f(bs_Texture *tex, bs_ivec2 dim) {
-    bs_texture(tex, dim, BS_TEX2D);
-    bs_textureMinMag(BS_NEAREST, BS_NEAREST);
-    bs_pushTexture(GL_RGBA16F, GL_RGBA, BS_FLOAT);
+void bs_linearFiltering() {
+    filter = BS_LINEAR;
 }
 
-void bs_textureLinRGBA16f(bs_Texture *tex, bs_ivec2 dim) {
-    bs_texture(tex, dim, BS_TEX2D);
-    bs_textureMinMag(BS_LINEAR, BS_LINEAR);
-    bs_pushTexture(GL_RGBA16F, GL_RGBA, BS_FLOAT);
+void bs_nearestFiltering() {
+    filter = BS_NEAREST;
 }
 
-void bs_textureRGBA32f(bs_Texture *tex, bs_ivec2 dim) {
-    bs_texture(tex, dim, BS_TEX2D);
-    bs_textureMinMag(BS_NEAREST, BS_NEAREST);
-    bs_pushTexture(GL_RGBA32F, GL_RGBA, BS_FLOAT);
+void bs_textureColor(bs_Texture *texture, bs_ivec2 dim, int internal_format, int format, int type) {
+    bs_texture(texture, dim, BS_TEX2D);
+    bs_textureMinMag(filter, filter);
+    bs_pushTexture(internal_format, format, type);
 }
 
-void bs_textureLinRGBA32f(bs_Texture *tex, bs_ivec2 dim) {
-    bs_texture(tex, dim, BS_TEX2D);
-    bs_textureMinMag(BS_LINEAR, BS_LINEAR);
-    bs_pushTexture(GL_RGBA32F, GL_RGBA, BS_FLOAT);
+void bs_depthStencil(bs_Texture *texture, bs_ivec2 dim) {
+    bs_textureColor(texture, dim, BS_CHANNEL_DEPTH24_STENCIL8, BS_CHANNEL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
+    texture->attachment = BS_DEPTH_STENCIL;
 }
 
-void bs_texture_11_11_10(bs_Texture *tex, bs_ivec2 dim) {
-    bs_texture(tex, dim, BS_TEX2D);
-    bs_textureMinMag(BS_NEAREST, BS_NEAREST);
-    bs_pushTexture(GL_R11F_G11F_B10F, GL_RGB, BS_FLOAT);
+void bs_depth(bs_Texture *texture, bs_ivec2 dim) {
+    bs_textureColor(texture, dim, BS_CHANNEL_DEPTH, BS_CHANNEL_DEPTH, BS_FLOAT);
+    texture->attachment = BS_DEPTH;
 }
 
-void bs_textureLin_11_11_10(bs_Texture *tex, bs_ivec2 dim) {
-    bs_texture(tex, dim, BS_TEX2D);
-    bs_textureMinMag(BS_LINEAR, BS_LINEAR);
-    bs_pushTexture(GL_R11F_G11F_B10F, GL_RGB, BS_FLOAT);
+void bs_textureRGB(bs_Texture *texture, bs_ivec2 dim) {
+    bs_textureColor(texture, dim, BS_CHANNEL_RGB, BS_CHANNEL_RGB, BS_UBYTE);
+    texture->attachment = BS_COLOR;
+}
+
+void bs_textureRGB16f(bs_Texture *texture, bs_ivec2 dim) {
+    bs_textureColor(texture, dim, BS_CHANNEL_RGB16F, BS_CHANNEL_RGB, BS_FLOAT);
+    texture->attachment = BS_COLOR;
+}
+
+void bs_textureRGB32f(bs_Texture *texture, bs_ivec2 dim) {
+    bs_textureColor(texture, dim, BS_CHANNEL_RGB32F, BS_CHANNEL_RGB, BS_FLOAT);
+    texture->attachment = BS_COLOR;
+}
+
+void bs_textureRGBA(bs_Texture *texture, bs_ivec2 dim) {
+    bs_textureColor(texture, dim, BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
+    texture->attachment = BS_COLOR;
+}
+
+void bs_textureRGBA16f(bs_Texture *texture, bs_ivec2 dim) {
+    bs_textureColor(texture, dim, GL_RGBA16F, GL_RGBA, BS_FLOAT);
+    texture->attachment = BS_COLOR;
+}
+
+void bs_textureRGBA32f(bs_Texture *texture, bs_ivec2 dim) {
+    bs_textureColor(texture, dim, GL_RGBA32F, GL_RGBA, BS_FLOAT);
+    texture->attachment = BS_COLOR;
+}
+
+void bs_texture_11_11_10(bs_Texture *texture, bs_ivec2 dim) {
+    bs_textureColor(texture, dim, GL_R11F_G11F_B10F, GL_RGB, BS_FLOAT);
+    texture->attachment = BS_COLOR;
 }

@@ -36,14 +36,10 @@ int bs_pushModel(bs_Model *model);
 
 /* --- FRAMEBUFFERS --- */
 void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim);
-void bs_setBuffer(int type, int idx, bs_Texture buf);
-void bs_attachBufferType(int type, bs_Texture buf);
-void bs_attachColorbuffer16();
-void bs_attachColorbuffer32();
-void bs_attachColorbuffer();
-void bs_attachRenderbuffer();
-void bs_attachDepthBuffer();
-void bs_attachDepthStencilBuffer();
+void bs_setBuf(int type, int idx, bs_Texture buf);
+void bs_attachBuf(int (*tex_func)(bs_Texture *texture, bs_ivec2 dim));
+void bs_attachBufExisting(bs_Texture buf, int type);
+void bs_attachRenderbuf();
 void bs_setDrawBufs(int n, ...);
 void bs_startFramebufRender(bs_Framebuf *framebuf);
 void bs_endFramebufRender();

@@ -175,6 +175,7 @@ struct bs_Texture {
     float texw, texh;
 
     int type;
+    int attachment;
     unsigned int id;
     unsigned int unit;
     unsigned char *data;

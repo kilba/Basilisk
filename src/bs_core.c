@@ -508,88 +508,43 @@ void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim) {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuf->FBO);
 }
 
-void bs_setBuffer(int type, int idx, bs_Texture buf) {
+void bs_setBuf(int type, int idx, bs_Texture buf) {
     bs_Framebuf *framebuf = curr_framebuf;
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, buf.id, 0);
     framebuf->bufs[idx] = buf;
 }
 
-void bs_attachBufferType(int type, bs_Texture buf) {
+void bs_attachBufExisting(bs_Texture buf, int type) {
     bs_Framebuf *framebuf = curr_framebuf;
 
     bs_framebufResizeCheck();
-    bs_setBuffer(type, framebuf->buf_count, buf);
+    bs_setBuf(type, framebuf->buf_count, buf);
 
     framebuf->buf_count++;
 }
 
-void bs_attachColorbufferType(int type) {
+void bs_attachBuf(int (*tex_func)(bs_Texture *texture, bs_ivec2 dim)) {
     bs_Framebuf *framebuf = curr_framebuf;
-    bs_Texture tex;
+    bs_framebufResizeCheck();
+    
+    bs_Texture *buf = framebuf->bufs + framebuf->buf_count;
+    tex_func(buf, framebuf->dim);
 
-    switch(type) {
-	case GL_RGBA    : bs_textureRGBA(&tex, framebuf->dim); break;
-	case GL_RGBA16F : bs_textureRGBA16f(&tex, framebuf->dim); break;
-	case GL_RGBA32F : bs_textureRGBA32f(&tex, framebuf->dim); break;
-	default: return;
-    }
+    // Add attachment offset only to BS_COLOR (GL_COLOR_ATTACHMENT0)
+    int attachment = buf->attachment + ((attachment == BS_COLOR) ? framebuf->buf_count : 0);
 
-    framebuf->clear |= GL_COLOR_BUFFER_BIT;
-    bs_attachBufferType(BS_COLOR + curr_framebuf->buf_count, tex);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, buf->id, 0);
+    framebuf->buf_count++;
 }
 
-void bs_attachColorbuffer16() {
-    bs_attachColorbufferType(GL_RGBA16F);
-}
-
-void bs_attachColorbuffer32() {
-    bs_attachColorbufferType(GL_RGBA32F);
-}
-
-void bs_attachColorbuffer() { 
-    bs_attachColorbufferType(GL_RGBA);
-}
-
-void bs_attachRenderbuffer() {
+void bs_attachRenderbuf() {
     bs_Framebuf *framebuf = curr_framebuf;
 
     glGenRenderbuffers(1, &framebuf->RBO);
     glBindRenderbuffer(GL_RENDERBUFFER, framebuf->RBO);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, framebuf->dim.x, framebuf->dim.y);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, framebuf->RBO); 
-}
-
-void bs_attachDepthBufferType(int type) {
-    bs_framebufResizeCheck();
-
-    bs_Framebuf *framebuf = curr_framebuf;
-    bs_Texture *tex = framebuf->bufs + framebuf->buf_count;
-    framebuf->clear |= BS_DEPTH_BUFFER_BIT;
-    framebuf->depth_index = framebuf->buf_count;
-
-    if(tex->type == BS_CUBEMAP) {
-	bs_depthCube(tex, framebuf->dim.x);
-	bs_attachBufferType(type, *tex);
-	return;
-    }
-
-    if(type == BS_DEPTH_STENCIL) {
-	bs_depthStencil(tex, framebuf->dim);
-	framebuf->clear |= BS_STENCIL_BUFFER_BIT;
-    } else {
-	bs_depth(tex, framebuf->dim);
-    }
-
-    bs_attachBufferType(type, *tex);
-}
-
-void bs_attachDepthBuffer() {
-    bs_attachDepthBufferType(BS_DEPTH);
-}
-
-void bs_attachDepthStencilBuffer() {
-    bs_attachDepthBufferType(BS_DEPTH_STENCIL);
 }
 
 void bs_setDrawBufs(int n, ...) {

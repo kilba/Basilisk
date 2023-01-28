@@ -22,14 +22,6 @@ void bs_selectTextureTarget(bs_Texture *texture, int tex_unit, int target);
 void bs_selectTexture(bs_Texture *texture, int tex_unit);
 bs_Texture *bs_selectedTexture();
 
-void bs_depthStencil(bs_Texture *texture, bs_ivec2 dim);
-
-void bs_depth(bs_Texture *texture, bs_ivec2 dim);
-void bs_depthLin(bs_Texture *texture, bs_ivec2 dim);
-
-void bs_textureRGBA(bs_Texture *texture, bs_ivec2 dim);
-void bs_textureLinRGBA(bs_Texture *texture, bs_ivec2 dim);
-
 void bs_texturePNG(bs_Texture *texture, char *path);
 void bs_textureLinPNG(bs_Texture *texture, char *path);
 
@@ -42,12 +34,17 @@ void bs_textureArray(bs_Texture *tex, bs_ivec2 max_dim, int num_textures);
 bs_U32 bs_textureArrayAppendPNG(const char *path);
 bs_U32 bs_textureArrayAppendPNGSheet(const char *path, int frames);
 
-void bs_textureRGBA16f(bs_Texture *tex, bs_ivec2 dim);
-void bs_textureLinRGBA16f(bs_Texture *tex, bs_ivec2 dim);
-void bs_textureRGBA32f(bs_Texture *tex, bs_ivec2 dim);
-void bs_textureLinRGBA32f(bs_Texture *tex, bs_ivec2 dim);
+void bs_linearFiltering();
+void bs_nearestFiltering();
 
-void bs_texture_11_11_10(bs_Texture *tex, bs_ivec2 dim);
-void bs_textureLin_11_11_10(bs_Texture *tex, bs_ivec2 dim);
+void bs_depthStencil(bs_Texture *texture, bs_ivec2 dim);
+void bs_depth(bs_Texture *texture, bs_ivec2 dim);
+void bs_textureRGB(bs_Texture *texture, bs_ivec2 dim);
+void bs_textureRGB16f(bs_Texture *texture, bs_ivec2 dim);
+void bs_textureRGB32f(bs_Texture *texture, bs_ivec2 dim);
+void bs_textureRGBA(bs_Texture *texture, bs_ivec2 dim);
+void bs_textureRGBA16f(bs_Texture *texture, bs_ivec2 dim);
+void bs_textureRGBA32f(bs_Texture *texture, bs_ivec2 dim);
+void bs_texture_11_11_10(bs_Texture *texture, bs_ivec2 dim);
 
 #endif /* BS_TEXTURES_H */
