@@ -524,7 +524,7 @@ void bs_attachBufExisting(bs_Texture buf, int type) {
     framebuf->buf_count++;
 }
 
-void bs_attachBuf(int (*tex_func)(bs_Texture *texture, bs_ivec2 dim)) {
+void bs_attachBuf(void (*tex_func)(bs_Texture *texture, bs_ivec2 dim)) {
     bs_Framebuf *framebuf = curr_framebuf;
     bs_framebufResizeCheck();
     
@@ -532,7 +532,7 @@ void bs_attachBuf(int (*tex_func)(bs_Texture *texture, bs_ivec2 dim)) {
     tex_func(buf, framebuf->dim);
 
     // Add attachment offset only to BS_COLOR (GL_COLOR_ATTACHMENT0)
-    int attachment = buf->attachment + ((attachment == BS_COLOR) ? framebuf->buf_count : 0);
+    int attachment = buf->attachment + ((buf->attachment == BS_COLOR) ? framebuf->buf_count : 0);
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, buf->id, 0);
     framebuf->buf_count++;
@@ -560,7 +560,7 @@ void bs_setDrawBufs(int n, ...) {
     glDrawBuffers(n, values);
 }
 
-void bs_startFramebufRender(bs_Framebuf *framebuf) {
+void bs_selectFramebuf(bs_Framebuf *framebuf) {
     glEnable(GL_DEPTH_TEST);
 
     glViewport(0, 0, framebuf->dim.x, framebuf->dim.y);
@@ -571,7 +571,7 @@ void bs_startFramebufRender(bs_Framebuf *framebuf) {
     glClear(framebuf->clear);
 }
 
-void bs_endFramebufRender() {
+void bs_pushFramebuf() {
     glDisable(GL_DEPTH_TEST);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -604,6 +604,14 @@ void bs_polygonLine() {
 
 void bs_polygonFill() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void bs_disableDepth() {
+    glDepthMask(false);
+}
+
+void bs_enableDepth() {
+    glDepthMask(true);
 }
 
 void bs_disableColorI(int i) {

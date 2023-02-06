@@ -33,7 +33,8 @@ double bs_fMap(double input, double input_start, double input_end, double output
     return output_start + slope * (input - input_start);
 }
 
-void bs_eul2quat(bs_quat q, bs_vec3 eul) {
+bs_quat bs_eul2quat(bs_vec3 eul) {
+    bs_quat q;
     double cy = cos(eul.x * 0.5);
     double sy = sin(eul.x * 0.5);
     double cp = cos(eul.y * 0.5);
@@ -45,6 +46,7 @@ void bs_eul2quat(bs_quat q, bs_vec3 eul) {
     q.x = sr * cp * cy - cr * sp * sy;
     q.y = cr * sp * cy + sr * cp * sy;
     q.z = cr * cp * sy - sr * sp * cy;
+    return q;
 }
 
 bs_aabb bs_v3bounds(bs_vec3 *arr, int num_indices) {

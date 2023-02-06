@@ -80,9 +80,71 @@ typedef uint16_t bs_U16, bs_ushort;
 typedef uint8_t  bs_U8 , bs_ubyte;
 
 
-struct bs_vec2 { float x, y; };
-struct bs_vec3 { float x, y, z; };
-struct bs_vec4 { float x, y, z, w; };
+struct bs_vec2 { 
+    float x, y; 
+
+#ifdef __cplusplus
+    inline bs_vec2 operator+(bs_vec2 a) {
+        return { x + a.x, y + a.y };
+    }
+
+    inline bs_vec2 operator-(bs_vec2 a) {
+        return { x - a.x, y - a.y };
+    }
+
+    inline bs_vec2 operator*(bs_vec2 a) {
+        return { x * a.x, y * a.y };
+    }
+
+    inline bs_vec2 operator/(bs_vec2 a) {
+        return { x / a.x, y / a.y };
+    }
+#endif 
+};
+
+struct bs_vec3 { 
+    float x, y, z;
+
+#ifdef __cplusplus
+    inline bs_vec3 operator+(bs_vec3 a) {
+        return { x + a.x, y + a.y, z + a.z };
+    }
+
+    inline bs_vec3 operator-(bs_vec3 a) {
+        return { x - a.x, y - a.y, z - a.z };
+    }
+
+    inline bs_vec3 operator*(bs_vec3 a) {
+        return { x * a.x, y * a.y, z * a.z };
+    }
+
+    inline bs_vec3 operator/(bs_vec3 a) {
+        return { x / a.x, y / a.y, z / a.z };
+    }
+#endif 
+};
+
+struct bs_vec4 { 
+    float x, y, z, w; 
+
+#ifdef __cplusplus
+    inline bs_vec4 operator+(bs_vec4 a) {
+        return { x + a.x, y + a.y, z + a.z, w + a.w };
+    }
+
+    inline bs_vec4 operator-(bs_vec4 a) {
+        return { x - a.x, y - a.y, z - a.z, w - a.w };
+    }
+
+    inline bs_vec4 operator*(bs_vec4 a) {
+        return { x * a.x, y * a.y, z * a.z, w * a.w };
+    }
+
+    inline bs_vec4 operator/(bs_vec4 a) {
+        return { x / a.x, y / a.y, z / a.z, w / a.w };
+    }
+#endif 
+};
 
 struct bs_ivec2 { int x, y; };
 struct bs_ivec3 { int x, y, z; };

@@ -37,12 +37,12 @@ int bs_pushModel(bs_Model *model);
 /* --- FRAMEBUFFERS --- */
 void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim);
 void bs_setBuf(int type, int idx, bs_Texture buf);
-void bs_attachBuf(int (*tex_func)(bs_Texture *texture, bs_ivec2 dim));
+void bs_attachBuf(void (*tex_func)(bs_Texture *texture, bs_ivec2 dim));
 void bs_attachBufExisting(bs_Texture buf, int type);
 void bs_attachRenderbuf();
 void bs_setDrawBufs(int n, ...);
-void bs_startFramebufRender(bs_Framebuf *framebuf);
-void bs_endFramebufRender();
+void bs_selectFramebuf(bs_Framebuf *framebuf);
+void bs_pushFramebuf();
 
 unsigned char *bs_framebufData(int x, int y, int w, int h);
 unsigned char *bs_screenshot();
@@ -105,6 +105,8 @@ void bs_stencilFunc(int val0, int val1, int val2);
 void bs_depthFunc(int val);
 void bs_stencilMask(int val);
 void bs_depthMask(int val);
+void bs_disableDepth();
+void bs_enableDepth();
 void bs_colorMask(int val0, int val1, int val2, int val3);
 void bs_colorMaski(int i, int val0, int val1, int val2, int val3);
 void bs_stencilOp(int val0, int val1, int val2);

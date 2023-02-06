@@ -19,6 +19,10 @@
 bs_Texture *curr_texture;
 int filter = BS_NEAREST;
 
+void bs_saveTexture32(const char *name, unsigned char *data, int w, int h) {
+    lodepng_encode32_file(name, data, w, h);
+}
+
 /* TEXTURE INITIALIZATION */
 void bs_texture(bs_Texture *texture, bs_ivec2 dim, int type) {
     glGenTextures(1, &texture->id);

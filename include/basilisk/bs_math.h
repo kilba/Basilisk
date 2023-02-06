@@ -11,7 +11,7 @@ int bs_sign(float x);
 float bs_fsign(float x);
 int bs_closestDivisible(int val, int div);
 double bs_fMap(double input, double input_start, double input_end, double output_start, double output_end);
-void bs_eul2quat(bs_quat q, bs_vec3 eul);
+bs_quat bs_eul2quat(bs_vec3 eul);
 
 // void bs_normv3(bs_vec3 *v);
 bs_vec2 bs_v2normalize(bs_vec2 v);

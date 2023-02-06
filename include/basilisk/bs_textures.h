@@ -3,7 +3,7 @@
 
 #include <bs_types.h>
 
-/* --- TEXTURES --- */
+void bs_saveTexture32(const char *name, unsigned char *data, int w, int h);
 void bs_texture(bs_Texture *texture, bs_ivec2 dim, int type);
 void bs_textureDataRaw(unsigned char *data);
 bs_U32 bs_textureDataFile(const char *path, bool update_dimensions);
