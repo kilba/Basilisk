@@ -46,5 +46,6 @@ void bs_textureRGBA(bs_Texture *texture, bs_ivec2 dim);
 void bs_textureRGBA16f(bs_Texture *texture, bs_ivec2 dim);
 void bs_textureRGBA32f(bs_Texture *texture, bs_ivec2 dim);
 void bs_texture_11_11_10(bs_Texture *texture, bs_ivec2 dim);
+void bs_textureR16U(bs_Texture *texture, bs_ivec2 dim);
 
 #endif /* BS_TEXTURES_H */

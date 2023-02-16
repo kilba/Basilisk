@@ -131,7 +131,7 @@ typedef struct {
 	    int16_t x;
 	    int16_t y;
 	} *coords;
-    } points[100];
+    } points[200];
 } bs_glyfInfo;
 
 typedef struct {
@@ -218,10 +218,10 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
     int num_contours = bs_memU16(glyf->buf, GLYF_NUMBER_OF_CONTOURS);
     int end_pts[num_contours];
 
-    int num_points = bs_memU16(glyf->buf, GLYF_END_PTS_OF_CONTOURS + num_contours)+1;
-    for(int i = 0; i < num_contours; i++) {
+    for(int i = 0; i < num_contours; i++)
 	end_pts[i] = bs_memU16(glyf->buf, GLYF_END_PTS_OF_CONTOURS + i*2);
-    }
+
+    int num_points = end_pts[num_contours - 1] + 1;
 
     int instruction_offset = GLYF_INSTRUCTION_LENGTH(num_contours);
     int num_instructions = bs_memU16(glyf->buf, instruction_offset);
@@ -230,79 +230,84 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
     int flag_offset_original = flag_offset;
 
     /* X COORDINATES */
-    int xcoord_offset = GLYF_XCOORDS(flag_offset, num_points);
-    int xcoord_size = 0;
+    int coord_offset = GLYF_XCOORDS(flag_offset, num_points);
 
     glyf->points[id].coords = malloc(num_points * 2 * sizeof(uint16_t));
     glyf->points[id].num_points = num_points;
 
-    int16_t xcoord_prev = 0;
-    for(int i = 0; i < num_points; i++, flag_offset++) {
-	int flag = bs_memU8(glyf->buf, flag_offset);
-	int16_t xcoord;
 
-	printf(
-	    "XSHORT: %d | ONCURVE: %d | REPEAT: %d | XSAME: %d | OVERLAP: %d | =", 
-	    BS_FLAGSET(flag, GLYF_X_SHORT), 
-	    BS_FLAGSET(flag, GLYF_ON_CURVE),
-	    BS_FLAGSET(flag, GLYF_REPEAT),
-	    BS_FLAGSET(flag, GLYF_X_SAME),
-	    BS_FLAGSET(flag, GLYF_OVERLAP)
-	);
+    int num_flags = num_points;
+    int num_repeats_total = 0;
+    uint8_t flags[num_flags];
+
+    for(int i = 0; i < num_flags; i++) {
+	flags[i] = bs_memU8(glyf->buf, flag_offset++);
+
+	if(BS_FLAGSET(flags[i], GLYF_REPEAT)) {
+	    int num_repeats = bs_memU8(glyf->buf, flag_offset++);
+	    int flag_repeated = flags[i];
+
+	    num_repeats_total += num_repeats - 1;
+
+	    for(int j = 0; j < num_repeats; j++)
+		flags[++i] = flag_repeated;
+	}
+    }
+
+    coord_offset -= num_repeats_total;
+
+    int16_t xcoord_prev = 0;
+    for(int i = 0; i < num_points; i++) {
+	uint8_t flag = flags[i];
+	int16_t xcoord;
 
 	// If xcoord is 8-bit
 	if(BS_FLAGSET(flag, GLYF_X_SHORT)) {
-	    xcoord = bs_memU8(glyf->buf, xcoord_offset);
-	    xcoord_offset += 1;
-	    xcoord_size += 1;
+	    xcoord = bs_memU8(glyf->buf, coord_offset);
+	    coord_offset += 1;
 
-	    if(!BS_FLAGSET(flag, GLYF_X_SAME)) {
+	    if(!BS_FLAGSET(flag, GLYF_X_SAME))
 		xcoord = -xcoord;
-	    } else {
-		xcoord += xcoord_prev;
-	    }
+
+	    xcoord += xcoord_prev;
 	} else {
 	    if(BS_FLAGSET(flag, GLYF_X_SAME)) {
 		xcoord = xcoord_prev;
 	    } else {
-		xcoord = bs_memU16(glyf->buf, xcoord_offset);
+		xcoord = bs_memU16(glyf->buf, coord_offset);
 		xcoord += xcoord_prev;
-		xcoord_offset += 2;
-		xcoord_size += 2;
+		coord_offset += 2;
 	    }
 	}
 
-	printf("%d\n", xcoord);
 	xcoord_prev = xcoord;
 	glyf->points[id].coords[i].x = xcoord;
     }
 
-    flag_offset = flag_offset_original;
-
     /* Y COORDINATES */
-    int ycoord_offset = GLYF_YCOORDS(flag_offset, num_points, xcoord_size);
-
-    for(int i = 0; i < num_points; i++, flag_offset++) {
-	int flag = bs_memU8(glyf->buf, flag_offset);
+    int16_t ycoord_prev;
+    for(int i = 0; i < num_points; i++) {
+	int flag = flags[i];
 	int16_t ycoord;
 
-
 	// If ycoord is 8-bit
-	if((flag >> GLYF_Y_SHORT) & 0x01) {
-	    ycoord = bs_memU8(glyf->buf, ycoord_offset);
-	    ycoord_offset += 1;
-	    if(!((flag >> GLYF_Y_SAME) & 0x01))
-		ycoord *= -1;
+	if(BS_FLAGSET(flag, GLYF_Y_SHORT)) {
+	    ycoord = bs_memU8(glyf->buf, coord_offset);
+	    coord_offset += 1;
+	    if(!BS_FLAGSET(flag, GLYF_Y_SAME))
+		ycoord = -ycoord;
+	    ycoord += ycoord_prev;
 	} else {
-	    if((flag >> GLYF_Y_SAME) & 0x01) {
-		ycoord = 0;
+	    if(BS_FLAGSET(flag, GLYF_Y_SAME)) {
+		ycoord = ycoord_prev;
 	    } else {
-		ycoord = bs_memU16(glyf->buf, ycoord_offset);
-		ycoord_offset += 2;
+		ycoord = bs_memU16(glyf->buf, coord_offset);
+		ycoord += ycoord_prev;
+		coord_offset += 2;
 	    }
 	}
 
-
+	ycoord_prev = ycoord;
 	glyf->points[id].coords[i].y = ycoord;
     }
 }
@@ -358,13 +363,14 @@ int bs_loadFont(char *path) {
     bs_hhea(&ttf.hhea);
     bs_cmap(&ttf.cmap);
     
-    bs_glyf(&ttf.glyf, 36);
+    int idx = 134;
+    bs_glyf(&ttf.glyf, idx);
 
 
     bs_batch(&batch00, &shader00);
-    for(int i = 0; i < ttf.glyf.points[36].num_points; i++) {
-	int16_t x = ttf.glyf.points[36].coords[i].x;
-	int16_t y = ttf.glyf.points[36].coords[i].y;
+    for(int i = 0; i < ttf.glyf.points[idx].num_points; i++) {
+	int16_t x = ttf.glyf.points[idx].coords[i].x;
+	int16_t y = ttf.glyf.points[idx].coords[i].y;
 	bs_pushRect((bs_vec3){ (float)x / 10.0 + 650.0, (float)y / 10.0 + 150.0 }, (bs_vec2){ 4.0, 4.0 }, (bs_RGBA){ 255, 0, 0, 255 });
     }
 

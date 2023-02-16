@@ -540,11 +540,11 @@ void bs_pushAnims() {
 	    int offset = 16 + mesh_anim->shader_offset * sizeof(bs_mat4);
 	    
 	    bs_pushSSBO(mesh_anim->joints, offset, size);
-	    //free(mesh_anim->joints);
+	    free(mesh_anim->joints);
 	}
 
 	//free(anim->mesh_anims);
-	//free(anim->matrices);
+	free(anim->matrices);
     }
 }
 

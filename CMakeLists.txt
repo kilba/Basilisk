@@ -18,14 +18,12 @@ add_library(${PROJECT_NAME}
     external/lodepng/lodepng.c
 )
 
-include_directories(external/cglm)
-
 include_directories(${PROJECT_NAME}
     include/
     include/gl
     include/basilisk
+    external/
     external/lodepng
-    external/cglm/include
 )    
   
 link_directories(${PROJECT_NAME}

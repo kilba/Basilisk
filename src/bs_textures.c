@@ -234,6 +234,7 @@ bs_U32 bs_textureArrayAppendPNG(const char *path) {
     );
 
     curr_texture->frame.z++;
+    free(curr_texture->data);
     return 0;
 }
 
@@ -257,8 +258,10 @@ bs_U32 bs_textureArrayAppendPNGSheet(const char *path, int frames) {
 	);
 	curr_texture->frame.z++;
     }
+    
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+    free(curr_texture->data);
 
     return 0;
 }
@@ -287,8 +290,9 @@ void bs_depth(bs_Texture *texture, bs_ivec2 dim) {
     texture->attachment = BS_DEPTH;
 }
 
+/* --- FLOAT TEXTURES --- */
 void bs_textureRGB(bs_Texture *texture, bs_ivec2 dim) {
-    bs_textureColor(texture, dim, BS_CHANNEL_RGB, BS_CHANNEL_RGB, BS_UBYTE);
+    bs_textureColor(texture, dim, GL_RGB8, BS_CHANNEL_RGB, BS_UBYTE);
     texture->attachment = BS_COLOR;
 }
 
@@ -303,7 +307,7 @@ void bs_textureRGB32f(bs_Texture *texture, bs_ivec2 dim) {
 }
 
 void bs_textureRGBA(bs_Texture *texture, bs_ivec2 dim) {
-    bs_textureColor(texture, dim, BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
+    bs_textureColor(texture, dim, GL_RGBA8, BS_CHANNEL_RGBA, BS_UBYTE);
     texture->attachment = BS_COLOR;
 }
 
@@ -319,5 +323,10 @@ void bs_textureRGBA32f(bs_Texture *texture, bs_ivec2 dim) {
 
 void bs_texture_11_11_10(bs_Texture *texture, bs_ivec2 dim) {
     bs_textureColor(texture, dim, GL_R11F_G11F_B10F, GL_RGB, BS_FLOAT);
+    texture->attachment = BS_COLOR;
+}
+
+void bs_textureR16U(bs_Texture *texture, bs_ivec2 dim) {
+    bs_textureColor(texture, dim, GL_RGB16UI, GL_RED_INTEGER, BS_UINT);
     texture->attachment = BS_COLOR;
 }

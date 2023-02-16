@@ -598,6 +598,21 @@ void bs_screenshotFile(const char *file_name) {
     free(data);
 }
 
+void bs_stencilDefault() {
+    bs_stencilFunc(BS_ALWAYS, 0, 0xFF);
+    bs_stencilOp(BS_KEEP, BS_KEEP, BS_KEEP);
+}
+
+void bs_stencilEqZero() {
+    bs_stencilFunc(BS_EQUAL, 0, 0xFF);
+    bs_stencilOp(BS_KEEP, BS_KEEP, BS_KEEP);
+}
+
+void bs_stencilEqNonZero() {
+    bs_stencilFunc(BS_NOTEQUAL, 0, 0xFF);
+    bs_stencilOp(BS_KEEP, BS_KEEP, BS_KEEP);
+}
+
 void bs_polygonLine() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
@@ -612,6 +627,26 @@ void bs_disableDepth() {
 
 void bs_enableDepth() {
     glDepthMask(true);
+}
+
+void bs_disableColorsI(int num, ...) {
+    va_list ptr;
+    va_start(ptr, num);
+ 
+    for (int i = 0; i < num; i++)
+	bs_disableColorI(va_arg(ptr, int));
+ 
+    va_end(ptr);
+}
+
+void bs_enableColorsI(int num, ...) {
+    va_list ptr;
+    va_start(ptr, num);
+ 
+    for (int i = 0; i < num; i++)
+	bs_enableColorI(va_arg(ptr, int));
+ 
+    va_end(ptr);
 }
 
 void bs_disableColorI(int i) {
