@@ -227,7 +227,6 @@ int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
 }
 
 int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
-    bs_batchResizeCheck(6, 4);
     bs_Texture *tex = bs_selectedTexture();
 
     bs_vec2 tex0, tex1;

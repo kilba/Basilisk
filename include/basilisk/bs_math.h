@@ -34,7 +34,9 @@ bs_quat bs_qNormalize(bs_quat q);
 bs_quat bs_qIntegrate(bs_vec4 quat, bs_vec3 dv, float dt);
 
 /* --- BEZIER --- */
-double bs_bezierScalar(double p0, double p1, double p2, double p3, double t);
+double bs_sCubicBez(double p0, double p1, double p2, double p3, double t);
+void bs_v2CubicBez(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_vec2 p3, bs_vec2 *arr, int num_elems);
+void bs_v2QuadBez(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_vec2 *arr, int num_elems);
 void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *arr, int num_elems);
 
 /* --- VECTOR ADDITION --- */

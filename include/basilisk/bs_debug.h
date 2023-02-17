@@ -3,6 +3,7 @@
 
 #include <bs_types.h>
 
+void bs_rgbaprint(bs_RGBA rgba);
 void bs_v2print(bs_vec2 v);
 void bs_v3print(bs_vec3 v);
 void bs_v4print(bs_vec4 v);

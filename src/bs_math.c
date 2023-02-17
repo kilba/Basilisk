@@ -218,7 +218,7 @@ bs_quat bs_qIntegrate(bs_vec4 quat, bs_vec3 dv, float dt) {
 }
 
 /* --- BEZIER --- */
-double bs_bezierScalar(double p0, double p1, double p2, double p3, double t) {
+double bs_sCubicBez(double p0, double p1, double p2, double p3, double t) {
     double curve;
 
     curve  =     pow(1.0 - t, 3.0) * p0;
@@ -229,6 +229,37 @@ double bs_bezierScalar(double p0, double p1, double p2, double p3, double t) {
     return curve;
 }
 
+void bs_v2CubicBez(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_vec2 p3, bs_vec2 *arr, int num_elems) {
+    double t = 0.0;
+    double incr;
+    int i = 0;
+
+    incr = 1.0 / (double)num_elems;
+
+    for(; i < num_elems; i++, t += incr) {
+	float x = bs_sCubicBez(p0.x, p1.x, p2.x, p3.x, t);
+	float y = bs_sCubicBez(p0.y, p1.y, p2.y, p3.y, t);
+
+	arr[i] = BS_V2(x, y);
+    }
+}
+
+void bs_v2QuadBez(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_vec2 *arr, int num_elems) {
+    double t = 0.0;
+    double incr;
+    int i = 0;
+
+    incr = 1.0 / (double)num_elems;
+
+    for(; i < num_elems; i++, t += incr) {
+	bs_vec2 v;
+        v.x = (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * p1.x + t * t * p2.x;
+	v.y = (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * p1.y + t * t * p2.y;
+
+	arr[i] = v;
+    }
+}
+
 void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *arr, int num_elems) {
     double t = 0.0;
     double incr;
@@ -237,9 +268,9 @@ void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *
     incr = 1.0 / (double)num_elems;
 
     for(; i < num_elems; i++, t += incr) {
-	float x = bs_bezierScalar(p0.x, p1.x, p2.x, p3.x, t);
-	float y = bs_bezierScalar(p0.y, p1.y, p2.y, p3.y, t);
-	float z = bs_bezierScalar(p0.z, p1.z, p2.z, p3.z, t);
+	float x = bs_sCubicBez(p0.x, p1.x, p2.x, p3.x, t);
+	float y = bs_sCubicBez(p0.y, p1.y, p2.y, p3.y, t);
+	float z = bs_sCubicBez(p0.z, p1.z, p2.z, p3.z, t);
 
 	arr[i] = BS_V3(x, y, z);
     }

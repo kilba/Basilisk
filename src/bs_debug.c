@@ -10,6 +10,10 @@
 #include <cglm/cglm.h>
 #include <glad/glad.h>
 
+void bs_rgbaprint(bs_RGBA rgba) {
+    printf("%d, %d, %d, %d\n", rgba.r, rgba.g, rgba.b, rgba.r);
+}
+
 void bs_v2print(bs_vec2 v) {
     printf("%f, %f\n", v.x, v.y);
 }

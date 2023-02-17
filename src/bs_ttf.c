@@ -5,8 +5,10 @@
 #include <stdbool.h>
 
 #include <bs_mem.h>
+#include <bs_math.h>
 #include <bs_core.h>
 #include <bs_shaders.h>
+#include <bs_debug.h>
 
 /* --------------------------- TABLE OFFSETS -------------------------- */
 /* HEAD Table Offsets */
@@ -101,6 +103,18 @@
 	#define CMAP_PLATFORM_SPECIFIC_ID     	6   /* 2 | uint16	 */
 	#define CMAP_OFFSET		      	8   /* 4 | uint32	 */
 
+typedef struct {
+    int16_t x, y;
+    bool on_curve;
+} bs_glyfPt;
+
+typedef struct {
+    uint16_t num_points;
+    uint16_t num_contours;
+
+    uint16_t *contours;
+    bs_glyfPt *coords;
+} bs_glyph;
 
 /* Table Structs */
 typedef struct {
@@ -124,14 +138,7 @@ typedef struct {
 
 typedef struct {
     void *buf;
-
-    struct {
-	uint16_t num_points;
-	struct {
-	    int16_t x;
-	    int16_t y;
-	} *coords;
-    } points[200];
+    bs_glyph glyphs[200];
 } bs_glyfInfo;
 
 typedef struct {
@@ -142,6 +149,8 @@ typedef struct {
 } bs_cmapInfo;
 
 typedef struct {
+    int detail;
+
     void *buf;
     uint_fast32_t offset;
     int data_len;
@@ -218,8 +227,9 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
     int num_contours = bs_memU16(glyf->buf, GLYF_NUMBER_OF_CONTOURS);
     int end_pts[num_contours];
 
-    for(int i = 0; i < num_contours; i++)
+    for(int i = 0; i < num_contours; i++) {
 	end_pts[i] = bs_memU16(glyf->buf, GLYF_END_PTS_OF_CONTOURS + i*2);
+    }
 
     int num_points = end_pts[num_contours - 1] + 1;
 
@@ -232,15 +242,18 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
     /* X COORDINATES */
     int coord_offset = GLYF_XCOORDS(flag_offset, num_points);
 
-    glyf->points[id].coords = malloc(num_points * 2 * sizeof(uint16_t));
-    glyf->points[id].num_points = num_points;
+    glyf->glyphs[id].coords = malloc(num_points * sizeof(bs_glyfPt));
+    glyf->glyphs[id].contours = malloc(num_contours * sizeof(uint16_t));
+    glyf->glyphs[id].num_contours = num_contours;
+    glyf->glyphs[id].num_points = num_points;
 
+    for(int i = 0; i < num_contours; i++)
+	glyf->glyphs[id].contours[i] = end_pts[i];
 
-    int num_flags = num_points;
     int num_repeats_total = 0;
-    uint8_t flags[num_flags];
+    uint8_t flags[num_points];
 
-    for(int i = 0; i < num_flags; i++) {
+    for(int i = 0; i < num_points; i++) {
 	flags[i] = bs_memU8(glyf->buf, flag_offset++);
 
 	if(BS_FLAGSET(flags[i], GLYF_REPEAT)) {
@@ -252,6 +265,9 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
 	    for(int j = 0; j < num_repeats; j++)
 		flags[++i] = flag_repeated;
 	}
+    }
+    for(int i = 0; i < num_points; i++) {
+	glyf->glyphs[id].coords[i].on_curve = BS_FLAGSET(flags[i], GLYF_ON_CURVE);
     }
 
     coord_offset -= num_repeats_total;
@@ -280,10 +296,12 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
 	    }
 	}
 
+	printf("%d\n", xcoord);
 	xcoord_prev = xcoord;
-	glyf->points[id].coords[i].x = xcoord;
+	glyf->glyphs[id].coords[i].x = xcoord;
     }
 
+    printf("\n");
     /* Y COORDINATES */
     int16_t ycoord_prev;
     for(int i = 0; i < num_points; i++) {
@@ -307,8 +325,9 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
 	    }
 	}
 
+	printf("%d\n", ycoord);
 	ycoord_prev = ycoord;
-	glyf->points[id].coords[i].y = ycoord;
+	glyf->glyphs[id].coords[i].y = ycoord;
     }
 }
 
@@ -331,17 +350,21 @@ void bs_pushText() {
 int bs_loadFont(char *path) {
     char *vs = "#version 430\n" \
 	"layout (location = 0) in vec3 bs_Pos;" \
+	"layout (location = 1) in vec4 bs_Col;" \
 
 	"uniform mat4 bs_Proj; uniform mat4 bs_View;" \
+	"out vec4 fcol;"\
 
 	"void main() {" \
+	    "fcol = bs_Col;"\
 	    "gl_Position = bs_Proj * bs_View * vec4(bs_Pos, 1.0);" \
 	"}";
 
     char *fs = "#version 430\n" \
 	"out vec4 FragColor;" \
+	"in vec4 fcol;"\
 	"void main() {" \
-	    "FragColor = vec4(1.0);" \
+	    "FragColor = fcol;" \
 	"}";
 
     bs_shaderMem(&shader00, vs, fs, 0);
@@ -356,6 +379,7 @@ int bs_loadFont(char *path) {
 
     // Metadata Gathering
     ttf.table_count = bs_memU16(ttf.buf, 4);
+    ttf.detail = 2;
 
     // Table Gathering
     bs_head(&ttf.head);
@@ -363,15 +387,63 @@ int bs_loadFont(char *path) {
     bs_hhea(&ttf.hhea);
     bs_cmap(&ttf.cmap);
     
-    int idx = 134;
+    int idx = 27;
     bs_glyf(&ttf.glyf, idx);
 
-
     bs_batch(&batch00, &shader00);
-    for(int i = 0; i < ttf.glyf.points[idx].num_points; i++) {
-	int16_t x = ttf.glyf.points[idx].coords[i].x;
-	int16_t y = ttf.glyf.points[idx].coords[i].y;
-	bs_pushRect((bs_vec3){ (float)x / 10.0 + 650.0, (float)y / 10.0 + 150.0 }, (bs_vec2){ 4.0, 4.0 }, (bs_RGBA){ 255, 0, 0, 255 });
+
+    int num_pts = ttf.glyf.glyphs[idx].num_points;
+    bs_glyph *gi = ttf.glyf.glyphs + idx;
+    for(int i = 0; i < 3; i++) {
+	uint16_t first = (i == 0) ? 0 : gi->contours[i - 1] + 1;
+	uint16_t last = gi->contours[i] + 1;
+
+	printf("%d | %d\n", first, last);
+
+	for(int j = first; j < last; j++) {
+	    int16_t x = gi->coords[j].x;
+	    int16_t y = gi->coords[j].y;
+
+	    printf("%d\n", (j + 3) % last);
+	    bs_RGBA col = (gi->coords[j].on_curve == true) ? BS_RGBA(120, 150, 255, 255) : BS_RGBA(255, 100, 120, 60);
+	    bs_pushRect(BS_V3((float)x / 4.0 + 550.0, (float)y / 4.0 + 150.0, 0.0), (bs_vec2){ 4.0, 4.0 }, col);
+
+	    bs_glyfPt pts[4];
+	    pts[0] = gi->coords[j];
+	    pts[1] = gi->coords[(j+1) % last];
+
+	    if(pts[0].on_curve && !pts[1].on_curve) {
+		pts[2] = gi->coords[(j+2) % last];
+	
+		if((j + 2) % last < first)
+		    pts[2] = gi->coords[(j+2) % last + first];
+
+		bs_vec2 elems[ttf.detail];
+
+		bs_vec2 p0 = bs_v2add(bs_v2divs(BS_V2(pts[0].x, pts[0].y), 4.0), BS_V2(550.0, 150.0));
+		bs_vec2 p1 = bs_v2add(bs_v2divs(BS_V2(pts[1].x, pts[1].y), 4.0), BS_V2(550.0, 150.0));
+		bs_vec2 p2 = bs_v2add(bs_v2divs(BS_V2(pts[2].x, pts[2].y), 4.0), BS_V2(550.0, 150.0));
+
+		// Quadratic bezier
+		if(pts[2].on_curve) {
+		    bs_v2QuadBez(p0, p1, p2, elems, ttf.detail);
+
+		    for(int k = 1; k < ttf.detail; k++)
+			bs_pushRect(BS_V3(elems[k].x, elems[k].y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 255, 120, 255));
+		    continue;
+		}
+
+		pts[3] = ttf.glyf.glyphs[idx].coords[(j+3) % last];
+		if((j + 3) % last < first)
+		    pts[3] = gi->coords[(j+3) % last + first];
+		// Cubic bezier
+		bs_vec2 p3 = bs_v2add(bs_v2divs(BS_V2(pts[3].x, pts[3].y), 4.0), BS_V2(550.0, 150.0));
+		bs_v2CubicBez(p0, p1, p2, p3, elems, ttf.detail);
+
+		for(int k = 1; k < ttf.detail; k++)
+		    bs_pushRect(BS_V3(elems[k].x, elems[k].y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 255, 120, 255));
+	    }
+	}
     }
 
     bs_pushBatch();
