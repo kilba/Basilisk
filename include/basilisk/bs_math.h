@@ -25,6 +25,7 @@ bs_vec3 bs_triangleNormal(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
 bs_vec3 bs_triangleCenter(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2);
 bs_vec2 bs_v2rot(bs_vec2 pt, bs_vec2 origin, float angle); 
 bs_vec3 bs_v3mid(bs_vec3 a, bs_vec3 b);
+bs_vec2 bs_v2mid(bs_vec2 a, bs_vec2 b);
 bs_aabb bs_v3bounds(bs_vec3 *arr, int num_indices);
 
 /* --- QUATERNIONS --- */

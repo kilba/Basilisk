@@ -296,12 +296,10 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
 	    }
 	}
 
-	printf("%d\n", xcoord);
 	xcoord_prev = xcoord;
 	glyf->glyphs[id].coords[i].x = xcoord;
     }
 
-    printf("\n");
     /* Y COORDINATES */
     int16_t ycoord_prev;
     for(int i = 0; i < num_points; i++) {
@@ -325,7 +323,6 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
 	    }
 	}
 
-	printf("%d\n", ycoord);
 	ycoord_prev = ycoord;
 	glyf->glyphs[id].coords[i].y = ycoord;
     }
@@ -345,6 +342,13 @@ void bs_pushText() {
     bs_selectBatch(&batch00);
 
     bs_renderBatch(0, bs_batchSize());
+}
+
+void bs_pushTTFCurve(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_RGBA col) {
+    bs_vec2 elems[ttf.detail];
+    bs_v2QuadBez(p0, p1, p2, elems, ttf.detail);
+    for(int k = 1; k < ttf.detail; k++)
+	bs_pushRect(BS_V3(elems[k].x, elems[k].y, 0.0), (bs_vec2){ 4.0, 4.0 }, col);
 }
 
 int bs_loadFont(char *path) {
@@ -379,7 +383,7 @@ int bs_loadFont(char *path) {
 
     // Metadata Gathering
     ttf.table_count = bs_memU16(ttf.buf, 4);
-    ttf.detail = 2;
+    ttf.detail = 4;
 
     // Table Gathering
     bs_head(&ttf.head);
@@ -387,62 +391,75 @@ int bs_loadFont(char *path) {
     bs_hhea(&ttf.hhea);
     bs_cmap(&ttf.cmap);
     
-    int idx = 27;
+    int idx = 7;
     bs_glyf(&ttf.glyf, idx);
 
     bs_batch(&batch00, &shader00);
 
     int num_pts = ttf.glyf.glyphs[idx].num_points;
     bs_glyph *gi = ttf.glyf.glyphs + idx;
-    for(int i = 0; i < 3; i++) {
+
+
+    for(int i = 0; i < gi->num_contours; i++) {
 	uint16_t first = (i == 0) ? 0 : gi->contours[i - 1] + 1;
 	uint16_t last = gi->contours[i] + 1;
 
-	printf("%d | %d\n", first, last);
-
 	for(int j = first; j < last; j++) {
-	    int16_t x = gi->coords[j].x;
-	    int16_t y = gi->coords[j].y;
+	    bs_glyfPt curr = gi->coords[j];
+	    bs_glyfPt curr_off, next_off;
 
-	    printf("%d\n", (j + 3) % last);
-	    bs_RGBA col = (gi->coords[j].on_curve == true) ? BS_RGBA(120, 150, 255, 255) : BS_RGBA(255, 100, 120, 60);
-	    bs_pushRect(BS_V3((float)x / 4.0 + 550.0, (float)y / 4.0 + 150.0, 0.0), (bs_vec2){ 4.0, 4.0 }, col);
+	    curr_off = gi->coords[((j + 1) >= last) ? ((j + 1) - last + first) : (j + 1)];
 
-	    bs_glyfPt pts[4];
-	    pts[0] = gi->coords[j];
-	    pts[1] = gi->coords[(j+1) % last];
+	    if(!curr.on_curve)
+		continue;
 
-	    if(pts[0].on_curve && !pts[1].on_curve) {
-		pts[2] = gi->coords[(j+2) % last];
-	
-		if((j + 2) % last < first)
-		    pts[2] = gi->coords[(j+2) % last + first];
-
-		bs_vec2 elems[ttf.detail];
-
-		bs_vec2 p0 = bs_v2add(bs_v2divs(BS_V2(pts[0].x, pts[0].y), 4.0), BS_V2(550.0, 150.0));
-		bs_vec2 p1 = bs_v2add(bs_v2divs(BS_V2(pts[1].x, pts[1].y), 4.0), BS_V2(550.0, 150.0));
-		bs_vec2 p2 = bs_v2add(bs_v2divs(BS_V2(pts[2].x, pts[2].y), 4.0), BS_V2(550.0, 150.0));
-
-		// Quadratic bezier
-		if(pts[2].on_curve) {
-		    bs_v2QuadBez(p0, p1, p2, elems, ttf.detail);
-
-		    for(int k = 1; k < ttf.detail; k++)
-			bs_pushRect(BS_V3(elems[k].x, elems[k].y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 255, 120, 255));
-		    continue;
-		}
-
-		pts[3] = ttf.glyf.glyphs[idx].coords[(j+3) % last];
-		if((j + 3) % last < first)
-		    pts[3] = gi->coords[(j+3) % last + first];
-		// Cubic bezier
-		bs_vec2 p3 = bs_v2add(bs_v2divs(BS_V2(pts[3].x, pts[3].y), 4.0), BS_V2(550.0, 150.0));
-		bs_v2CubicBez(p0, p1, p2, p3, elems, ttf.detail);
-
-		for(int k = 1; k < ttf.detail; k++)
-		    bs_pushRect(BS_V3(elems[k].x, elems[k].y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 255, 120, 255));
+	    bs_vec2 curr_off_v, next_off_v, curr_v = bs_v2add(bs_v2divs(BS_V2(curr.x, curr.y), 4.0), BS_V2(550.0, 150.0));
+	    if(curr_off.on_curve) {
+		bs_pushRect(BS_V3(curr_v.x, curr_v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 100, 255, 150));
+		continue;
 	    }
+
+	    bs_pushRect(BS_V3(curr_v.x, curr_v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 255, 120, 150));
+
+	    while(!(curr_off = gi->coords[((j + 1) >= last) ? ((j + 1) - last + first) : (j + 1)]).on_curve) {
+		next_off = gi->coords[((j + 2) >= last) ? ((j + 2) - last + first) : (j + 2)];
+
+		curr_off_v = bs_v2add(bs_v2divs(BS_V2(curr_off.x, curr_off.y), 4.0), BS_V2(550.0, 150.0));
+		next_off_v = bs_v2add(bs_v2divs(BS_V2(next_off.x, next_off.y), 4.0), BS_V2(550.0, 150.0));
+
+		bs_vec2 mid = bs_v2mid(curr_off_v, next_off_v);
+
+		bs_pushRect(BS_V3(curr_off_v.x, curr_off_v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 100, 255, 150));
+
+		if(next_off.on_curve) {
+		    break;
+		}
+		j++;
+
+		bs_pushRect(BS_V3(mid.x, mid.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(255, 255, 120, 255));
+
+		bs_pushTTFCurve(curr_v, curr_off_v, mid, BS_WHITE);
+
+		curr_v = mid;
+	    }
+
+	    curr_off = gi->coords[((j + 1) >= last) ? ((j + 1) - last + first) : (j + 1)];
+	    next_off = gi->coords[((j + 2) >= last) ? ((j + 2) - last + first) : (j + 2)];
+	    curr_off_v = bs_v2add(bs_v2divs(BS_V2(curr_off.x, curr_off.y), 4.0), BS_V2(550.0, 150.0));
+	    next_off_v = bs_v2add(bs_v2divs(BS_V2(next_off.x, next_off.y), 4.0), BS_V2(550.0, 150.0));
+	    double t = 0.0;
+	    double incr;
+
+	    incr = 1.0 / (double)ttf.detail;
+
+	    for(int k = 0; k < ttf.detail; k++, t += incr) {
+		bs_vec2 v;
+		v.x = (1 - t) * (1 - t) * curr_v.x + 2 * (1 - t) * t * curr_off_v.x + t * t * next_off_v.x;
+		v.y = (1 - t) * (1 - t) * curr_v.y + 2 * (1 - t) * t * curr_off_v.y + t * t * next_off_v.y;
+
+		bs_pushRect(BS_V3(v.x, v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(255, 0, 0, 255));
+	    }
+
 	}
     }
 

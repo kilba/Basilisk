@@ -128,6 +128,10 @@ bs_vec3 bs_v3mid(bs_vec3 a, bs_vec3 b) {
     return BS_V3((a.x + b.x) / 2.0, (a.y + b.y) / 2.0, (a.z + b.z) / 2.0);
 }
 
+bs_vec2 bs_v2mid(bs_vec2 a, bs_vec2 b) {
+    return BS_V2((a.x + b.x) / 2.0, (a.y + b.y) / 2.0);
+}
+
 bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3) {
     float d1, d2, d3;
     bool has_neg, has_pos;
@@ -247,11 +251,10 @@ void bs_v2CubicBez(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_vec2 p3, bs_vec2 *arr,
 void bs_v2QuadBez(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_vec2 *arr, int num_elems) {
     double t = 0.0;
     double incr;
-    int i = 0;
 
     incr = 1.0 / (double)num_elems;
 
-    for(; i < num_elems; i++, t += incr) {
+    for(int i = 0; i < num_elems; i++, t += incr) {
 	bs_vec2 v;
         v.x = (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * p1.x + t * t * p2.x;
 	v.y = (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * p1.y + t * t * p2.y;
