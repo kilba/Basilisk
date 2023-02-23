@@ -4,6 +4,7 @@
 #include <bs_types.h>
 
 /* --- RENDERING --- */
+void bs_setVar(unsigned int v);
 void bs_setV1_(float v);
 void bs_setV4_(bs_vec4 v);
 
@@ -29,6 +30,7 @@ int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
 int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
 int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
+int bs_pushPoint(bs_vec3 pos, bs_RGBA color);
 int bs_pushAABB(bs_aabb aabb, bs_RGBA color);
 int bs_pushPrim(bs_Prim *prim); 
 int bs_pushMesh(bs_Mesh *mesh);
@@ -180,8 +182,9 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_VAL_NOR 8
 #define BS_VAL_BID 16
 #define BS_VAL_WEI 32
-#define BS_VAL_V4_ 64
-#define BS_VAL_V1_ 128
+#define BS_VAL_VAR 64
+#define BS_VAL_V4_ 128
+#define BS_VAL_V1_ 256
 
 /* RENDER MODES */
 #define BS_POINTS 0x0000

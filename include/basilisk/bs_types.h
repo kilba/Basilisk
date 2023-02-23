@@ -258,6 +258,7 @@ enum {
     BS_NOR,
     BS_BID,
     BS_WEI,
+    BS_VAR,
     BS_V4_,
     BS_V1_,
 
@@ -343,25 +344,6 @@ struct bs_Batch {
     unsigned int VAO, VBO, EBO;
 };
 
-struct bs_MeshAnim {
-    bs_mat4 *joints;
-    int num_joints;
-    int num_frames;
-    int shader_offset;
-};
-
-struct bs_Anim {
-    bs_mat4 *matrices;
-    bs_MeshAnim *mesh_anims;
-    int num_mesh_anims;
-
-    int joint_count;
-    int frame_count;
-    int frame_offset_shader;
-
-    char *name;
-};
-
 struct bs_Material {
     bs_RGBA col;
     bs_Texture *tex;
@@ -414,6 +396,8 @@ struct bs_Mesh {
 
     bs_Joint *joints;
     int joint_count;
+
+    unsigned int id;
 };
 
 struct bs_Model {
@@ -424,8 +408,31 @@ struct bs_Model {
 
     int mesh_count;
     int prim_count;
+    int anim_count;
+    int anim_offset;
+
     int vertex_count;
     int index_count;
+};
+
+struct bs_MeshAnim {
+    bs_mat4 *joints;
+    int num_joints;
+    int num_frames;
+    int shader_offset;
+};
+
+struct bs_Anim {
+    bs_Mesh *mesh;
+    bs_mat4 *matrices;
+    bs_MeshAnim *mesh_anims;
+    int num_mesh_anims;
+
+    int joint_count;
+    int frame_count;
+    int frame_offset_shader;
+
+    char *name;
 };
 
 /* --- VECTOR CONSTANTS --- */

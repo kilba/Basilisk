@@ -218,7 +218,7 @@ void bs_textureArray(bs_Texture *tex, bs_ivec2 max_dim, int num_textures) {
     bs_textureMinMag(BS_NEAREST, BS_NEAREST);
 }
 
-bs_U32 bs_textureArrayAppendPNG(const char *path) {
+bs_U32 bs_textureArrayInsertPNG(const char *path, int idx) {
     bs_U32 err = bs_textureDataFile(path, true);
     if(err != 0)
 	return err;
@@ -226,7 +226,7 @@ bs_U32 bs_textureArrayAppendPNG(const char *path) {
     glTexSubImage3D(
 	curr_texture->type,
 	0,
-	0, 0, curr_texture->frame.z,
+	0, 0, idx,
 	curr_texture->w, curr_texture->h, 1,
 	BS_CHANNEL_RGBA,
 	BS_UBYTE,
@@ -238,7 +238,11 @@ bs_U32 bs_textureArrayAppendPNG(const char *path) {
     return 0;
 }
 
-bs_U32 bs_textureArrayAppendPNGSheet(const char *path, int frames) {
+bs_U32 bs_textureArrayAppendPNG(const char *path) {
+    return bs_textureArrayInsertPNG(path, curr_texture->frame.z);
+}
+
+bs_U32 bs_textureArrayInsertPNGSheet(const char *path, int frames, int idx) {
     bs_U32 err = bs_textureDataFile(path, true);
     if(err != 0)
 	return err;
@@ -264,6 +268,10 @@ bs_U32 bs_textureArrayAppendPNGSheet(const char *path, int frames) {
     free(curr_texture->data);
 
     return 0;
+}
+
+bs_U32 bs_textureArrayAppendPNGSheet(const char *path, int frames) {
+    return bs_textureArrayInsertPNGSheet(path, frames, curr_texture->frame.z);
 }
 
 void bs_linearFiltering() {

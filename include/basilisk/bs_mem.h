@@ -2,6 +2,7 @@
 #define BS_MEM
 
 #include <stdint.h>
+#define BS_FLAGSET(flag, cmp) ((flag >> cmp) & 0x01)
 
 uint_least8_t	bs_memU8 (void *data, uint_fast32_t offset);
 uint_least16_t	bs_memU16(void *data, int offset);

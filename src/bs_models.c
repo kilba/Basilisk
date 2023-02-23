@@ -260,7 +260,7 @@ void bs_loadJoints(cgltf_data *data, bs_Mesh *mesh, cgltf_mesh *c_mesh) {
 	// Set the local matrix
 	bs_mat4 local = GLM_MAT4_IDENTITY_INIT;
 	glm_translate(local, c_joint->translation);
-	glm_quat_rotate(local, (versor){ c_joint->rotation[0], c_joint->rotation[1], c_joint->rotation[2], c_joint->rotation[3] }, local);
+	glm_quat_rotate(local, c_joint->rotation, local);
 	glm_scale(local, c_joint->scale);
 	glm_mat4_inv(local, joint->local_inv);
 
@@ -290,53 +290,34 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
     cgltf_mesh *c_mesh = &data->meshes[mesh_index];
     cgltf_node *node = &data->nodes[mesh_index];
 
-    int c_mesh_name_len = strlen(c_mesh->node->name);
-    model->meshes[mesh_index].joint_count = 0;
-    model->meshes[mesh_index].index_count = 0;
-    model->meshes[mesh_index].vertex_count = 0;
-    model->meshes[mesh_index].name = malloc(c_mesh_name_len+1);
-    int n = sprintf(model->meshes[mesh_index].name, "%s", c_mesh->node->name);
+    bs_Mesh *mesh = model->meshes + mesh_index;
 
-    memcpy(&model->meshes[mesh_index].pos, node->translation, sizeof(bs_vec3));
-    memcpy(&model->meshes[mesh_index].rot, node->rotation, sizeof(bs_vec4));
-    memcpy(&model->meshes[mesh_index].sca, node->scale, sizeof(bs_vec4));
+    int c_mesh_name_len = strlen(c_mesh->node->name);
+    mesh->id = mesh_index;
+    mesh->joint_count = 0;
+    mesh->index_count = 0;
+    mesh->vertex_count = 0;
+    mesh->name = malloc(c_mesh_name_len+1);
+    int n = sprintf(mesh->name, "%s", c_mesh->node->name);
+
+    memcpy(&mesh->pos, node->translation, sizeof(bs_vec3));
+    memcpy(&mesh->rot, node->rotation, sizeof(bs_vec4));
+    memcpy(&mesh->sca, node->scale, sizeof(bs_vec4));
    
     bs_mat4 local = GLM_MAT4_IDENTITY_INIT;
     glm_translate(local, node->translation);
-    glm_quat_rotate(local, (versor){ node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3] }, local);
+    glm_quat_rotate(local, node->rotation, local);
     glm_scale(local, node->scale);
  
-    memcpy(&model->meshes[mesh_index].mat, &local, sizeof(bs_mat4));
+    memcpy(mesh->mat, &local, sizeof(bs_mat4));
 
-    model->meshes[mesh_index].prims = malloc(c_mesh->primitives_count * sizeof(bs_Prim));
-    model->meshes[mesh_index].prim_count = c_mesh->primitives_count;
+    mesh->prims = malloc(c_mesh->primitives_count * sizeof(bs_Prim));
+    mesh->prim_count = c_mesh->primitives_count;
 
-    bs_loadJoints(data, &model->meshes[mesh_index], c_mesh);
+    bs_loadJoints(data, mesh, c_mesh);
 
-    for(int i = 0; i < c_mesh->primitives_count; i++) {
-	bs_loadPrim(data, &model->meshes[mesh_index], model, mesh_index, i);
-    }
-}
-
-void bs_loadModelTextures(cgltf_data* data, bs_Model *model) {
-	if(data->textures_count == 0)
-	    return;
-    
-	return;
-
-	model->textures = malloc(data->textures_count * sizeof(bs_Texture));
-	for(int i = 0; i < data->textures_count; i++) {
-		//bs_loadTex2D(model->textures+i, texture_path);
-		//bs_textureSettings(BS_LINEAR, BS_LINEAR);
-		//bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
-	}
-
-	// for(int i = 0; i < data->textures_count; i++) {
-	// 	ids[i] -= curr_tex_ptr;
-	// 	// Divide by sizeof image so that stride between indices in ids is at most 1
-	// 	ids[i] /= sizeof(cgltf_image);
-	// 	model->textures[i] = images[ids[i]];
-	// }
+    for(int i = 0; i < c_mesh->primitives_count; i++)
+	bs_loadPrim(data, mesh, model, mesh_index, i);
 }
 
 void bs_checkMeshAnimResize(bs_Anim *anim) {
@@ -348,17 +329,35 @@ void bs_checkMeshAnimResize(bs_Anim *anim) {
     anim->mesh_anims = realloc(anim->mesh_anims, size);
 }
 
-void bs_animation(int bind_point, bs_Anim *anim, bs_Mesh *mesh) {
+void bs_jointlessAnimation(bs_Anim *anim, bs_Mesh *mesh) {
+    bs_checkMeshAnimResize(anim);
+    bs_MeshAnim *mesh_anim = anim->mesh_anims + anim->num_mesh_anims;
+
+    mesh_anim->joints = malloc(anim->frame_count * sizeof(bs_mat4));
+    mesh_anim->num_joints = anim->joint_count;
+    mesh_anim->num_frames = anim->frame_count;
+    mesh_anim->shader_offset = anim_offset;
+    anim_offset += anim->frame_count;
+
+    // For each FRAME in animation
+    for(int i = 0; i < anim->frame_count; i++)
+	memcpy(mesh_anim->joints[i], anim->matrices[i], sizeof(bs_mat4));
+
+    anim->num_mesh_anims++;
+}
+
+void bs_animation(bs_Anim *anim, bs_Mesh *mesh) {
     if(anim->joint_count != mesh->joint_count) {
 	printf("Mismatching number of joints in animation and mesh\n");
+	bs_jointlessAnimation(anim, mesh);
 	return;
     }
 
     bs_checkMeshAnimResize(anim);
     bs_MeshAnim *mesh_anim = anim->mesh_anims + anim->num_mesh_anims;
 
-    mesh_anim->joints = malloc(anim->frame_count * mesh->joint_count * sizeof(bs_mat4));
-    mesh_anim->num_joints = mesh->joint_count;
+    mesh_anim->joints = malloc(anim->frame_count * anim->joint_count * sizeof(bs_mat4));
+    mesh_anim->num_joints = anim->joint_count;
     mesh_anim->num_frames = anim->frame_count;
     mesh_anim->shader_offset = anim_offset;
     anim_offset += anim->frame_count * anim->joint_count;
@@ -366,10 +365,10 @@ void bs_animation(int bind_point, bs_Anim *anim, bs_Mesh *mesh) {
     // For each FRAME in animation
     for(int i = 0; i < anim->frame_count; i++) {
 	// For each JOINT in mesh
-	for(int j = 0; j < mesh->joint_count; j++) {
+	for(int j = 0; j < anim->joint_count; j++) {
 	    bs_Joint *change_joint = &mesh->joints[j];
 	    bs_Joint *parent = mesh->joints[j].parent;
-	    int idx = j + i * mesh->joint_count;
+	    int idx = j + i * anim->joint_count;
 
 	    // RESULT_JOINT  = (BIND MATRIX) * (LOCAL INVERSE)
 	    // RESULT_JOINT *= (ANIMATION JOINT OF CURRENT FRAME)
@@ -382,6 +381,10 @@ void bs_animation(int bind_point, bs_Anim *anim, bs_Mesh *mesh) {
 	    glm_mat4_mul(parent->mat, change_joint->mat, change_joint->mat);
 	    
 	    memcpy(mesh_anim->joints + idx, change_joint->mat, sizeof(bs_mat4));
+/*
+	    bs_mat4 res;
+	    glm_mat4_mul(anim->matrices[idx], mesh->mat, res);
+	    memcpy(mesh_anim->joints + idx, res, sizeof(bs_mat4));*/
 	}
     }
 
@@ -406,8 +409,6 @@ void bs_loadAnim(cgltf_data* data, int index, int old_anim_offset, bs_Model *mod
     
     anim->joint_count = joint_count;
     anim->frame_count = frame_count;
-    //anim->frame_offset_shader = anim_offset;
-    //anim_offset += frame_count * joint_count;
 
     int i, i3 = 0; 
     for(i = 0; i < joint_count; i++, i3+=3) {
@@ -441,6 +442,14 @@ void bs_loadAnim(cgltf_data* data, int index, int old_anim_offset, bs_Model *mod
 	    memcpy(joint, joint_mat, sizeof(bs_mat4));
 	}
     }
+
+    for(int j = 0; j < model->mesh_count; j++) {
+	bs_Mesh *mesh = model->meshes + j;
+	cgltf_mesh *c_mesh = &data->meshes[j];
+	if(c_anim->channels->target_node == c_mesh->node)
+	    anim->mesh = mesh;
+    }
+
     anim->matrices = joints;
 }
 
@@ -450,6 +459,9 @@ void bs_loadAnims(cgltf_data* data, bs_Model *model) {
 
     if(data->animations_count == 0)
 	return;
+    
+    model->anim_offset = old_anim_count;
+    model->anim_count = data->animations_count;
 
     if(anim_count > allocated_anims) {
 	allocated_anims = anim_count + 8;
@@ -489,19 +501,21 @@ int bs_model(bs_Model *model, const char *model_path, int settings) {
     model->meshes = malloc(mesh_count * sizeof(bs_Mesh));
     model->mesh_count = mesh_count;
     model->prim_count = 0;
+    model->anim_count = 0;
+    model->anim_offset = 0;
     model->vertex_count = 0;
     model->index_count = 0;
  
     model->name = malloc(path_len);
     strcpy(model->name, model_path);
 
-    bs_loadModelTextures(data, model);
     for(int i = 0; i < mesh_count; i++) {
 	bs_loadMesh(data, model, i);
 	model->prim_count += model->meshes[i].prim_count;
     }
 
     bs_loadAnims(data, model);
+
     cgltf_free(data);
     return 0;
 }
@@ -529,7 +543,7 @@ void bs_animate(bs_Anim *anim, int bind_point, int frame) {
 
 void bs_pushAnims() {
     int ssbo_size = anim_offset * sizeof(bs_mat4);
-    anim_ssbo = bs_SSBO(NULL, ssbo_size + 16, 1);
+    anim_ssbo = bs_SSBO(NULL, ssbo_size + sizeof(int) * 4, 1);
  
     for(int i = 0; i < anim_count; i++) {
 	bs_Anim *anim = anims + i;
@@ -537,7 +551,7 @@ void bs_pushAnims() {
 	    bs_MeshAnim *mesh_anim = anim->mesh_anims + j;
 
 	    int size   = mesh_anim->num_joints * anim->frame_count * sizeof(bs_mat4);
-	    int offset = 16 + mesh_anim->shader_offset * sizeof(bs_mat4);
+	    int offset = (sizeof(int) * 4) + mesh_anim->shader_offset * sizeof(bs_mat4);
 	    
 	    bs_pushSSBO(mesh_anim->joints, offset, size);
 	    free(mesh_anim->joints);
@@ -550,6 +564,23 @@ void bs_pushAnims() {
 
 bs_Anim *bs_anims() {
     return anims;
+}
+
+bs_Anim *bs_modelAnims(bs_Model *model) {
+    if(model->anim_count == 0)
+	return NULL;
+
+    return anims + model->anim_offset;
+}
+
+bs_Anim *bs_modelAnimFromName(const char *name, bs_Model *model) {
+    for(int i = 0; i < model->anim_count; i++) {
+	bs_Anim *anim = anims + model->anim_offset + i;
+	if(strcmp(name, anim->name) == 0)
+	    return anim;
+    }
+
+    return NULL;
 }
 
 bs_Anim *bs_animFromName(const char *name) {

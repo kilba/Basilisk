@@ -9,6 +9,7 @@
 #include <bs_core.h>
 #include <bs_shaders.h>
 #include <bs_debug.h>
+#include <lodepng.h>
 
 /* --------------------------- TABLE OFFSETS -------------------------- */
 /* HEAD Table Offsets */
@@ -88,8 +89,8 @@
 
     #define GLYF_XCOORDS(offset, num_flags)         /* 1 | uint8  ARRAY */ \
 	offset + num_flags
-    #define GLYF_YCOORDS(offset, num_flags, xcoord) /* 1 | uint8  ARRAY */ \
-	offset + num_flags + xcoord
+    #define GLYF_YCOORDS(offset, num_flags, coord) /* 1 | uint8  ARRAY */ \
+	offset + num_flags + coord
 
 /* CMAP Table Offsets */
     #define CMAP_VERSION		 	0   /* 2 | uint16	 */
@@ -215,22 +216,56 @@ uint32_t bs_loca(bs_locaInfo *loca, int id) {
     return offset;
 }
 
-#define BS_FLAGSET(flag, cmp) ((flag >> cmp) & 0x01)
+int bs_glyfCoords(bool y, uint8_t *flags, bs_glyfPt *pts, int offset, int num_points) {
+    bs_glyfInfo *glyf = &ttf.glyf;
+    int16_t coord_prev = 0;
+    for(int i = 0; i < num_points; i++) {
+	uint8_t flag = flags[i];
+	int16_t coord;
+
+	// If coord is 8-bit
+	if(BS_FLAGSET(flag, (GLYF_X_SHORT + y))) {
+	    coord = bs_memU8(glyf->buf, offset);
+	    offset += 1;
+
+	    if(!BS_FLAGSET(flag, (GLYF_X_SAME + y)))
+		coord = -coord;
+
+	    coord += coord_prev;
+	} else {
+	    if(BS_FLAGSET(flag, (GLYF_X_SAME + y))) {
+		coord = coord_prev;
+	    } else {
+		coord = bs_memU16(glyf->buf, offset);
+		coord += coord_prev;
+		offset += 2;
+	    }
+	}
+
+	coord_prev = coord;
+	char *data = (char *)(pts + i);
+	int16_t *val = (int16_t *)(data + y * sizeof(int16_t));
+
+	*val = coord;
+    }
+    
+    return offset;
+}
 
 void bs_glyf(bs_glyfInfo *glyf, int id) {
-    if(glyf->buf == NULL) {
+    if(glyf->buf == NULL)
 	glyf->buf = bs_findTable("glyf");
-    }
 
+    // Get location of glyph in ttf buffer
     glyf->buf += bs_loca(&ttf.loca, id);
 
+    // Parse contours
     int num_contours = bs_memU16(glyf->buf, GLYF_NUMBER_OF_CONTOURS);
     int end_pts[num_contours];
-
-    for(int i = 0; i < num_contours; i++) {
+    for(int i = 0; i < num_contours; i++)
 	end_pts[i] = bs_memU16(glyf->buf, GLYF_END_PTS_OF_CONTOURS + i*2);
-    }
 
+    // Num points is equal to end of last contour
     int num_points = end_pts[num_contours - 1] + 1;
 
     int instruction_offset = GLYF_INSTRUCTION_LENGTH(num_contours);
@@ -239,7 +274,6 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
     int flag_offset = GLYF_FLAGS(instruction_offset, num_instructions);
     int flag_offset_original = flag_offset;
 
-    /* X COORDINATES */
     int coord_offset = GLYF_XCOORDS(flag_offset, num_points);
 
     glyf->glyphs[id].coords = malloc(num_points * sizeof(bs_glyfPt));
@@ -253,9 +287,11 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
     int num_repeats_total = 0;
     uint8_t flags[num_points];
 
+    // Parse flags
     for(int i = 0; i < num_points; i++) {
 	flags[i] = bs_memU8(glyf->buf, flag_offset++);
 
+	// Add repeated flags
 	if(BS_FLAGSET(flags[i], GLYF_REPEAT)) {
 	    int num_repeats = bs_memU8(glyf->buf, flag_offset++);
 	    int flag_repeated = flags[i];
@@ -266,66 +302,15 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
 		flags[++i] = flag_repeated;
 	}
     }
-    for(int i = 0; i < num_points; i++) {
-	glyf->glyphs[id].coords[i].on_curve = BS_FLAGSET(flags[i], GLYF_ON_CURVE);
-    }
-
+    
     coord_offset -= num_repeats_total;
 
-    int16_t xcoord_prev = 0;
-    for(int i = 0; i < num_points; i++) {
-	uint8_t flag = flags[i];
-	int16_t xcoord;
+    for(int i = 0; i < num_points; i++)
+	glyf->glyphs[id].coords[i].on_curve = BS_FLAGSET(flags[i], GLYF_ON_CURVE);
 
-	// If xcoord is 8-bit
-	if(BS_FLAGSET(flag, GLYF_X_SHORT)) {
-	    xcoord = bs_memU8(glyf->buf, coord_offset);
-	    coord_offset += 1;
-
-	    if(!BS_FLAGSET(flag, GLYF_X_SAME))
-		xcoord = -xcoord;
-
-	    xcoord += xcoord_prev;
-	} else {
-	    if(BS_FLAGSET(flag, GLYF_X_SAME)) {
-		xcoord = xcoord_prev;
-	    } else {
-		xcoord = bs_memU16(glyf->buf, coord_offset);
-		xcoord += xcoord_prev;
-		coord_offset += 2;
-	    }
-	}
-
-	xcoord_prev = xcoord;
-	glyf->glyphs[id].coords[i].x = xcoord;
-    }
-
-    /* Y COORDINATES */
-    int16_t ycoord_prev;
-    for(int i = 0; i < num_points; i++) {
-	int flag = flags[i];
-	int16_t ycoord;
-
-	// If ycoord is 8-bit
-	if(BS_FLAGSET(flag, GLYF_Y_SHORT)) {
-	    ycoord = bs_memU8(glyf->buf, coord_offset);
-	    coord_offset += 1;
-	    if(!BS_FLAGSET(flag, GLYF_Y_SAME))
-		ycoord = -ycoord;
-	    ycoord += ycoord_prev;
-	} else {
-	    if(BS_FLAGSET(flag, GLYF_Y_SAME)) {
-		ycoord = ycoord_prev;
-	    } else {
-		ycoord = bs_memU16(glyf->buf, coord_offset);
-		ycoord += ycoord_prev;
-		coord_offset += 2;
-	    }
-	}
-
-	ycoord_prev = ycoord;
-	glyf->glyphs[id].coords[i].y = ycoord;
-    }
+    // Get X and Y coords
+    coord_offset = bs_glyfCoords(false, flags, glyf->glyphs[id].coords, coord_offset, num_points);
+    coord_offset = bs_glyfCoords(true , flags, glyf->glyphs[id].coords, coord_offset, num_points);
 }
 
 void bs_cmap(bs_cmapInfo *cmap) {
@@ -340,15 +325,19 @@ bs_Batch batch00;
 bs_Shader shader00;
 void bs_pushText() {
     bs_selectBatch(&batch00);
-
     bs_renderBatch(0, bs_batchSize());
 }
 
+unsigned char data[64 * 64];
 void bs_pushTTFCurve(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_RGBA col) {
-    bs_vec2 elems[ttf.detail];
+    bs_vec2 elems[ttf.detail + 1];
     bs_v2QuadBez(p0, p1, p2, elems, ttf.detail);
-    for(int k = 1; k < ttf.detail; k++)
-	bs_pushRect(BS_V3(elems[k].x, elems[k].y, 0.0), (bs_vec2){ 4.0, 4.0 }, col);
+    elems[ttf.detail] = p2;
+
+    for(int i = 1; i < ttf.detail; i++) {
+	data[(int)elems[i].x + ((int)elems[i].y * 64)] = 255;
+	bs_pushRect(BS_V3(elems[i].x, elems[i].y, 0.0), (bs_vec2){ 4.0, 4.0 }, col);
+    }
 }
 
 int bs_loadFont(char *path) {
@@ -391,7 +380,7 @@ int bs_loadFont(char *path) {
     bs_hhea(&ttf.hhea);
     bs_cmap(&ttf.cmap);
     
-    int idx = 7;
+    int idx = 35;
     bs_glyf(&ttf.glyf, idx);
 
     bs_batch(&batch00, &shader00);
@@ -399,6 +388,7 @@ int bs_loadFont(char *path) {
     int num_pts = ttf.glyf.glyphs[idx].num_points;
     bs_glyph *gi = ttf.glyf.glyphs + idx;
 
+    memset(data, 0, 64 * 64);
 
     for(int i = 0; i < gi->num_contours; i++) {
 	uint16_t first = (i == 0) ? 0 : gi->contours[i - 1] + 1;
@@ -413,40 +403,40 @@ int bs_loadFont(char *path) {
 	    if(!curr.on_curve)
 		continue;
 
-	    bs_vec2 curr_off_v, next_off_v, curr_v = bs_v2add(bs_v2divs(BS_V2(curr.x, curr.y), 4.0), BS_V2(550.0, 150.0));
+	    float div = 32.0;
+	    bs_vec2 mov = BS_V2(0.0, 0.0);
+	    bs_vec2 curr_off_v, next_off_v, curr_v = bs_v2add(bs_v2divs(BS_V2(curr.x, curr.y), div), mov);
 	    if(curr_off.on_curve) {
 		bs_pushRect(BS_V3(curr_v.x, curr_v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 100, 255, 150));
 		continue;
 	    }
 
-	    bs_pushRect(BS_V3(curr_v.x, curr_v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 255, 120, 150));
+//	    bs_pushRect(BS_V3(curr_v.x, curr_v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 255, 120, 150));
 
 	    while(!(curr_off = gi->coords[((j + 1) >= last) ? ((j + 1) - last + first) : (j + 1)]).on_curve) {
 		next_off = gi->coords[((j + 2) >= last) ? ((j + 2) - last + first) : (j + 2)];
 
-		curr_off_v = bs_v2add(bs_v2divs(BS_V2(curr_off.x, curr_off.y), 4.0), BS_V2(550.0, 150.0));
-		next_off_v = bs_v2add(bs_v2divs(BS_V2(next_off.x, next_off.y), 4.0), BS_V2(550.0, 150.0));
+		curr_off_v = bs_v2add(bs_v2divs(BS_V2(curr_off.x, curr_off.y), div), mov);
+		next_off_v = bs_v2add(bs_v2divs(BS_V2(next_off.x, next_off.y), div), mov);
 
 		bs_vec2 mid = bs_v2mid(curr_off_v, next_off_v);
 
-		bs_pushRect(BS_V3(curr_off_v.x, curr_off_v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 100, 255, 150));
+//		bs_pushRect(BS_V3(curr_off_v.x, curr_off_v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 100, 255, 150));
 
-		if(next_off.on_curve) {
+		if(next_off.on_curve)
 		    break;
-		}
-		j++;
 
-		bs_pushRect(BS_V3(mid.x, mid.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(255, 255, 120, 255));
-
+		bs_pushRect(BS_V3(mid.x, mid.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(0, 0, 255, 255));
 		bs_pushTTFCurve(curr_v, curr_off_v, mid, BS_WHITE);
 
 		curr_v = mid;
+		j++;
 	    }
 
 	    curr_off = gi->coords[((j + 1) >= last) ? ((j + 1) - last + first) : (j + 1)];
 	    next_off = gi->coords[((j + 2) >= last) ? ((j + 2) - last + first) : (j + 2)];
-	    curr_off_v = bs_v2add(bs_v2divs(BS_V2(curr_off.x, curr_off.y), 4.0), BS_V2(550.0, 150.0));
-	    next_off_v = bs_v2add(bs_v2divs(BS_V2(next_off.x, next_off.y), 4.0), BS_V2(550.0, 150.0));
+	    curr_off_v = bs_v2add(bs_v2divs(BS_V2(curr_off.x, curr_off.y), div), mov);
+	    next_off_v = bs_v2add(bs_v2divs(BS_V2(next_off.x, next_off.y), div), mov);
 	    double t = 0.0;
 	    double incr;
 
@@ -457,12 +447,14 @@ int bs_loadFont(char *path) {
 		v.x = (1 - t) * (1 - t) * curr_v.x + 2 * (1 - t) * t * curr_off_v.x + t * t * next_off_v.x;
 		v.y = (1 - t) * (1 - t) * curr_v.y + 2 * (1 - t) * t * curr_off_v.y + t * t * next_off_v.y;
 
+
+		data[(int)v.x + ((int)v.y * 64)] = 255;
 		bs_pushRect(BS_V3(v.x, v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(255, 0, 0, 255));
 	    }
-
 	}
     }
 
+    lodepng_encode_file("test.png", data, 64, 64, LCT_GREY, 8);
     bs_pushBatch();
 
     free(buf);

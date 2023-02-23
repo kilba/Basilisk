@@ -31,6 +31,7 @@ bs_Batch *curr_batch = NULL;
 bs_Framebuf *curr_framebuf = NULL;
 bs_UniformBuffer global_unifs;
 
+unsigned int var = 0;
 float v1_ = 0.0;
 bs_vec4 v4_ = BS_V4_0;
 
@@ -42,6 +43,10 @@ int bs_checkError() {
 /* --- MATRICES / CAMERAS --- */
 bs_Camera *bs_defCamera() {
     return &def_camera;
+}
+
+void bs_setVar(unsigned int v) {
+    var = v;
 }
 
 void bs_setV1_(float v) {
@@ -137,8 +142,9 @@ void bs_pushVertex(
     bs_pushAttrib(&data_ptr, &nor, sizes[3]);
     bs_pushAttrib(&data_ptr, &bid, sizes[4]);
     bs_pushAttrib(&data_ptr, &wei, sizes[5]);
-    bs_pushAttrib(&data_ptr, &v4_, sizes[6]);
-    bs_pushAttrib(&data_ptr, &v1_, sizes[7]);
+    bs_pushAttrib(&data_ptr, &var, sizes[6]);
+    bs_pushAttrib(&data_ptr, &v4_, sizes[7]);
+    bs_pushAttrib(&data_ptr, &v1_, sizes[8]);
     
     curr_batch->vertex_draw_count++;
 } 
@@ -259,6 +265,14 @@ int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
     return curr_batch->index_draw_count;
 }
 
+int bs_pushPoint(bs_vec3 pos, bs_RGBA color) {
+    bs_batchResizeCheck(1, 1);
+    bs_pushIndexVa(1, 0);
+    bs_pushVertex(pos, BS_V2_0, BS_V3_0, color, BS_IV4_0, BS_V4_0);
+
+    return curr_batch->index_draw_count;
+}
+
 int bs_pushAABB(bs_aabb aabb, bs_RGBA color) {
     bs_batchResizeCheck(36, 8);
     bs_pushIndexVa(36,
@@ -306,6 +320,7 @@ int bs_pushPrim(bs_Prim *prim) {
 
 int bs_pushMesh(bs_Mesh *mesh) {
     int ret = 0;
+    bs_setVar(mesh->id);
     for(int i = 0; i < mesh->prim_count; i++) {
         bs_Prim *prim = &mesh->prims[i];
         ret += bs_pushPrim(prim);
@@ -361,6 +376,7 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
         { BS_FLOAT, 3, sizeof(bs_vec3) , false }, /* Normal */
         { BS_INT  , 4, sizeof(bs_ivec4), false }, /* Bone Ids */
         { BS_FLOAT, 4, sizeof(bs_vec4) , false }, /* Weights */
+        { BS_UINT , 1, sizeof(float)   , false }, /* Varying */
         { BS_FLOAT, 4, sizeof(bs_vec4) , false }, /* V4_ Attrib */
         { BS_FLOAT, 1, sizeof(float)   , false }, /* V1_ Attrib */
     };
@@ -400,7 +416,7 @@ void bs_attribI(const int type, unsigned int amount, size_t size_per_type) {
 }
 
 void bs_attrib(const int type, unsigned int amount, size_t size_per_type, bool normalized) {
-    if((type >= BS_SHORT) && (type <= BS_INT)) {
+    if((type >= BS_SHORT) && (type <= BS_UINT)) {
         bs_attribI(type, amount, size_per_type);
         return;
     }

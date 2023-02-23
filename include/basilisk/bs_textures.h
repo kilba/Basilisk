@@ -31,7 +31,9 @@ void bs_textureCube(bs_Texture *texture, int dim, char *paths[6]);
 void bs_textureCubeLin(bs_Texture *texture, int dim, char *paths[6]);
 
 void bs_textureArray(bs_Texture *tex, bs_ivec2 max_dim, int num_textures);
+bs_U32 bs_textureArrayInsertPNG(const char *path, int idx);
 bs_U32 bs_textureArrayAppendPNG(const char *path);
+bs_U32 bs_textureArrayInsertPNGSheet(const char *path, int frames, int idx);
 bs_U32 bs_textureArrayAppendPNGSheet(const char *path, int frames);
 
 void bs_linearFiltering();

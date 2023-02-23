@@ -4,10 +4,12 @@
 #include <bs_types.h>
 
 int bs_model(bs_Model *model, const char *model_path, int settings);
-void bs_animation(int bind_point, bs_Anim *anim, bs_Mesh *mesh);
+void bs_animation(bs_Anim *anim, bs_Mesh *mesh);
 void bs_animate(bs_Anim *anim, int bind_point, int frame);
 void bs_pushAnims();
 bs_Anim *bs_anims();
+bs_Anim *bs_modelAnims(bs_Model *model);
+bs_Anim *bs_modelAnimFromName(const char *name, bs_Model *model);
 bs_Anim *bs_animFromName(const char *name);
 int bs_numAnims();
 void bs_freeModel(bs_Model *model);
