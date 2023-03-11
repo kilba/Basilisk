@@ -115,6 +115,7 @@ void bs_setDefShaderAttribs(bs_Shader *shader, const char *vs_code) {
     for(int i = 0; i < BS_MAX_ATTRIB_COUNT; i++) {
 	shader->attrib_sizes[i] = 0;
 	if(strstr(vs_code, attribs[i].name)) {
+	    shader->attrib_size_bytes += attribs[i].size;
 	    shader->attrib_sizes[i] = attribs[i].size;
 	    shader->attribs |= attribs[i].value;
 	    shader->attrib_count++;
@@ -195,6 +196,7 @@ void bs_shaderMem(bs_Shader *shader, const char *vs_code, const char *fs_code, c
 
     shader->attribs = 0;
     shader->attrib_count = 0;
+    shader->attrib_size_bytes = 0;
     shader->id = glCreateProgram();
 
     bs_loadShaderCode(shader->id, &shader->vs_id, vs_code, GL_VERTEX_SHADER);

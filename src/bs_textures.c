@@ -299,6 +299,11 @@ void bs_depth(bs_Texture *texture, bs_ivec2 dim) {
 }
 
 /* --- FLOAT TEXTURES --- */
+void bs_textureRG(bs_Texture *texture, bs_ivec2 dim) {
+    bs_textureColor(texture, dim, GL_RG8, GL_RG, BS_UBYTE);
+    texture->attachment = BS_COLOR;
+}
+
 void bs_textureRGB(bs_Texture *texture, bs_ivec2 dim) {
     bs_textureColor(texture, dim, GL_RGB8, BS_CHANNEL_RGB, BS_UBYTE);
     texture->attachment = BS_COLOR;

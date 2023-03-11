@@ -279,6 +279,7 @@ struct bs_Uniform {
 struct bs_Shader {
     bs_Uniform uniforms[BS_UNIFORM_TYPE_COUNT];
     uint8_t attrib_sizes[BS_MAX_ATTRIB_COUNT];
+    int attrib_size_bytes;
     int attrib_count;
     int attribs;
 

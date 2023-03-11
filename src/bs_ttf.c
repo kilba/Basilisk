@@ -113,6 +113,9 @@ typedef struct {
     uint16_t num_points;
     uint16_t num_contours;
 
+    int16_t x_min, x_max;
+    int16_t y_min, y_max;
+
     uint16_t *contours;
     bs_glyfPt *coords;
 } bs_glyph;
@@ -139,6 +142,7 @@ typedef struct {
 
 typedef struct {
     void *buf;
+
     bs_glyph glyphs[200];
 } bs_glyfInfo;
 
@@ -256,6 +260,18 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
     if(glyf->buf == NULL)
 	glyf->buf = bs_findTable("glyf");
 
+    // Get bounding boxes
+    glyf->glyphs[id].x_min = bs_memU16(glyf->buf, GLYF_XMIN);
+    glyf->glyphs[id].y_min = bs_memU16(glyf->buf, GLYF_YMIN);
+    glyf->glyphs[id].x_max = bs_memU16(glyf->buf, GLYF_XMAX);
+    glyf->glyphs[id].y_max = bs_memU16(glyf->buf, GLYF_YMAX);
+
+    glyf->glyphs[id].x_min = 111;
+    glyf->glyphs[id].y_min = -431;
+    glyf->glyphs[id].x_max = 2005;
+    glyf->glyphs[id].y_max = 1493;
+
+
     // Get location of glyph in ttf buffer
     glyf->buf += bs_loca(&ttf.loca, id);
 
@@ -328,19 +344,77 @@ void bs_pushText() {
     bs_renderBatch(0, bs_batchSize());
 }
 
-unsigned char data[64 * 64];
-void bs_pushTTFCurve(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_RGBA col) {
+bs_ivec2 bmp_dim = BS_IV2(64, 64);
+unsigned char bmp[64 * 64];
+
+int bs_cmpFloats(const void *a, const void *b) {
+    float f_a = *(float *)a;
+    float f_b = *(float *)b;
+
+    if(f_a < f_b) return -1;
+    else if(f_a > f_b) return 1;
+    return 0;
+}
+
+void bs_pushTTFCurve(bs_glyph *glyph, bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_RGBA col) {
     bs_vec2 elems[ttf.detail + 1];
     bs_v2QuadBez(p0, p1, p2, elems, ttf.detail);
     elems[ttf.detail] = p2;
 
+    float intersections[256];
+    int num_intersections = 0;
+    float scale = (float)bmp_dim.y / (float)(glyph->y_max - glyph->y_min);
+
+    printf("%f\n", scale);
+    printf("%d\n", glyph->x_max);
+    printf("%d\n", glyph->x_min);
+    printf("%d\n", glyph->y_max);
+    printf("%d\n\n", glyph->y_min);
+    for(int i = 0; i < bmp_dim.y; i++) {
+	float scanline = i;
+
+	for(int j = 1; j < ttf.detail; j++) {
+	    bs_vec2 e1, e2;
+	    float dx, dy;
+	    float bigger_y, smaller_y;
+	    float intersection = -1;
+
+	    e1 = BS_V2((elems[j - 1].x - glyph->x_min) * scale, (elems[j - 1].y - glyph->y_min) * scale);
+	    e2 = BS_V2((elems[j].x - glyph->x_min) * scale, (elems[j].y - glyph->y_min) * scale);
+
+	    if(e1.y > e2.y) {
+		bigger_y = e1.y;
+		smaller_y = e2.y;
+	    } else {
+		bigger_y = e2.y;
+		smaller_y = e1.y;
+	    }
+
+	    if(scanline <= smaller_y) continue;
+	    if(scanline > bigger_y) continue;
+
+	    dx = e2.x - e1.x;
+	    dy = e2.y - e1.y;
+
+	    if(dy == 0) continue;
+	    if(dx == 0)
+		intersection = e1.x;
+	    else
+		intersection = (scanline - e1.y) * (dx / dy) * e1.x;
+
+	    intersections[num_intersections++] = intersection;
+	}
+    }
+
+    qsort(intersections, num_intersections, sizeof(float), bs_cmpFloats);
+
     for(int i = 1; i < ttf.detail; i++) {
-	data[(int)elems[i].x + ((int)elems[i].y * 64)] = 255;
 	bs_pushRect(BS_V3(elems[i].x, elems[i].y, 0.0), (bs_vec2){ 4.0, 4.0 }, col);
     }
 }
 
 int bs_loadFont(char *path) {
+    memset(bmp, 0, bmp_dim.x * bmp_dim.y * sizeof(char));
     char *vs = "#version 430\n" \
 	"layout (location = 0) in vec3 bs_Pos;" \
 	"layout (location = 1) in vec4 bs_Col;" \
@@ -388,11 +462,12 @@ int bs_loadFont(char *path) {
     int num_pts = ttf.glyf.glyphs[idx].num_points;
     bs_glyph *gi = ttf.glyf.glyphs + idx;
 
-    memset(data, 0, 64 * 64);
-
     for(int i = 0; i < gi->num_contours; i++) {
 	uint16_t first = (i == 0) ? 0 : gi->contours[i - 1] + 1;
 	uint16_t last = gi->contours[i] + 1;
+
+	bs_vec2 pts[512];
+	int num_pts = 0;
 
 	for(int j = first; j < last; j++) {
 	    bs_glyfPt curr = gi->coords[j];
@@ -403,31 +478,32 @@ int bs_loadFont(char *path) {
 	    if(!curr.on_curve)
 		continue;
 
-	    float div = 32.0;
-	    bs_vec2 mov = BS_V2(0.0, 0.0);
+	    float div = 1.0;
+	    float ddiv = 8.0;
+	    bs_vec2 mov = BS_V2(200.0, 600.0);
 	    bs_vec2 curr_off_v, next_off_v, curr_v = bs_v2add(bs_v2divs(BS_V2(curr.x, curr.y), div), mov);
-	    if(curr_off.on_curve) {
-		bs_pushRect(BS_V3(curr_v.x, curr_v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 100, 255, 150));
-		continue;
-	    }
 
-//	    bs_pushRect(BS_V3(curr_v.x, curr_v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 255, 120, 150));
+//	    pts[num_pts++] = curr_v;
+
+	    if(curr_off.on_curve)
+		continue;
 
 	    while(!(curr_off = gi->coords[((j + 1) >= last) ? ((j + 1) - last + first) : (j + 1)]).on_curve) {
 		next_off = gi->coords[((j + 2) >= last) ? ((j + 2) - last + first) : (j + 2)];
+		if(next_off.on_curve) break;
 
 		curr_off_v = bs_v2add(bs_v2divs(BS_V2(curr_off.x, curr_off.y), div), mov);
 		next_off_v = bs_v2add(bs_v2divs(BS_V2(next_off.x, next_off.y), div), mov);
 
 		bs_vec2 mid = bs_v2mid(curr_off_v, next_off_v);
 
-//		bs_pushRect(BS_V3(curr_off_v.x, curr_off_v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(80, 100, 255, 150));
+		pts[num_pts++] = mid;
 
-		if(next_off.on_curve)
-		    break;
-
-		bs_pushRect(BS_V3(mid.x, mid.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(0, 0, 255, 255));
-		bs_pushTTFCurve(curr_v, curr_off_v, mid, BS_WHITE);
+		bs_vec2 elems[ttf.detail + 1];
+		bs_v2QuadBez(curr_v, curr_off_v, mid, elems, ttf.detail);
+		elems[ttf.detail] = mid;
+		for(int i = 1; i < ttf.detail; i++)
+		    pts[num_pts++] = elems[i];
 
 		curr_v = mid;
 		j++;
@@ -447,14 +523,19 @@ int bs_loadFont(char *path) {
 		v.x = (1 - t) * (1 - t) * curr_v.x + 2 * (1 - t) * t * curr_off_v.x + t * t * next_off_v.x;
 		v.y = (1 - t) * (1 - t) * curr_v.y + 2 * (1 - t) * t * curr_off_v.y + t * t * next_off_v.y;
 
-
-		data[(int)v.x + ((int)v.y * 64)] = 255;
-		bs_pushRect(BS_V3(v.x, v.y, 0.0), (bs_vec2){ 4.0, 4.0 }, BS_RGBA(255, 0, 0, 255));
+//		pts[num_pts++] = v;
 	    }
 	}
-    }
+	for(int k = 1; k < num_pts; k+=2) {
+	    bs_RGBA rgba = BS_RGBA(bs_randRangeI(0, 255), bs_randRangeI(0, 255), bs_randRangeI(0, 255), 255);
 
-    lodepng_encode_file("test.png", data, 64, 64, LCT_GREY, 8);
+	    rgba.a = 255;
+	    bs_pushRect(BS_V3(pts[k-1].x / 8.0, pts[k-1].y / 8.0, 0.0), BS_V2(4.0, 4.0), rgba);
+	    bs_pushRect(BS_V3(pts[k].x / 8.0, pts[k].y / 8.0, 0.0), BS_V2(4.0, 4.0), rgba);
+	}
+    }
+    lodepng_encode_file("test.png", bmp, bmp_dim.x, bmp_dim.y, LCT_GREY, 8);
+
     bs_pushBatch();
 
     free(buf);

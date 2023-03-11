@@ -348,8 +348,8 @@ void bs_jointlessAnimation(bs_Anim *anim, bs_Mesh *mesh) {
 
 void bs_animation(bs_Anim *anim, bs_Mesh *mesh) {
     if(anim->joint_count != mesh->joint_count) {
-	printf("Mismatching number of joints in animation and mesh\n");
 	bs_jointlessAnimation(anim, mesh);
+	printf("Mismatching number of joints in animation and mesh\n");
 	return;
     }
 
@@ -506,7 +506,7 @@ int bs_model(bs_Model *model, const char *model_path, int settings) {
     model->vertex_count = 0;
     model->index_count = 0;
  
-    model->name = malloc(path_len);
+    model->name = malloc(path_len + 1);
     strcpy(model->name, model_path);
 
     for(int i = 0; i < mesh_count; i++) {
@@ -533,12 +533,19 @@ void bs_animate(bs_Anim *anim, int bind_point, int frame) {
 
     bs_MeshAnim *mesh_anim = anim->mesh_anims + bind_point;
 
+    struct {
+	int frame;
+	int num_frames;
+    } buf; 
+
     frame %= anim->frame_count;
     frame *= anim->joint_count;
     frame += mesh_anim->shader_offset;
+    buf.frame = frame;
+    buf.num_frames = anim->frame_count;
 
     bs_selectSSBO(anim_ssbo);
-    bs_pushSSBO(&frame, 0, 4);
+    bs_pushSSBO(&buf, 0, sizeof(buf));
 }
 
 void bs_pushAnims() {

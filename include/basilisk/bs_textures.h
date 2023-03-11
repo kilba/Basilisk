@@ -41,6 +41,7 @@ void bs_nearestFiltering();
 
 void bs_depthStencil(bs_Texture *texture, bs_ivec2 dim);
 void bs_depth(bs_Texture *texture, bs_ivec2 dim);
+void bs_textureRG(bs_Texture *texture, bs_ivec2 dim);
 void bs_textureRGB(bs_Texture *texture, bs_ivec2 dim);
 void bs_textureRGB16f(bs_Texture *texture, bs_ivec2 dim);
 void bs_textureRGB32f(bs_Texture *texture, bs_ivec2 dim);
