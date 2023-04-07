@@ -268,10 +268,10 @@ void bs_glyf(bs_glyfInfo *glyf, int id) {
     glyf->glyphs[id].x_max = bs_memU16(glyf->buf, GLYF_XMAX);
     glyf->glyphs[id].y_max = bs_memU16(glyf->buf, GLYF_YMAX);
 
-    glyf->glyphs[id].x_min = 27;
-    glyf->glyphs[id].y_min = -28;
-    glyf->glyphs[id].x_max = 1082;
-    glyf->glyphs[id].y_max = 1491;
+    glyf->glyphs[id].x_min = 111;
+    glyf->glyphs[id].y_min = -431;
+    glyf->glyphs[id].x_max = 2005;
+    glyf->glyphs[id].y_max = 1493;
 
     // Get location of glyph in ttf buffer
     glyf->buf += bs_loca(&ttf.loca, id);
@@ -454,7 +454,7 @@ int bs_loadFont(char *path) {
     bs_hhea(&ttf.hhea);
     bs_cmap(&ttf.cmap);
     
-    int idx = 133;
+    int idx = 35;
     bs_glyf(&ttf.glyf, idx);
 
     bs_batch(&batch00, &shader00);
@@ -467,6 +467,13 @@ int bs_loadFont(char *path) {
     for(int i = 0; i < gi->num_contours; i++) {
 	uint16_t first = (i == 0) ? 0 : gi->contours[i - 1] + 1;
 	uint16_t last = gi->contours[i] + 1;
+
+	// Check winding order
+	bs_vec2 firstPt, nextPt;
+	firstPt = BS_V2(gi->coords[first + 0].x, gi->coords[first + 0].y);
+	nextPt  = BS_V2(gi->coords[first + 1].x, gi->coords[first + 1].y);
+
+	bs_v2print(bs_v2sub(firstPt, nextPt));
 
 	for(int j = first; j < last; j++) {
 	    bs_glyfPt curr = gi->coords[j];
@@ -481,7 +488,6 @@ int bs_loadFont(char *path) {
 
 	    if(curr_off.on_curve) {
 		pts[num_raster_pts++] = curr_v;
-		bs_v2print(curr_v);
 		continue;
 	    }
 

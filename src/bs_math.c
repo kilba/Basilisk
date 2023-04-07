@@ -55,7 +55,7 @@ bs_aabb bs_v3bounds(bs_vec3 *arr, int num_indices) {
     float near = 99999.0;
 
     for(int i = 0; i < num_indices; i++) {
-	float dot = bs_dot(BS_V3_1, arr[i]);
+	float dot = bs_v3dot(BS_V3_1, arr[i]);
 	if(dot > far) {
 	    far = dot;
 	    aabb.min = arr[i];
@@ -93,7 +93,11 @@ bs_vec3 bs_cross(bs_vec3 v0, bs_vec3 v1) {
     return out;
 }
 
-float bs_dot(bs_vec3 v0, bs_vec3 v1) {
+float bs_v2dot(bs_vec2 v0, bs_vec2 v1) {
+    return v0.x * v1.x + v0.y * v1.y;
+}
+
+float bs_v3dot(bs_vec3 v0, bs_vec3 v1) {
     return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z;
 }
 

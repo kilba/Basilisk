@@ -64,6 +64,7 @@
     typedef struct bs_Anim bs_Anim;
     typedef struct bs_Material bs_Material;
     typedef struct bs_Joint bs_Joint;
+    typedef struct bs_Skin bs_Skin;
     typedef struct bs_Prim bs_Prim;
     typedef struct bs_Mesh bs_Mesh;
     typedef struct bs_Model bs_Model;
@@ -347,7 +348,7 @@ struct bs_Batch {
 
 struct bs_Material {
     bs_RGBA col;
-    bs_Texture *tex;
+    int tex_idx;
 
     float metallic;
 };
@@ -361,6 +362,11 @@ struct bs_Joint {
 
     bs_Joint *parent;
     int loc;
+};
+
+struct bs_Skin {
+    bs_Joint *joints;
+    int joint_count;
 };
 
 struct bs_Prim {
@@ -395,25 +401,27 @@ struct bs_Mesh {
     int vertex_count;
     int index_count;
 
-    bs_Joint *joints;
-    int joint_count;
-
     unsigned int id;
 };
 
 struct bs_Model {
     char *name;
+    char **texture_names;
 
+    bs_Skin *skins;
     bs_Mesh *meshes;
-    bs_Texture *textures;
 
+    int skin_count;
     int mesh_count;
     int prim_count;
+    
     int anim_count;
     int anim_offset;
 
     int vertex_count;
     int index_count;
+    
+    int texture_count;
 };
 
 struct bs_MeshAnim {

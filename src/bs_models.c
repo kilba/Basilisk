@@ -53,15 +53,14 @@ void bs_modelAttribDataI(int accessor_idx, int offset, bs_Prim *prim, cgltf_data
     }
 }
 
-void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
+void bs_loadMaterial(bs_Model *model, cgltf_data *c_data, cgltf_primitive *c_prim, bs_Prim *prim) {
     cgltf_material *c_mat = c_prim->material;
     bs_Material *mat = &prim->material;
 
     if(c_mat == NULL) {
-	mat->col.r = 255;
-	mat->col.g = 255;
-	mat->col.b = 255;
-	mat->col.a = 255;
+	mat->col = BS_WHITE;
+	mat->tex_idx = -1;
+	mat->metallic = 0.0;
 	return;
     }
 
@@ -74,12 +73,14 @@ void bs_loadMaterial(bs_Model *model, cgltf_primitive *c_prim, bs_Prim *prim) {
     mat->col.a = mat_color[3] * 255;
 
     // If the primitive has a texture
-    if(metallic->base_color_texture.texture != NULL) {
-	int id = (int64_t)metallic->base_color_texture.texture->image;
-	id -= curr_tex_ptr;
+    cgltf_texture *tex = metallic->base_color_texture.texture;
+    if(tex != NULL) {
+	int id = (int64_t)tex->image;
+	id -= (int64_t)c_data->textures[0].image;
 	id /= sizeof(cgltf_image);
+	printf("TEXTURE ID: %d\n", id);
 
-	mat->tex = &model->textures[0];
+	mat->tex_idx = id;
     }
 
     mat->metallic = metallic->metallic_factor;
@@ -190,12 +191,11 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     cgltf_primitive *c_prim = c_mesh->primitives + prim_index;
     bs_Prim *prim = &mesh->prims[prim_index];
 
-    prim->material.tex = NULL;
     int attrib_count = c_mesh->primitives[prim_index].attributes_count;
     int num_floats = cgltf_accessor_unpack_floats(&data->accessors[c_mesh->primitives[prim_index].attributes[0].index], NULL, 0);
 
     int vertex_size = 0;
-    bs_loadMaterial(model, &c_mesh->primitives[prim_index], prim);
+    bs_loadMaterial(model, data, &c_mesh->primitives[prim_index], prim);
 
     prim->offset_nor = 0;
     prim->offset_tex = 0;
@@ -236,54 +236,7 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     	}
     }
 
-    if((load_settings & BS_INDICES) == BS_INDICES)
-	bs_readIndices(mesh, model, c_mesh, prim_index);
-
-    if((load_settings & BS_INDICES_ADJACENT) == BS_INDICES_ADJACENT)
-	bs_readIndicesAdjacent(mesh, model, c_mesh, prim_index);
-}
-
-void bs_loadJoints(cgltf_data *data, bs_Mesh *mesh, cgltf_mesh *c_mesh) {
-    cgltf_skin *skin = c_mesh->node->skin;
-    mesh->joints = NULL;
-
-    if(skin == NULL)
-	return;
-
-    mesh->joints = malloc(skin->joints_count * sizeof(bs_Joint));
-    mesh->joint_count = skin->joints_count;
-
-    for(int i = 0; i < skin->joints_count; i++) {
-	cgltf_node *c_joint = skin->joints[i];
-	bs_Joint *joint = &mesh->joints[i];
-
-	// Set the local matrix
-	bs_mat4 local = GLM_MAT4_IDENTITY_INIT;
-	glm_translate(local, c_joint->translation);
-	glm_quat_rotate(local, c_joint->rotation, local);
-	glm_scale(local, c_joint->scale);
-	glm_mat4_inv(local, joint->local_inv);
-
-	// Set the inverse bind matrix and regular bind matrix
-	cgltf_accessor_read_float(skin->inverse_bind_matrices, i, (float*)joint->bind_matrix_inv, 16);
-	glm_mat4_inv(joint->bind_matrix_inv, joint->bind_matrix);
-
-	memcpy(mesh->joints[i].mat, GLM_MAT4_IDENTITY, sizeof(bs_mat4));
-
-	c_joint->id = i;
-    }
-
-    for(int i = 0; i < skin->joints_count; i++) {
-	int parent_id = skin->joints[i]->parent->id;
-
-	// If parent id is the armature
-	if(parent_id == -1) {
-	    mesh->joints[i].parent = &identity_joint;
-	    continue;
-	}
-
-	mesh->joints[i].parent = &mesh->joints[parent_id];
-    }
+    bs_readIndices(mesh, model, c_mesh, prim_index);
 }
 
 void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
@@ -294,7 +247,6 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
 
     int c_mesh_name_len = strlen(c_mesh->node->name);
     mesh->id = mesh_index;
-    mesh->joint_count = 0;
     mesh->index_count = 0;
     mesh->vertex_count = 0;
     mesh->name = malloc(c_mesh_name_len+1);
@@ -313,8 +265,6 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
 
     mesh->prims = malloc(c_mesh->primitives_count * sizeof(bs_Prim));
     mesh->prim_count = c_mesh->primitives_count;
-
-    bs_loadJoints(data, mesh, c_mesh);
 
     for(int i = 0; i < c_mesh->primitives_count; i++)
 	bs_loadPrim(data, mesh, model, mesh_index, i);
@@ -346,9 +296,9 @@ void bs_jointlessAnimation(bs_Anim *anim, bs_Mesh *mesh) {
     anim->num_mesh_anims++;
 }
 
-void bs_animation(bs_Anim *anim, bs_Mesh *mesh) {
-    if(anim->joint_count != mesh->joint_count) {
-	bs_jointlessAnimation(anim, mesh);
+void bs_animation(bs_Anim *anim, bs_Skin *skin) {
+    if(anim->joint_count != skin->joint_count) {
+	//bs_jointlessAnimation(anim, mesh);
 	printf("Mismatching number of joints in animation and mesh\n");
 	return;
     }
@@ -366,8 +316,8 @@ void bs_animation(bs_Anim *anim, bs_Mesh *mesh) {
     for(int i = 0; i < anim->frame_count; i++) {
 	// For each JOINT in mesh
 	for(int j = 0; j < anim->joint_count; j++) {
-	    bs_Joint *change_joint = &mesh->joints[j];
-	    bs_Joint *parent = mesh->joints[j].parent;
+	    bs_Joint *change_joint = &skin->joints[j];
+	    bs_Joint *parent = skin->joints[j].parent;
 	    int idx = j + i * anim->joint_count;
 
 	    // RESULT_JOINT  = (BIND MATRIX) * (LOCAL INVERSE)
@@ -472,6 +422,51 @@ void bs_loadAnims(cgltf_data* data, bs_Model *model) {
 	bs_loadAnim(data, i, old_anim_count, model);
 }
 
+void bs_loadTexturePath(int idx, bs_Model *model, cgltf_texture *c_texture, const char *texture_path) {
+    // TODO: Check if already ending with .png (also .jpg support)
+    char *path = malloc(strlen(texture_path) + strlen(c_texture->image->name) + sizeof(".png"));
+    sprintf(path, "%s/%s.png", texture_path, c_texture->image->name);
+
+    model->texture_names[idx] = path;
+}
+
+void bs_loadSkin(cgltf_skin *c_skin, bs_Skin *skin) {
+    skin->joints = malloc(c_skin->joints_count * sizeof(bs_Joint));
+    skin->joint_count = c_skin->joints_count;
+
+    for(int i = 0; i < skin->joint_count; i++) {
+	cgltf_node *c_joint = c_skin->joints[i];
+	bs_Joint *joint = skin->joints + i;
+
+	// Set the local matrix
+	bs_mat4 local = GLM_MAT4_IDENTITY_INIT;
+	glm_translate(local, c_joint->translation);
+	glm_quat_rotate(local, c_joint->rotation, local);
+	glm_scale(local, c_joint->scale);
+	glm_mat4_inv(local, joint->local_inv);
+
+	// Set the inverse bind matrix and regular bind matrix
+	cgltf_accessor_read_float(c_skin->inverse_bind_matrices, i, (float*)joint->bind_matrix_inv, 16);
+	glm_mat4_inv(joint->bind_matrix_inv, joint->bind_matrix);
+
+	memcpy(skin->joints[i].mat, GLM_MAT4_IDENTITY, sizeof(bs_mat4));
+
+	c_joint->id = i;
+    }
+
+    for(int i = 0; i < skin->joint_count; i++) {
+	int parent_id = c_skin->joints[i]->parent->id;
+
+	// If parent id is the armature
+	if(parent_id == -1) {
+	    skin->joints[i].parent = &identity_joint;
+	    continue;
+	}
+
+	skin->joints[i].parent = skin->joints + parent_id;
+    }
+}
+
 void bs_cgltfError(int err) {
     switch(err) {
 	case cgltf_result_success: return;
@@ -483,10 +478,9 @@ void bs_cgltfError(int err) {
     }
 }
 
-int bs_model(bs_Model *model, const char *model_path, int settings) {
+int bs_model(bs_Model *model, const char *model_path, const char *texture_path) {
     cgltf_options options = {0};
     cgltf_data* data = NULL;
-    load_settings = settings;
 
     int err;
     err = cgltf_parse_file(&options, model_path, &data);
@@ -497,7 +491,7 @@ int bs_model(bs_Model *model, const char *model_path, int settings) {
     int path_len = strlen(model_path);
     int mesh_count = data->meshes_count;
 
-    model->textures = NULL;
+    model->texture_names = NULL;
     model->meshes = malloc(mesh_count * sizeof(bs_Mesh));
     model->mesh_count = mesh_count;
     model->prim_count = 0;
@@ -508,6 +502,17 @@ int bs_model(bs_Model *model, const char *model_path, int settings) {
  
     model->name = malloc(path_len + 1);
     strcpy(model->name, model_path);
+
+    model->texture_names = malloc(data->textures_count * sizeof(char *));
+    model->texture_count = data->textures_count;
+    for(int i = 0; i < data->textures_count; i++)
+	bs_loadTexturePath(i, model, data->textures + i, texture_path);
+
+    model->skins = malloc(data->skins_count * sizeof(bs_Skin));
+    model->skin_count = data->skins_count;
+    for(int i = 0; i < data->skins_count; i++) {
+	bs_loadSkin(data->skins + i, model->skins + i);
+    }
 
     for(int i = 0; i < mesh_count; i++) {
 	bs_loadMesh(data, model, i);
@@ -613,10 +618,17 @@ void bs_freeModel(bs_Model *model) {
 	    free(prim->vertices);
 	}
 
-	free(mesh->joints);
 	free(mesh->prims);
     }
 
-    free(model->textures);
+    for(int i = 0; i < model->skin_count; i++) {
+	bs_Skin *skin = model->skins + i;
+
+	for(int j = 0; j < skin->joint_count; j++)
+	    free(skin->joints);
+    }
+
+    // TODO: Free texture names?
+    free(model->skins);
     free(model->meshes);
 }
