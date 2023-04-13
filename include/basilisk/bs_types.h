@@ -269,6 +269,7 @@ enum {
 struct bs_Globals {
     bs_ivec2 res;
     float elapsed;
+    bs_vec3 cam_pos;
 };
 
 // TODO: Remove this shit

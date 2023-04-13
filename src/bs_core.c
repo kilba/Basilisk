@@ -26,6 +26,7 @@
 
 bs_Texture def_texture;
 bs_Camera def_camera;
+bs_Camera *shader_camera = NULL;
 bs_Batch *curr_batch = NULL;
 
 bs_Framebuf *curr_framebuf = NULL;
@@ -55,6 +56,10 @@ void bs_setV1_(float v) {
 
 void bs_setV4_(bs_vec4 v) {
     v4_ = v;
+}
+
+void bs_shaderCamera(bs_Camera *cam) {
+    shader_camera = cam;
 }
 
 void bs_persp(bs_Camera *cam, float aspect, float fovy, float nearZ, float farZ) {
@@ -693,8 +698,13 @@ void bs_defaultBlending() {
 void bs_setGlobalVars() {
     bs_Globals globals;
 
+    // TODO: actual camera system, update camera position for every batch
+    bs_mat4 view_inv;
+    glm_mat4_inv((shader_camera != NULL ? shader_camera : curr_batch->camera)->view, view_inv);
+
     globals.res = bs_resolution();
     globals.elapsed = bs_elapsedTime();
+    globals.cam_pos = BS_V3(view_inv[3][0], view_inv[3][1], view_inv[3][2]);
 
     bs_setUniformBlockData(global_unifs, &globals);
 }

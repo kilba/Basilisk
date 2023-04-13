@@ -56,13 +56,13 @@ void bs_modelAttribDataI(int accessor_idx, int offset, bs_Prim *prim, cgltf_data
 void bs_loadMaterial(bs_Model *model, cgltf_data *c_data, cgltf_primitive *c_prim, bs_Prim *prim) {
     cgltf_material *c_mat = c_prim->material;
     bs_Material *mat = &prim->material;
+    
+    mat->col = BS_WHITE;
+    mat->tex_idx = 0;
+    mat->metallic = 0.0;
 
-    if(c_mat == NULL) {
-	mat->col = BS_WHITE;
-	mat->tex_idx = -1;
-	mat->metallic = 0.0;
+    if(c_mat == NULL)
 	return;
-    }
 
     cgltf_pbr_metallic_roughness *metallic = &c_mat->pbr_metallic_roughness;
     cgltf_float *mat_color = metallic->base_color_factor;
@@ -78,9 +78,8 @@ void bs_loadMaterial(bs_Model *model, cgltf_data *c_data, cgltf_primitive *c_pri
 	int id = (int64_t)tex->image;
 	id -= (int64_t)c_data->textures[0].image;
 	id /= sizeof(cgltf_image);
-	printf("TEXTURE ID: %d\n", id);
 
-	mat->tex_idx = id;
+	mat->tex_idx = id + 1;
     }
 
     mat->metallic = metallic->metallic_factor;

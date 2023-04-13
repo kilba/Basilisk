@@ -98,6 +98,7 @@ void bs_startRender(void (*render)());
 void bs_setGlobalVars();
 
 /* --- MATRICES / CAMERAS --- */
+void bs_shaderCamera(bs_Camera *cam);
 bs_Camera *bs_defCamera();
 void bs_setMatrices(bs_Shader *shader);
 void bs_persp(bs_Camera *cam, float aspect, float fovy, float nearZ, float farZ);
