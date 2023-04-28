@@ -131,6 +131,8 @@ void bs_viewport(int x, int y, int w, int h);
 
 /* --- CONSTANTS --- */
 #define BS_BATCH_INCR_BY 1024
+#define BS_MODEL_INCR_BY 128
+
 /* OPENGL FILTERING SETTINGS */
 #define BS_NEAREST 0x2600
 #define BS_NEAREST_MIPMAP_LINEAR 0x2702

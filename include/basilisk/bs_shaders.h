@@ -4,7 +4,28 @@
 #include <stdbool.h>
 #include <bs_types.h>
 
+enum {
+    BS_MODEL_IDX_OFFSET,
+    BS_MATERIAL_IDX_OFFSET,
+    BS_TEXTURE_IDX_OFFSET,
+    BS_ANIM_IDX_OFFSET,
+
+    BS_SHADER_IDX_COUNT
+};
+
+enum {
+    BS_SSBO_X,
+    BS_SSBO_ANIMS,
+    BS_SSBO_IDXS,
+    BS_SSBO_MODELS
+};
+
+/* --- SHADER BUFFERS --- */
+bs_U32 bs_shaderModel(bs_mat4 mat);
+void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset);
+
 /* --- INITIALIZATION --- */
+void bs_shaderBufs();
 void bs_shaderReplaceAlloc(int amount); 
 void bs_replaceInAllShaders(char *old_str, char *new_str);
 void bs_freeReplaceBlock();

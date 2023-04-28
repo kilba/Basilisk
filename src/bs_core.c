@@ -725,7 +725,9 @@ void bs_init(int width, int height, const char *title) {
     def_texture.texw = 1.0;
 
     bs_setTexture(&def_texture);
+    bs_shaderBufs();
 
+    // TODO: Extract to bs_shaderBufs
     global_unifs = bs_initUniformBlock(sizeof(bs_Globals), 0);
 }
 

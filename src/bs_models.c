@@ -296,10 +296,20 @@ void bs_jointlessAnimation(bs_Anim *anim, bs_Mesh *mesh) {
 }
 
 void bs_animation(bs_Anim *anim, bs_Skin *skin) {
+    if(anim == NULL) {
+	printf("Animation \"%s\" is NULL\n", anim->name);
+	exit(1);
+    }
+
+    if(skin == NULL) {
+	printf("Skin \"%s\" is NULL\n", skin->name);
+	exit(1);
+    }
+
     if(anim->joint_count != skin->joint_count) {
-	//bs_jointlessAnimation(anim, mesh);
-	printf("Mismatching number of joints in animation and mesh\n");
-	return;
+	//bs_jointlessAnimation(anim, mesh)
+	printf("Joint mismatch:\n    %s: %d\n    %s: %d\n", anim->name, anim->joint_count, skin->name, skin->joint_count);
+	exit(1);
     }
 
     bs_checkMeshAnimResize(anim);
@@ -323,7 +333,7 @@ void bs_animation(bs_Anim *anim, bs_Skin *skin) {
 	    // RESULT_JOINT *= (ANIMATION JOINT OF CURRENT FRAME)
 	    // RESULT_JOINT *= (INVERSE BIND MATRIX)
 	    // RESULT_JOINT  = (JOINT PARENT) * (RESULT_JOINT)
-	    
+
 	    glm_mat4_mul(change_joint->bind_matrix, change_joint->local_inv, change_joint->mat);
 	    glm_mat4_mul(change_joint->mat, anim->matrices[idx], change_joint->mat);
 	    glm_mat4_mul(change_joint->mat, change_joint->bind_matrix_inv, change_joint->mat);
@@ -430,6 +440,12 @@ void bs_loadTexturePath(int idx, bs_Model *model, cgltf_texture *c_texture, cons
 }
 
 void bs_loadSkin(cgltf_skin *c_skin, bs_Skin *skin) {
+    int strlen_skin_name = strlen(c_skin->name);
+
+    skin->name = malloc(strlen_skin_name + 1);
+    strncpy(skin->name, c_skin->name, strlen_skin_name);
+    skin->name[strlen_skin_name] = '\0';
+
     skin->joints = malloc(c_skin->joints_count * sizeof(bs_Joint));
     skin->joint_count = c_skin->joints_count;
 
@@ -571,6 +587,15 @@ void bs_pushAnims() {
 	//free(anim->mesh_anims);
 	free(anim->matrices);
     }
+}
+
+bs_Skin *bs_skinFromName(const char *name, bs_Model *model) {
+    for(int i = 0; i < model->skin_count; i++) {
+	bs_Skin *skin = model->skins + i;
+	if(strcmp(name, skin->name) == 0)
+	    return skin;
+    }
+    return NULL;
 }
 
 bs_Anim *bs_anims() {

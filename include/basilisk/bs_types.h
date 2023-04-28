@@ -51,6 +51,7 @@
     typedef struct bs_RGBA bs_RGBA;
     typedef struct bs_RGB bs_RGB;
 
+    typedef struct bs_AnimIdx bs_AnimIdx;
     typedef struct bs_Globals bs_Globals;
     typedef struct bs_Texture bs_Texture;
     typedef struct bs_Uniform bs_Uniform;
@@ -266,6 +267,11 @@ enum {
     BS_MAX_ATTRIB_COUNT
 };
 
+struct bs_AnimIdx {
+    bs_U32 frame;
+    bs_U32 num_frames;
+};
+
 struct bs_Globals {
     bs_ivec2 res;
     float elapsed;
@@ -368,6 +374,8 @@ struct bs_Joint {
 struct bs_Skin {
     bs_Joint *joints;
     int joint_count;
+
+    char *name;
 };
 
 struct bs_Prim {

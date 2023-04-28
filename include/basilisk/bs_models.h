@@ -11,6 +11,7 @@ bs_Anim *bs_anims();
 bs_Anim *bs_modelAnims(bs_Model *model);
 bs_Anim *bs_modelAnimFromName(const char *name, bs_Model *model);
 bs_Anim *bs_animFromName(const char *name);
+bs_Skin *bs_skinFromName(const char *name, bs_Model *model);
 int bs_numAnims();
 void bs_freeModel(bs_Model *model);
 

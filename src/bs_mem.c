@@ -34,6 +34,7 @@ int bs_memcmpU32(const void *a, const void *b) {
 /* --- STRING FUNCTIONS --- */
 char* 
 bs_replaceFirstSubstring(const char* str, const char* old_str, const char* new_str) {
+    if(str == NULL || old_str == NULL || new_str == NULL) return NULL;
     int new_len = strlen(new_str);
     int old_len = strlen(old_str);
     int str_len = strlen(str);
@@ -46,16 +47,17 @@ bs_replaceFirstSubstring(const char* str, const char* old_str, const char* new_s
     if(start == NULL) 
 	return NULL;
 
-    int replace_offset = start-str;
+    int replace_offset = start - str;
+    int last_size = str_len - replace_offset - old_len;
 
     // Making new string of enough length
     char *result = malloc(new_size);
     char *offset = result;
 
-    strncpy(offset, str, replace_offset); offset += replace_offset;
-    strncpy(offset, new_str, new_len);    offset += new_len;
-    strncpy(offset, start + old_len, str_len - (offset - result));
-    
+
+    memcpy(offset, str, replace_offset); offset += replace_offset;
+    memcpy(offset, new_str, new_len); offset += new_len;
+    memcpy(offset, str + replace_offset + old_len, last_size); offset += last_size;
     result[new_size-1] = '\0';
 
     return result;

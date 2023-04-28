@@ -23,8 +23,52 @@ struct ReplaceBuf {
     char *old_str;
     char *new_str;
 } *replace_buf = NULL;
+// TODO: Make static
 int replace_buf_size = 0;
 int replace_buf_curr = 0;
+
+int num_shader_indices = 1024 * 8;
+
+bs_U32 shader_idx_SSBO;
+bs_U32 shader_model_SSBO;
+
+bs_U32 shader_buf_offsets[BS_SHADER_IDX_COUNT] = { 0, 0, 0, 0 };
+
+char *global_shader = NULL;
+
+void bs_configNumShaderIndices(bs_U32 n) {
+    num_shader_indices = n;
+}
+
+void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset) {
+    bs_selectSSBO(shader_model_SSBO);
+    bs_pushSSBO(mat, offset * sizeof(bs_mat4), sizeof(bs_mat4));
+}
+
+bs_U32 bs_shaderModel(bs_mat4 mat) {
+    // TODO: Check resize
+    bs_updateShaderModel(mat, shader_buf_offsets[BS_MODEL_IDX_OFFSET]);
+    return shader_buf_offsets[BS_MODEL_IDX_OFFSET]++;
+}
+
+void bs_shaderBufs() {
+    int err, len;
+    global_shader = bs_fileContents("basilisk.bsh", &len, &err);
+
+    if(global_shader == NULL)
+	return;
+
+    bs_U32 idx = bs_shaderModel(GLM_MAT4_IDENTITY); // Create a model
+
+    size_t size = 0;
+    size += num_shader_indices * sizeof(bs_U32);     // Model idxs
+    size += num_shader_indices * sizeof(bs_U32);     // Material idxs
+    size += num_shader_indices * sizeof(bs_U32);     // Texture idxs
+    size += num_shader_indices * sizeof(bs_U32);     // Animation idxs
+
+    shader_idx_SSBO   = bs_SSBO(NULL, size, BS_SSBO_IDXS + 2);
+    shader_model_SSBO = bs_SSBO(NULL, BS_MODEL_INCR_BY * sizeof(bs_mat4), BS_SSBO_MODELS + 2);
+}
 
 /* Not necessary, but prevents multiple calls to realloc() */
 void bs_shaderReplaceAlloc(int amount) {
@@ -159,7 +203,12 @@ const char *bs_replaceInShader(const char *code) {
 }
 
 void bs_loadShaderCode(int program, GLuint *shader_id, const char *shader_code, int type) {
-    const GLchar *replaced_shader_code = bs_replaceInShader(shader_code);
+    const char *shader_code_with_globals = bs_replaceFirstSubstring(shader_code, "#define BASILISK", global_shader);
+
+    if(shader_code_with_globals == NULL)
+	shader_code_with_globals = shader_code;
+
+    const GLchar *replaced_shader_code = bs_replaceInShader(shader_code_with_globals);
 
     *shader_id = glCreateShader(type);
     glShaderSource(*shader_id, 1, &replaced_shader_code, NULL);
@@ -168,24 +217,22 @@ void bs_loadShaderCode(int program, GLuint *shader_id, const char *shader_code, 
     bs_shaderErrorCheck(shader_id, type);
     glAttachShader(program, *shader_id);
 
-    if((char*)replaced_shader_code != shader_code) {
+    if((char*)replaced_shader_code != shader_code)
 	free((char*)replaced_shader_code);
-    }
+
 }
 
 void bs_setDefaultUniformLocations(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code) {
-    for(int i = 0; i < BS_UNIFORM_TYPE_COUNT; i++) {
+    for(int i = 0; i < BS_UNIFORM_TYPE_COUNT; i++)
         shader->uniforms[i].is_valid = false;
-    }
 
     bs_setDefShaderUniforms(shader, vs_code);
     bs_setDefShaderUniforms(shader, fs_code);
 
     bs_setDefShaderAttribs(shader, vs_code);
 
-    if(gs_code != 0) {
+    if(gs_code != 0)
         bs_setDefShaderUniforms(shader, gs_code);
-    }
 }
 
 void bs_shaderMem(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code) {
