@@ -55,10 +55,10 @@ void bs_shaderBufs() {
     int err, len;
     global_shader = bs_fileContents("basilisk.bsh", &len, &err);
 
-    if(global_shader == NULL)
-	return;
+    if(global_shader != NULL)
+	bs_replaceInAllShaders("#define BASILISK", global_shader);
 
-    bs_U32 idx = bs_shaderModel(GLM_MAT4_IDENTITY); // Create a model
+    //&bs_U32 idx = bs_shaderModel(GLM_MAT4_IDENTITY); // Create a model
 
     size_t size = 0;
     size += num_shader_indices * sizeof(bs_U32);     // Model idxs
@@ -203,12 +203,7 @@ const char *bs_replaceInShader(const char *code) {
 }
 
 void bs_loadShaderCode(int program, GLuint *shader_id, const char *shader_code, int type) {
-    const char *shader_code_with_globals = bs_replaceFirstSubstring(shader_code, "#define BASILISK", global_shader);
-
-    if(shader_code_with_globals == NULL)
-	shader_code_with_globals = shader_code;
-
-    const GLchar *replaced_shader_code = bs_replaceInShader(shader_code_with_globals);
+    const GLchar *replaced_shader_code = bs_replaceInShader(shader_code);
 
     *shader_id = glCreateShader(type);
     glShaderSource(*shader_id, 1, &replaced_shader_code, NULL);

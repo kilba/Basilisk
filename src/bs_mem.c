@@ -42,22 +42,22 @@ bs_replaceFirstSubstring(const char* str, const char* old_str, const char* new_s
     // Counting the number of times old word
     // occur in the string
     char *start = strstr(str, old_str);
-    int new_size = str_len - old_len + new_len;
 
     if(start == NULL) 
 	return NULL;
 
     int replace_offset = start - str;
     int last_size = str_len - replace_offset - old_len;
+    
+    int new_size = replace_offset + new_len + last_size + 1;
 
     // Making new string of enough length
     char *result = malloc(new_size);
     char *offset = result;
 
-
     memcpy(offset, str, replace_offset); offset += replace_offset;
     memcpy(offset, new_str, new_len); offset += new_len;
-    memcpy(offset, str + replace_offset + old_len, last_size); offset += last_size;
+    memcpy(offset, str + replace_offset + old_len, last_size);
     result[new_size-1] = '\0';
 
     return result;
