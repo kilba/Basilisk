@@ -49,10 +49,10 @@ void bs_m3print(bs_mat3 m) {
 }
 
 void bs_m4print(bs_mat4 m) {
-    printf("%f, %f, %f, %f\n"  , m[0][0], m[1][0], m[2][0], m[3][0]);
-    printf("%f, %f, %f, %f\n"  , m[0][1], m[1][1], m[2][1], m[3][1]);
-    printf("%f, %f, %f, %f\n"  , m[0][2], m[1][2], m[2][2], m[3][2]);
-    printf("%f, %f, %f, %f\n\n", m[0][3], m[1][3], m[2][3], m[3][3]);
+    printf("%f, %f, %f, %f\n"  , m.a[0][0], m.a[1][0], m.a[2][0], m.a[3][0]);
+    printf("%f, %f, %f, %f\n"  , m.a[0][1], m.a[1][1], m.a[2][1], m.a[3][1]);
+    printf("%f, %f, %f, %f\n"  , m.a[0][2], m.a[1][2], m.a[2][2], m.a[3][2]);
+    printf("%f, %f, %f, %f\n\n", m.a[0][3], m.a[1][3], m.a[2][3], m.a[3][3]);
 }
 
 void bs_print(const int info_type, char *format, ...) {

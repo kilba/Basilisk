@@ -42,7 +42,7 @@ void bs_configNumShaderIndices(bs_U32 n) {
 
 void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset) {
     bs_selectSSBO(shader_model_SSBO);
-    bs_pushSSBO(mat, offset * sizeof(bs_mat4), sizeof(bs_mat4));
+    bs_pushSSBO(mat.a, offset * sizeof(bs_mat4), sizeof(bs_mat4));
 }
 
 bs_U32 bs_shaderModel(bs_mat4 mat) {
@@ -57,8 +57,6 @@ void bs_shaderBufs() {
 
     if(global_shader != NULL)
 	bs_replaceInAllShaders("#define BASILISK", global_shader);
-
-    //&bs_U32 idx = bs_shaderModel(GLM_MAT4_IDENTITY); // Create a model
 
     size_t size = 0;
     size += num_shader_indices * sizeof(bs_U32);     // Model idxs
@@ -379,7 +377,7 @@ void bs_switchShaderCompute(int id) {
 // MATRICES
 // TODO: mat2, mat3
 void bs_uniform_mat4(int loc, bs_mat4 mat) {
-    glUniformMatrix4fv(loc, 1, GL_FALSE, mat[0]);
+    glUniformMatrix4fv(loc, 1, GL_FALSE, (float *)mat.a);
 }
 
 // SCALARS

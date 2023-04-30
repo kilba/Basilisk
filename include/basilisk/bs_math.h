@@ -41,6 +41,15 @@ void bs_v2CubicBez(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_vec2 p3, bs_vec2 *arr,
 void bs_v2QuadBez(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_vec2 *arr, int num_elems);
 void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *arr, int num_elems);
 
+/* --- MATRICES --- */
+void bs_transform(bs_vec3 pos, bs_quat rot, bs_vec3 sca, bs_mat4 out);
+
+/* --- VECTOR INITIALIZATION --- */
+bs_vec2 bs_v2(float x, float y);
+bs_vec3 bs_v3(float x, float y, float z);
+bs_vec4 bs_v4(float x, float y, float z, float w);
+bs_quat bs_q(float x, float y, float z, float w);
+
 /* --- VECTOR ADDITION --- */
 bs_vec2 bs_v2add(bs_vec2 a, bs_vec2 b);
 bs_vec3 bs_v3add(bs_vec3 a, bs_vec3 b);
@@ -58,10 +67,13 @@ bs_vec4 bs_v4subv3(bs_vec4 a, bs_vec3 b);
 /* --- VECTOR MULTIPLICATION --- */
 bs_vec2 bs_v2mul(bs_vec2 a, bs_vec2 b);
 bs_vec2 bs_v2muls(bs_vec2 a, float s);
+bs_vec2 bs_v2muladds(bs_vec2 a, float s, bs_vec2 dest);
 bs_vec3 bs_v3mul(bs_vec3 a, bs_vec3 b);
 bs_vec3 bs_v3muls(bs_vec3 a, float s);
+bs_vec3 bs_v3muladds(bs_vec3 a, float s, bs_vec3 dest);
 bs_vec4 bs_v4mul(bs_vec4 a, bs_vec4 b);
 bs_vec4 bs_v4muls(bs_vec4 a, float s);
+bs_vec4 bs_v4muladds(bs_vec4 a, float s, bs_vec4 dest);
 
 /* --- VECTOR DIVISION --- */
 bs_vec2 bs_v2div(bs_vec2 a, bs_vec2 b);

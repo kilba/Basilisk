@@ -63,22 +63,22 @@ void bs_shaderCamera(bs_Camera *cam) {
 }
 
 void bs_persp(bs_Camera *cam, float aspect, float fovy, float nearZ, float farZ) {
-    glm_perspective(glm_rad(fovy), aspect, nearZ, farZ, cam->proj);
+    glm_perspective(glm_rad(fovy), aspect, nearZ, farZ, cam->proj.a);
 }
 
 void bs_ortho(bs_Camera *cam, int left, int right, int bottom, int top, float nearZ, float farZ) {
-    glm_ortho(left, right, bottom, top, nearZ, farZ, cam->proj);
+    glm_ortho(left, right, bottom, top, nearZ, farZ, cam->proj.a);
 
     int x_res = bs_sign(left - right);
     int y_res = bs_sign(top - bottom);
 }
 
 void bs_lookat(bs_Camera *cam, bs_vec3 eye, bs_vec3 center, bs_vec3 up) {
-    glm_lookat((vec3){ eye.x, eye.y, eye.z }, (vec3){ center.x, center.y, center.z }, (vec3){ up.x, up.y, up.z }, cam->view);
+    glm_lookat((vec3){ eye.x, eye.y, eye.z }, (vec3){ center.x, center.y, center.z }, (vec3){ up.x, up.y, up.z }, cam->view.a);
 }
 
 void bs_look(bs_Camera *cam, bs_vec3 eye, bs_vec3 dir, bs_vec3 up) {
-    glm_look((vec3){ eye.x, eye.y, eye.z }, (vec3){ dir.x, dir.y, dir.z }, (vec3){ up.x, up.y, up.z }, cam->view);
+    glm_look((vec3){ eye.x, eye.y, eye.z }, (vec3){ dir.x, dir.y, dir.z }, (vec3){ up.x, up.y, up.z }, cam->view.a);
 }
 
 /* --- BATCHED RENDERING --- */
@@ -206,10 +206,10 @@ int bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col) {
     bs_pushIndexVa(6, 0, 1, 2, 2, 1, 3);
 
     bs_vec3 p0, p1, p2, p3;
-    p0 = BS_V2_Z(bs_v2rot(BS_V2(pos.x, pos.y), BS_V2(pos.x, pos.y), angle), pos.z);
-    p1 = BS_V2_Z(bs_v2rot(BS_V2(dim.x, pos.y), BS_V2(pos.x, pos.y), angle), pos.z);
-    p2 = BS_V2_Z(bs_v2rot(BS_V2(pos.x, dim.y), BS_V2(pos.x, pos.y), angle), pos.z);
-    p3 = BS_V2_Z(bs_v2rot(BS_V2(dim.x, dim.y), BS_V2(pos.x, pos.y), angle), pos.z);
+    p0 = BS_V2_Z(bs_v2rot(bs_v2(pos.x, pos.y), bs_v2(pos.x, pos.y), angle), pos.z);
+    p1 = BS_V2_Z(bs_v2rot(bs_v2(dim.x, pos.y), bs_v2(pos.x, pos.y), angle), pos.z);
+    p2 = BS_V2_Z(bs_v2rot(bs_v2(pos.x, dim.y), bs_v2(pos.x, pos.y), angle), pos.z);
+    p3 = BS_V2_Z(bs_v2rot(bs_v2(dim.x, dim.y), bs_v2(pos.x, pos.y), angle), pos.z);
 
     bs_vec2 tex0, tex1;
     tex0.x = tex->texw * (float)tex->frame.x;
@@ -253,9 +253,9 @@ int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     bs_batchResizeCheck(3, 3);
     bs_pushIndexVa(3, 0, 1, 2),
 
-    bs_pushVertex(pos1, BS_V2(0.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
-    bs_pushVertex(pos2, BS_V2(1.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
-    bs_pushVertex(pos3, BS_V2(0.0, 1.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(pos1, bs_v2(0.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(pos2, bs_v2(1.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(pos3, bs_v2(0.0, 1.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
 
     return curr_batch->index_draw_count;
 }
@@ -264,8 +264,8 @@ int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
     bs_batchResizeCheck(2, 2);
     bs_pushIndexVa(2, 0, 1),
 
-    bs_pushVertex(start, BS_V2(0.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
-    bs_pushVertex(end, BS_V2(1.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(start, bs_v2(0.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(end, bs_v2(1.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
 
     return curr_batch->index_draw_count;
 }
@@ -290,15 +290,15 @@ int bs_pushAABB(bs_aabb aabb, bs_RGBA color) {
     );
 
     // TODO: Set correct normals
-    bs_pushVertex(BS_V3(aabb.min.x, aabb.min.y, aabb.min.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
-    bs_pushVertex(BS_V3(aabb.max.x, aabb.min.y, aabb.min.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
-    bs_pushVertex(BS_V3(aabb.min.x, aabb.max.y, aabb.min.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
-    bs_pushVertex(BS_V3(aabb.max.x, aabb.max.y, aabb.min.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(bs_v3(aabb.min.x, aabb.min.y, aabb.min.z), bs_v2(0.0, 0.0), bs_v3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(bs_v3(aabb.max.x, aabb.min.y, aabb.min.z), bs_v2(0.0, 0.0), bs_v3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(bs_v3(aabb.min.x, aabb.max.y, aabb.min.z), bs_v2(0.0, 0.0), bs_v3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(bs_v3(aabb.max.x, aabb.max.y, aabb.min.z), bs_v2(0.0, 0.0), bs_v3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
     
-    bs_pushVertex(BS_V3(aabb.min.x, aabb.min.y, aabb.max.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
-    bs_pushVertex(BS_V3(aabb.max.x, aabb.min.y, aabb.max.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
-    bs_pushVertex(BS_V3(aabb.min.x, aabb.max.y, aabb.max.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
-    bs_pushVertex(BS_V3(aabb.max.x, aabb.max.y, aabb.max.z), BS_V2(0.0, 0.0), BS_V3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(bs_v3(aabb.min.x, aabb.min.y, aabb.max.z), bs_v2(0.0, 0.0), bs_v3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(bs_v3(aabb.max.x, aabb.min.y, aabb.max.z), bs_v2(0.0, 0.0), bs_v3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(bs_v3(aabb.min.x, aabb.max.y, aabb.max.z), bs_v2(0.0, 0.0), bs_v3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
+    bs_pushVertex(bs_v3(aabb.max.x, aabb.max.y, aabb.max.z), bs_v2(0.0, 0.0), bs_v3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
 
     return curr_batch->index_draw_count;
 }
@@ -700,11 +700,11 @@ void bs_setGlobalVars() {
 
     // TODO: actual camera system, update camera position for every batch
     bs_mat4 view_inv;
-    glm_mat4_inv((shader_camera != NULL ? shader_camera : curr_batch->camera)->view, view_inv);
+    glm_mat4_inv((shader_camera != NULL ? shader_camera : curr_batch->camera)->view.a, view_inv.a);
 
     globals.res = bs_resolution();
     globals.elapsed = bs_elapsedTime();
-    globals.cam_pos = BS_V3(view_inv[3][0], view_inv[3][1], view_inv[3][2]);
+    globals.cam_pos = bs_v3(view_inv.a[3][0], view_inv.a[3][1], view_inv.a[3][2]);
 
     bs_setUniformBlockData(global_unifs, &globals);
 }
@@ -714,7 +714,7 @@ void bs_init(int width, int height, const char *title) {
     bs_initWnd(width, height, title);
     // bs_printHardwareInfo();
 
-    bs_lookat(&def_camera, BS_V3(0, 0, 300), BS_V3(0.0, 0.0, -1.0), BS_V3(0.0, 1.0, 0.0));
+    bs_lookat(&def_camera, bs_v3(0, 0, 300), bs_v3(0.0, 0.0, -1.0), bs_v3(0.0, 1.0, 0.0));
     bs_ortho(&def_camera, 0, width, 0, height, 0.01, 1000.0);
 
     def_texture.frame = BS_IV3_0;

@@ -5,7 +5,8 @@
     programs with low to medium complexity.
 */
 
-#include "bs_types.h"
+#include <bs_types.h>
+#include <bs_math.h>
 #include <bs_abstract.h>
 #include <bs_core.h>
 #include <bs_shaders.h>
@@ -45,11 +46,11 @@ void bs_drawTextureCam(bs_vec3 pos, bs_vec2 dim, bs_Texture *tex, bs_RGBA col, b
 }
 
 void bs_drawFramebufPosCam(bs_Framebuf *framebuf, bs_vec2 pos, bs_vec2 dim, int attachment, bs_Camera *cam) {
-    bs_drawTextureCam(BS_V3(pos.x, pos.y, 0), dim, framebuf->bufs + attachment, BS_WHITE, cam);
+    bs_drawTextureCam(bs_v3(pos.x, pos.y, 0.0), dim, framebuf->bufs + attachment, BS_WHITE, cam);
 }
 
 void bs_drawFramebufCam(bs_Framebuf *framebuf, int attachment, bs_Camera *cam) {
-    bs_drawTextureCam(BS_VEC3_0, BS_V2(framebuf->dim.x, framebuf->dim.y), framebuf->bufs + attachment, BS_WHITE, cam);
+    bs_drawTextureCam(BS_V3_0, bs_v2(framebuf->dim.x, framebuf->dim.y), framebuf->bufs + attachment, BS_WHITE, cam);
 }
 
 void bs_drawRectCam(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Camera *cam) {

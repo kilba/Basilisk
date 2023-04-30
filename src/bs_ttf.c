@@ -470,8 +470,8 @@ int bs_loadFont(char *path) {
 
 	// Check winding order
 	bs_vec2 firstPt, nextPt;
-	firstPt = BS_V2(gi->coords[first + 0].x, gi->coords[first + 0].y);
-	nextPt  = BS_V2(gi->coords[first + 1].x, gi->coords[first + 1].y);
+	firstPt = bs_v2(gi->coords[first + 0].x, gi->coords[first + 0].y);
+	nextPt  = bs_v2(gi->coords[first + 1].x, gi->coords[first + 1].y);
 
 	bs_v2print(bs_v2sub(firstPt, nextPt));
 
@@ -484,7 +484,7 @@ int bs_loadFont(char *path) {
 	    if(!curr.on_curve)
 		continue;
 
-	    bs_vec2 curr_off_v, next_off_v, curr_v = BS_V2(curr.x, curr.y);
+	    bs_vec2 curr_off_v, next_off_v, curr_v = bs_v2(curr.x, curr.y);
 
 	    if(curr_off.on_curve) {
 		pts[num_raster_pts++] = curr_v;
@@ -495,8 +495,8 @@ int bs_loadFont(char *path) {
 		next_off = gi->coords[((j + 2) >= last) ? ((j + 2) - last + first) : (j + 2)];
 		if(next_off.on_curve) break;
 
-		curr_off_v = BS_V2(curr_off.x, curr_off.y);
-		next_off_v = BS_V2(next_off.x, next_off.y);
+		curr_off_v = bs_v2(curr_off.x, curr_off.y);
+		next_off_v = bs_v2(next_off.x, next_off.y);
 
 		bs_vec2 mid = bs_v2mid(curr_off_v, next_off_v);
 
@@ -512,8 +512,8 @@ int bs_loadFont(char *path) {
 
 	    curr_off = gi->coords[((j + 1) >= last) ? ((j + 1) - last + first) : (j + 1)];
 	    next_off = gi->coords[((j + 2) >= last) ? ((j + 2) - last + first) : (j + 2)];
-	    curr_off_v = BS_V2(curr_off.x, curr_off.y);
-	    next_off_v = BS_V2(next_off.x, next_off.y);
+	    curr_off_v = bs_v2(curr_off.x, curr_off.y);
+	    next_off_v = bs_v2(next_off.x, next_off.y);
 	    double t = 0.0;
 	    double incr;
 
@@ -526,7 +526,7 @@ int bs_loadFont(char *path) {
 		pts[num_raster_pts++] = v;
 	    }
 	}
-	pts[num_raster_pts++] = BS_V2(gi->coords[first].x, gi->coords[first].y);
+	pts[num_raster_pts++] = bs_v2(gi->coords[first].x, gi->coords[first].y);
     }
 
     bs_RGBA rgba = BS_RGBA(bs_randRangeI(0, 255), bs_randRangeI(0, 255), bs_randRangeI(0, 255), 255);
@@ -535,7 +535,7 @@ int bs_loadFont(char *path) {
 	    rgba = BS_RGBA(bs_randRangeI(0, 255), bs_randRangeI(0, 255), bs_randRangeI(0, 255), 255);
 
 	rgba.a = 255;
-	bs_pushRect(BS_V3(pts[k].x / 8.0, pts[k].y / 8.0, 0.0), BS_V2(4.0, 4.0), rgba);
+	bs_pushRect(bs_v3(pts[k].x / 8.0, pts[k].y / 8.0, 0.0), bs_v2(4.0, 4.0), rgba);
     }
     bs_rasterizeGlyph(gi, pts, num_raster_pts);
 

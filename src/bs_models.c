@@ -14,7 +14,7 @@
 #include <bs_textures.h>
 #include <bs_debug.h>
 
-bs_Joint identity_joint = { GLM_MAT4_IDENTITY_INIT };
+bs_Joint identity_joint = { BS_MAT4_IDENTITY_INIT };
 
 typedef struct {
     int frame;
@@ -255,12 +255,12 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
     memcpy(&mesh->rot, node->rotation, sizeof(bs_vec4));
     memcpy(&mesh->sca, node->scale, sizeof(bs_vec4));
    
-    bs_mat4 local = GLM_MAT4_IDENTITY_INIT;
-    glm_translate(local, node->translation);
-    glm_quat_rotate(local, node->rotation, local);
-    glm_scale(local, node->scale);
+    bs_mat4 local = BS_MAT4_IDENTITY_INIT;
+    glm_translate(local.a, node->translation);
+    glm_quat_rotate(local.a, node->rotation, local.a);
+    glm_scale(local.a, node->scale);
  
-    memcpy(mesh->mat, &local, sizeof(bs_mat4));
+    memcpy(mesh->mat.a, &local, sizeof(bs_mat4));
 
     mesh->prims = malloc(c_mesh->primitives_count * sizeof(bs_Prim));
     mesh->prim_count = c_mesh->primitives_count;
@@ -290,7 +290,7 @@ void bs_jointlessAnimation(bs_Anim *anim, bs_Mesh *mesh) {
 
     // For each FRAME in animation
     for(int i = 0; i < anim->frame_count; i++)
-	memcpy(mesh_anim->joints[i], anim->matrices[i], sizeof(bs_mat4));
+	memcpy(mesh_anim->joints[i].a, anim->matrices[i].a, sizeof(bs_mat4));
 
     anim->num_mesh_anims++;
 }
@@ -334,12 +334,12 @@ void bs_animation(bs_Anim *anim, bs_Skin *skin) {
 	    // RESULT_JOINT *= (INVERSE BIND MATRIX)
 	    // RESULT_JOINT  = (JOINT PARENT) * (RESULT_JOINT)
 
-	    glm_mat4_mul(change_joint->bind_matrix, change_joint->local_inv, change_joint->mat);
-	    glm_mat4_mul(change_joint->mat, anim->matrices[idx], change_joint->mat);
-	    glm_mat4_mul(change_joint->mat, change_joint->bind_matrix_inv, change_joint->mat);
-	    glm_mat4_mul(parent->mat, change_joint->mat, change_joint->mat);
+	    glm_mat4_mul(change_joint->bind_matrix.a, change_joint->local_inv.a, change_joint->mat.a);
+	    glm_mat4_mul(change_joint->mat.a, anim->matrices[idx].a, change_joint->mat.a);
+	    glm_mat4_mul(change_joint->mat.a, change_joint->bind_matrix_inv.a, change_joint->mat.a);
+	    glm_mat4_mul(parent->mat.a, change_joint->mat.a, change_joint->mat.a);
 	    
-	    memcpy(mesh_anim->joints + idx, change_joint->mat, sizeof(bs_mat4));
+	    memcpy(mesh_anim->joints + idx, change_joint->mat.a, sizeof(bs_mat4));
 /*
 	    bs_mat4 res;
 	    glm_mat4_mul(anim->matrices[idx], mesh->mat, res);
@@ -384,7 +384,7 @@ void bs_loadAnim(cgltf_data* data, int index, int old_anim_offset, bs_Model *mod
 	for(int j = 0; j < frame_count; j++) {
 	    int idx = i + (j * joint_count);
 	    bs_mat4 *joint = &joints[idx];
-	    bs_mat4 joint_mat = GLM_MAT4_IDENTITY_INIT;
+	    bs_mat4 joint_mat = BS_MAT4_IDENTITY_INIT;
 
 	    vec3   tra;
 	    versor rot;
@@ -394,11 +394,11 @@ void bs_loadAnim(cgltf_data* data, int index, int old_anim_offset, bs_Model *mod
 	    cgltf_accessor_read_float(rotation_output   , j, (float*)&rot, 4);
 	    cgltf_accessor_read_float(scale_output      , j, (float*)&sca, 3);
 
-	    glm_translate(joint_mat, tra);
-	    glm_quat_rotate(joint_mat, rot, joint_mat);
-	    glm_scale(joint_mat, sca);
+	    glm_translate(joint_mat.a , tra);
+	    glm_quat_rotate(joint_mat.a, rot, joint_mat.a);
+	    glm_scale(joint_mat.a, sca);
 
-	    memcpy(joint, joint_mat, sizeof(bs_mat4));
+	    memcpy(joint, joint_mat.a, sizeof(bs_mat4));
 	}
     }
 
@@ -449,22 +449,23 @@ void bs_loadSkin(cgltf_skin *c_skin, bs_Skin *skin) {
     skin->joints = malloc(c_skin->joints_count * sizeof(bs_Joint));
     skin->joint_count = c_skin->joints_count;
 
+    bs_mat4 identity = BS_MAT4_IDENTITY_INIT;
     for(int i = 0; i < skin->joint_count; i++) {
 	cgltf_node *c_joint = c_skin->joints[i];
 	bs_Joint *joint = skin->joints + i;
 
 	// Set the local matrix
-	bs_mat4 local = GLM_MAT4_IDENTITY_INIT;
-	glm_translate(local, c_joint->translation);
-	glm_quat_rotate(local, c_joint->rotation, local);
-	glm_scale(local, c_joint->scale);
-	glm_mat4_inv(local, joint->local_inv);
+	bs_mat4 local = BS_MAT4_IDENTITY_INIT;
+	glm_translate(local.a, c_joint->translation);
+	glm_quat_rotate(local.a, c_joint->rotation, local.a);
+	glm_scale(local.a, c_joint->scale);
+	glm_mat4_inv(local.a, joint->local_inv.a);
 
 	// Set the inverse bind matrix and regular bind matrix
-	cgltf_accessor_read_float(c_skin->inverse_bind_matrices, i, (float*)joint->bind_matrix_inv, 16);
-	glm_mat4_inv(joint->bind_matrix_inv, joint->bind_matrix);
+	cgltf_accessor_read_float(c_skin->inverse_bind_matrices, i, (float*)joint->bind_matrix_inv.a, 16);
+	glm_mat4_inv(joint->bind_matrix_inv.a, joint->bind_matrix.a);
 
-	memcpy(skin->joints[i].mat, GLM_MAT4_IDENTITY, sizeof(bs_mat4));
+	memcpy(skin->joints[i].mat.a, &identity, sizeof(bs_mat4));
 
 	c_joint->id = i;
     }

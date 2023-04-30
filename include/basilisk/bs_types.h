@@ -33,9 +33,10 @@
 #include <stdio.h>
 
 #ifndef __cplusplus
-    typedef struct bs_vec2 bs_vec2;
-    typedef struct bs_vec3 bs_vec3;
-    typedef struct bs_vec4 bs_vec4;
+    typedef union bs_vec2 bs_vec2;
+    typedef union bs_vec3 bs_vec3;
+    typedef union bs_vec4 bs_vec4;
+    typedef union bs_umat4 bs_umat4;
 
     typedef struct bs_ivec2 bs_ivec2;
     typedef struct bs_ivec3 bs_ivec3;
@@ -48,8 +49,8 @@
     typedef struct bs_aabb bs_aabb;
 
     typedef struct bs_fRGBA bs_fRGBA;
-    typedef struct bs_RGBA bs_RGBA;
-    typedef struct bs_RGB bs_RGB;
+    typedef union  bs_RGBA bs_RGBA;
+    typedef union  bs_RGB bs_RGB;
 
     typedef struct bs_AnimIdx bs_AnimIdx;
     typedef struct bs_Globals bs_Globals;
@@ -82,8 +83,9 @@ typedef uint16_t bs_U16, bs_ushort;
 typedef uint8_t  bs_U8 , bs_ubyte;
 
 
-struct bs_vec2 { 
-    float x, y; 
+union bs_vec2 { 
+    float a[2];
+    struct { float x, y; };
 
 #ifdef __cplusplus
     inline bs_vec2 operator+(bs_vec2 a) {
@@ -104,8 +106,9 @@ struct bs_vec2 {
 #endif 
 };
 
-struct bs_vec3 { 
-    float x, y, z;
+union bs_vec3 { 
+    float a[3];
+    struct { float x, y, z; };
 
 #ifdef __cplusplus
     inline bs_vec3 operator+(bs_vec3 a) {
@@ -126,8 +129,9 @@ struct bs_vec3 {
 #endif 
 };
 
-struct bs_vec4 { 
-    float x, y, z, w; 
+union bs_vec4 {
+    float a[4];
+    struct { float x, y, z, w; };
 
 #ifdef __cplusplus
     inline bs_vec4 operator+(bs_vec4 a) {
@@ -158,28 +162,22 @@ struct bs_uvec4 { bs_U32 x, y, z, w; };
 
 
 struct bs_fRGBA { float r, g, b, a; };
-struct bs_RGBA  { unsigned char r, g, b, a; };
-struct bs_RGB   { unsigned char r, g, b; };
+union  bs_RGBA  { struct { unsigned char r, g, b, a; }; bs_U32 hex; };
+union  bs_RGB   { struct { unsigned char r, g, b;    }; bs_U32 hex : 24; };
+union  bs_umat4  { float a[4][4]; bs_vec4 v[4]; };
 
 typedef BS_ALIGN_IF(16) bs_vec2 bs_mat2[2];
-typedef BS_ALIGN_IF(16)	float bs_mat4[4][4];
+typedef BS_ALIGN_IF(16)	bs_umat4 bs_mat4;
 typedef                 float bs_mat3[3][3];
 
 typedef bs_vec4 	bs_quat;
 
 /* --- VECX --- */
-#define BS_VEC2(x, y) (bs_vec2){ x, y }
-#define BS_VEC3(x, y, z) (bs_vec3){ x, y, z }
-#define BS_VEC4(x, y, z, w) (bs_vec4) { x, y, z, w }
-#define BS_V2(x, y) BS_VEC2(x, y)
-#define BS_V3(x, y, z) BS_VEC3(x, y, z)
-#define BS_V4(x, y, z, w) BS_VEC4(x, y, z, w)
-
 #define BS_PTR(a) (float *)&a
 
-#define BS_IVEC2_TO_VEC2(a) (bs_vec2){ (float)a.x, (float)a.y }
-#define BS_IVEC3_TO_VEC3(a) (bs_vec3){ (float)a.x, (float)a.y, (float)a.z }
-#define BS_IVEC4_TO_VEC4(a) (bs_vec4){ (float)a.x, (float)a.y, (float)a.z, (float)a.w }
+#define BS_IVEC2_TO_VEC2(a) (bs_vec2){ { (float)a.x, (float)a.y } }
+#define BS_IVEC3_TO_VEC3(a) (bs_vec3){ { (float)a.x, (float)a.y, (float)a.z } }
+#define BS_IVEC4_TO_VEC4(a) (bs_vec4){ { (float)a.x, (float)a.y, (float)a.z, (float)a.w } }
 #define BS_IV2_TO_V2(a) BS_IVEC2_TO_VEC2(a)
 #define BS_IV3_TO_V3(a) BS_IVEC3_TO_VEC3(a)
 #define BS_IV4_TO_V4(a) BS_IVEC4_TO_VEC4(a)
@@ -218,10 +216,7 @@ typedef bs_vec4 	bs_quat;
 #define BS_V3_TO_IV3(a) BS_VEC3_TO_IVEC3(a)
 #define BS_V4_TO_IV4(a) BS_VEC4_TO_IVEC4(a)
 
-
 #define BS_RGBA(r, g, b, a) (bs_RGBA) { r, g, b, a }
-
-#define BS_QUAT(x, y, z, w) (bs_quat) { x, y, z, w }
 
 #define BS_AABB(a, b) (bs_aabb) { a, b }
 
@@ -454,14 +449,14 @@ struct bs_Anim {
 };
 
 /* --- VECTOR CONSTANTS --- */
-#define BS_VEC2_0 (bs_vec2){ 0.0, 0.0 }
-#define BS_VEC2_1 (bs_vec2){ 1.0, 1.0 }
+#define BS_VEC2_0 (bs_vec2){ { 0.0, 0.0 } }
+#define BS_VEC2_1 (bs_vec2){ { 1.0, 1.0 } }
 
-#define BS_VEC3_0 (bs_vec3){ 0.0, 0.0, 0.0 }
-#define BS_VEC3_1 (bs_vec3){ 1.0, 1.0, 1.0 }
+#define BS_VEC3_0 (bs_vec3){ { 0.0, 0.0, 0.0 } }
+#define BS_VEC3_1 (bs_vec3){ { 1.0, 1.0, 1.0 } }
 
-#define BS_VEC4_0 (bs_vec4){ 0.0, 0.0, 0.0, 0.0 }
-#define BS_VEC4_1 (bs_vec4){ 1.0, 1.0, 1.0, 1.0 }
+#define BS_VEC4_0 (bs_vec4){ { 0.0, 0.0, 0.0, 0.0 } }
+#define BS_VEC4_1 (bs_vec4){ { 1.0, 1.0, 1.0, 1.0 } }
 
 #define BS_V2_0 BS_VEC2_0
 #define BS_V2_1 BS_VEC2_1
@@ -490,8 +485,14 @@ struct bs_Anim {
 #define BS_IV4_0 BS_IVEC4_0
 #define BS_IV4_1 BS_IVEC4_1
 
+/* --- MATRIX CONSTANTS --- */
+#define BS_MAT4_IDENTITY_INIT {{{1.0f, 0.0f, 0.0f, 0.0f}, \
+                                {0.0f, 1.0f, 0.0f, 0.0f}, \
+                                {0.0f, 0.0f, 1.0f, 0.0f}, \
+                                {0.0f, 0.0f, 0.0f, 1.0f}}}
+
 /* --- QUATERNION CONSTANTS --- */
-#define BS_QUAT_IDENTITY BS_QUAT(0.0, 0.0, 0.0, 1.0)
+#define BS_QUAT_IDENTITY (bs_quat) { { 0.0, 0.0, 0.0, 1.0 } }
 
 /* --- COLOR CONSTANTS --- */
 // bs_RGBA Constants

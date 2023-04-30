@@ -102,8 +102,8 @@ float bs_v3dot(bs_vec3 v0, bs_vec3 v1) {
 }
 
 bs_vec3 bs_triangleNormal(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2) {
-    bs_vec3 a = BS_V3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
-    bs_vec3 b = BS_V3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
+    bs_vec3 a = bs_v3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
+    bs_vec3 b = bs_v3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
     bs_vec3 c = bs_cross(a, b);
     c = bs_v3normalize(c);
     return c;
@@ -114,13 +114,13 @@ bs_vec3 bs_triangleCenter(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2) {
     x = v0.x + v1.x + v2.x;
     y = v0.y + v1.y + v2.y;
     z = v0.z + v1.z + v2.z;
-    return BS_V3(x / 3.0, y / 3.0, z / 3.0);
+    return bs_v3(x / 3.0, y / 3.0, z / 3.0);
 }
 
 bool bs_triangleIsCCW(bs_vec3 a, bs_vec3 b, bs_vec3 c, bs_vec3 normal) {
     return bs_cross(
-	BS_V3(b.x - a.x, b.y - a.y, b.z - a.z), 
-	BS_V3(c.x - a.x, c.y - a.y, c.z - a.z)
+	bs_v3(b.x - a.x, b.y - a.y, b.z - a.z), 
+	bs_v3(c.x - a.x, c.y - a.y, c.z - a.z)
     ).z > 0.0;
 }
 
@@ -129,11 +129,11 @@ float bs_signv3(bs_vec3 p1, bs_vec3 p2, bs_vec3 p3) {
 }
 
 bs_vec3 bs_v3mid(bs_vec3 a, bs_vec3 b) {
-    return BS_V3((a.x + b.x) / 2.0, (a.y + b.y) / 2.0, (a.z + b.z) / 2.0);
+    return bs_v3((a.x + b.x) / 2.0, (a.y + b.y) / 2.0, (a.z + b.z) / 2.0);
 }
 
 bs_vec2 bs_v2mid(bs_vec2 a, bs_vec2 b) {
-    return BS_V2((a.x + b.x) / 2.0, (a.y + b.y) / 2.0);
+    return bs_v2((a.x + b.x) / 2.0, (a.y + b.y) / 2.0);
 }
 
 bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3) {
@@ -153,7 +153,7 @@ bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3) {
 bs_vec2 bs_v2rot(bs_vec2 pt, bs_vec2 origin, float angle) {
     angle = angle * BS_PI / 180.0;
 
-    return BS_V2(
+    return bs_v2(
 	cos(angle) * (pt.x - origin.x) - sin(angle) * (pt.y - origin.y) + origin.x,
 	sin(angle) * (pt.x - origin.x) + cos(angle) * (pt.y - origin.y) + origin.y
     );
@@ -184,7 +184,7 @@ void bs_qToMat3(bs_vec4 q, bs_mat3 *out) {
 }
 
 bs_quat bs_qMulq(bs_quat q, bs_quat rhs) {
-    return BS_QUAT(
+    return bs_q(
 	    q.w * rhs.x + q.x * rhs.w + q.y * rhs.z - q.z * rhs.y,
 	    q.w * rhs.y + q.y * rhs.w + q.z * rhs.x - q.x * rhs.z,
 	    q.w * rhs.z + q.z * rhs.w + q.x * rhs.y - q.y * rhs.x,
@@ -210,7 +210,7 @@ bs_quat bs_qNormalize(bs_quat q) {
 	w *= d;
     }
 
-    return BS_QUAT(x, y, z, w);
+    return bs_q(x, y, z, w);
 }
 
 bs_quat bs_qIntegrate(bs_vec4 quat, bs_vec3 dv, float dt) {
@@ -248,7 +248,7 @@ void bs_v2CubicBez(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_vec2 p3, bs_vec2 *arr,
 	float x = bs_sCubicBez(p0.x, p1.x, p2.x, p3.x, t);
 	float y = bs_sCubicBez(p0.y, p1.y, p2.y, p3.y, t);
 
-	arr[i] = BS_V2(x, y);
+	arr[i] = bs_v2(x, y);
     }
 }
 
@@ -279,112 +279,160 @@ void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *
 	float y = bs_sCubicBez(p0.y, p1.y, p2.y, p3.y, t);
 	float z = bs_sCubicBez(p0.z, p1.z, p2.z, p3.z, t);
 
-	arr[i] = BS_V3(x, y, z);
+	arr[i] = bs_v3(x, y, z);
     }
+}
+
+/* --- MATRICES --- */
+void bs_translate(bs_vec3 pos, bs_mat4 mat) {
+
+    /*
+					    
+    a, s, dest
+  dest[0] += a[0] * s;
+  glm_vec4_muladds(m[0], v[0], m[3]);
+  glm_vec4_muladds(m[1], v[1], m[3]);
+  glm_vec4_muladds(m[2], v[2], m[3]);
+
+  
+
+  bs_vec4 t = mat[0];*/
+}
+
+void bs_transform(bs_vec3 pos, bs_quat rot, bs_vec3 sca, bs_mat4 out) {
+}
+
+/* --- VECTOR INITIALIZATION --- */
+bs_vec2 bs_v2(float x, float y) {
+    return (bs_vec2) { x, y };
+}
+
+bs_vec3 bs_v3(float x, float y, float z) {
+    return (bs_vec3) { x, y, z };
+}
+
+bs_vec4 bs_v4(float x, float y, float z, float w) {
+    return (bs_vec4) { x, y, z, w };
+}
+
+bs_quat bs_q(float x, float y, float z, float w) {
+    return (bs_quat) { x, y, z, w };
 }
 
 /* --- VECTOR ADDITION --- */
 // VEC2
 bs_vec2 bs_v2add(bs_vec2 a, bs_vec2 b) {
-    return BS_V2(a.x + b.x, a.y + b.y);
+    return bs_v2(a.x + b.x, a.y + b.y);
 }
 
 // VEC3
 bs_vec3 bs_v3add(bs_vec3 a, bs_vec3 b) {
-    return BS_V3(a.x + b.x, a.y + b.y, a.z + b.z);
+    return bs_v3(a.x + b.x, a.y + b.y, a.z + b.z);
 }
 
 bs_vec3 bs_v3addv2(bs_vec3 a, bs_vec2 b) {
-    return BS_V3(a.x + b.x, a.y + b.y, a.z);
+    return bs_v3(a.x + b.x, a.y + b.y, a.z);
 }
 
 // VEC4
 bs_vec4 bs_v4add(bs_vec4 a, bs_vec4 b) {
-    return BS_V4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+    return bs_v4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
 }
 
 bs_vec4 bs_v4addv3(bs_vec4 a, bs_vec3 b) {
-    return BS_V4(a.x + b.x, a.y + b.y, a.z + b.z, a.w);
+    return bs_v4(a.x + b.x, a.y + b.y, a.z + b.z, a.w);
 }
 
 /* --- VECTOR SUBTRACTION --- */
 // VEC2
 bs_vec2 bs_v2sub(bs_vec2 a, bs_vec2 b) {
-    return BS_V2(a.x - b.x, a.y - b.y);
+    return bs_v2(a.x - b.x, a.y - b.y);
 }
 
 // VEC3
 bs_vec3 bs_v3sub(bs_vec3 a, bs_vec3 b) {
-    return BS_V3(a.x - b.x, a.y - b.y, a.z - b.z);
+    return bs_v3(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
 bs_vec3 bs_v3subv2(bs_vec3 a, bs_vec2 b) {
-    return BS_V3(a.x - b.x, a.y - b.y, a.z);
+    return bs_v3(a.x - b.x, a.y - b.y, a.z);
 }
 
 // VEC4
 bs_vec4 bs_v4sub(bs_vec4 a, bs_vec4 b) {
-    return BS_V4(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
+    return bs_v4(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
 }
 
 bs_vec4 bs_v4subv3(bs_vec4 a, bs_vec3 b) {
-    return BS_V4(a.x - b.x, a.y - b.y, a.z - b.z, a.w);
+    return bs_v4(a.x - b.x, a.y - b.y, a.z - b.z, a.w);
 }
 
 /* --- VECTOR MULTIPLICATION --- */
 // VEC2
 bs_vec2 bs_v2mul(bs_vec2 a, bs_vec2 b) {
-    return BS_V2(a.x * b.x, a.y * b.y);
+    return bs_v2(a.x * b.x, a.y * b.y);
 }
 
 bs_vec2 bs_v2muls(bs_vec2 a, float s) {
-    return BS_V2(a.x * s, a.y * s);
+    return bs_v2(a.x * s, a.y * s);
+}
+
+bs_vec2 bs_v2muladds(bs_vec2 a, float s, bs_vec2 dest) {
+    return bs_v2add(dest, bs_v2muls(a, s));
 }
 
 // VEC3
 bs_vec3 bs_v3mul(bs_vec3 a, bs_vec3 b) {
-    return BS_V3(a.x * b.x, a.y * b.y, a.z * b.z);
+    return bs_v3(a.x * b.x, a.y * b.y, a.z * b.z);
 }
 
 bs_vec3 bs_v3muls(bs_vec3 a, float s) {
-    return BS_V3(a.x * s, a.y * s, a.z * s);
+    return bs_v3(a.x * s, a.y * s, a.z * s);
+}
+
+bs_vec3 bs_v3muladds(bs_vec3 a, float s, bs_vec3 dest) {
+    return bs_v3add(dest, bs_v3muls(a, s));
 }
 
 // VEC4
 bs_vec4 bs_v4mul(bs_vec4 a, bs_vec4 b) {
-    return BS_V4(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w);
+    return bs_v4(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w);
 }
 
 bs_vec4 bs_v4muls(bs_vec4 a, float s) {
-    return BS_V4(a.x * s, a.y * s, a.z * s, a.w * s);
+    return bs_v4(a.x * s, a.y * s, a.z * s, a.w * s);
+}
+
+bs_vec4 bs_v4muladds(bs_vec4 a, float s, bs_vec4 dest) {
+    return bs_v4add(dest, bs_v4muls(a, s));
 }
 
 /* --- VECTOR DIVISION --- */
 // VEC2
 bs_vec2 bs_v2div(bs_vec2 a, bs_vec2 b) {
-    return BS_V2(a.x / b.x, a.y / b.y);
+    return bs_v2(a.x / b.x, a.y / b.y);
 }
 
 bs_vec2 bs_v2divs(bs_vec2 a, float s) {
-    return BS_V2(a.x / s, a.y / s);
+    return bs_v2(a.x / s, a.y / s);
 }
 
 // VEC3
 bs_vec3 bs_v3div(bs_vec3 a, bs_vec3 b) {
-    return BS_V3(a.x / b.x, a.y / b.y, a.z / b.z);
+    return bs_v3(a.x / b.x, a.y / b.y, a.z / b.z);
 }
 
 bs_vec3 bs_v3divs(bs_vec3 a, float s) {
-    return BS_V3(a.x / s, a.y / s, a.z / s);
+    return bs_v3(a.x / s, a.y / s, a.z / s);
 }
 
 // VEC4
 bs_vec4 bs_v4div(bs_vec4 a, bs_vec4 b) {
-    return BS_V4(a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w);
+    return bs_v4(a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w);
 }
 
 bs_vec4 bs_v4divs(bs_vec4 a, float s) {
-    return BS_V4(a.x / s, a.y / s, a.z / s, a.w / s);
+    return bs_v4(a.x / s, a.y / s, a.z / s, a.w / s);
 }
 
 /* --- VECTOR COMPARISON --- */
