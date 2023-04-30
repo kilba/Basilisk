@@ -71,18 +71,15 @@ bs_aabb bs_v3bounds(bs_vec3 *arr, int num_indices) {
 }
 
 bs_vec2 bs_v2normalize(bs_vec2 v) {
-    float w = sqrt(v.x * v.x + v.y * v.y);
-    v.x /= w;
-    v.y /= w;
-    return v;
+    return bs_v2divs(v, sqrt(bs_v2dot(v, v)));
 }
 
 bs_vec3 bs_v3normalize(bs_vec3 v) {
-    float w = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-    v.x /= w;
-    v.y /= w;
-    v.z /= w;
-    return v;
+    return bs_v3divs(v, sqrt(bs_v3dot(v, v)));
+}
+
+bs_vec4 bs_v4normalize(bs_vec4 v) {
+    return bs_v4divs(v, sqrt(bs_v4dot(v, v)));
 }
 
 bs_vec3 bs_cross(bs_vec3 v0, bs_vec3 v1) {
@@ -99,6 +96,10 @@ float bs_v2dot(bs_vec2 v0, bs_vec2 v1) {
 
 float bs_v3dot(bs_vec3 v0, bs_vec3 v1) {
     return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z;
+}
+
+float bs_v4dot(bs_vec4 v0, bs_vec4 v1) {
+    return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z + v0.w * v1.w;
 }
 
 bs_vec3 bs_triangleNormal(bs_vec3 v0, bs_vec3 v1, bs_vec3 v2) {
@@ -213,6 +214,10 @@ bs_quat bs_qNormalize(bs_quat q) {
     return bs_q(x, y, z, w);
 }
 
+float bs_qMagnitude(bs_quat q) {
+    return sqrtf(bs_v4dot(q, q));
+}
+
 bs_quat bs_qIntegrate(bs_vec4 quat, bs_vec3 dv, float dt) {
     bs_quat q = { dv.x * dt, dv.y * dt, dv.z * dt, 0.0 };
     q = bs_qMulq(q, quat);
@@ -284,22 +289,68 @@ void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *
 }
 
 /* --- MATRICES --- */
-void bs_translate(bs_vec3 pos, bs_mat4 mat) {
-
-    /*
-					    
-    a, s, dest
-  dest[0] += a[0] * s;
-  glm_vec4_muladds(m[0], v[0], m[3]);
-  glm_vec4_muladds(m[1], v[1], m[3]);
-  glm_vec4_muladds(m[2], v[2], m[3]);
-
+bs_mat4 bs_m4mulrot(bs_mat4 m1, bs_mat4 m2) {
+    bs_mat4 dest;
   
+    dest.a[0][0] = m1.a[0][0] * m2.a[0][0] + m1.a[1][0] * m2.a[0][1] + m1.a[2][0] * m2.a[0][2];
+    dest.a[0][1] = m1.a[0][1] * m2.a[0][0] + m1.a[1][1] * m2.a[0][1] + m1.a[2][1] * m2.a[0][2];
+    dest.a[0][2] = m1.a[0][2] * m2.a[0][0] + m1.a[1][2] * m2.a[0][1] + m1.a[2][2] * m2.a[0][2];
+    dest.a[0][3] = m1.a[0][3] * m2.a[0][0] + m1.a[1][3] * m2.a[0][1] + m1.a[2][3] * m2.a[0][2];
+    
+    dest.a[1][0] = m1.a[0][0] * m2.a[1][0] + m1.a[1][0] * m2.a[1][1] + m1.a[2][0] * m2.a[1][2];    
+    dest.a[1][1] = m1.a[0][1] * m2.a[1][0] + m1.a[1][1] * m2.a[1][1] + m1.a[2][1] * m2.a[1][2];   
+    dest.a[1][2] = m1.a[0][2] * m2.a[1][0] + m1.a[1][2] * m2.a[1][1] + m1.a[2][2] * m2.a[1][2];  
+    dest.a[1][3] = m1.a[0][3] * m2.a[1][0] + m1.a[1][3] * m2.a[1][1] + m1.a[2][3] * m2.a[1][2]; 
+    
+    dest.a[2][0] = m1.a[0][0] * m2.a[2][0] + m1.a[1][0] * m2.a[2][1] + m1.a[2][0] * m2.a[2][2];
+    dest.a[2][1] = m1.a[0][1] * m2.a[2][0] + m1.a[1][1] * m2.a[2][1] + m1.a[2][1] * m2.a[2][2];
+    dest.a[2][2] = m1.a[0][2] * m2.a[2][0] + m1.a[1][2] * m2.a[2][1] + m1.a[2][2] * m2.a[2][2];
+    dest.a[2][3] = m1.a[0][3] * m2.a[2][0] + m1.a[1][3] * m2.a[2][1] + m1.a[2][3] * m2.a[2][2];
 
-  bs_vec4 t = mat[0];*/
+    dest.v[3] = bs_v4(m1.a[3][0], m1.a[3][1], m1.a[3][2], m1.a[3][3]);
+    return dest;
 }
 
-void bs_transform(bs_vec3 pos, bs_quat rot, bs_vec3 sca, bs_mat4 out) {
+bs_mat4 bs_translate(bs_vec3 pos, bs_mat4 mat) {
+    mat.v[3] = bs_v4muladds(mat.v[0], pos.x, mat.v[3]); 
+    mat.v[3] = bs_v4muladds(mat.v[1], pos.y, mat.v[3]); 
+    mat.v[3] = bs_v4muladds(mat.v[2], pos.z, mat.v[3]); 
+    return mat;
+}
+
+bs_mat4 bs_rotate(bs_quat rot, bs_mat4 mat) {
+    float norm = bs_qMagnitude(rot);
+    float s    = norm > 0.0f ? 2.0f / norm : 0.0f;
+
+    float xx, yy, zz,   xy, yz, xz,   wx, wy, wz;
+    xx = s * rot.x * rot.x;   xy = s * rot.x * rot.y;   wx = s * rot.w * rot.x;
+    yy = s * rot.y * rot.y;   yz = s * rot.y * rot.z;   wy = s * rot.w * rot.y;
+    zz = s * rot.z * rot.z;   xz = s * rot.x * rot.z;   wz = s * rot.w * rot.z;
+
+    bs_mat4 rotm4 = {{
+	{ 1.0 - yy - zz, xy + wz      , xz - wy      , 0.0 },
+	{ xy - wz      , 1.0 - xx - zz, yz + wx      , 0.0 },
+	{ xz + wy      , yz - wx      , 1.0 - xx - yy, 0.0 },
+        { 0.0          , 0.0          , 0.0          , 1.0 }
+    }};
+
+    return bs_m4mulrot(mat, rotm4);
+}
+
+bs_mat4 bs_scale(bs_vec3 sca, bs_mat4 mat) {
+  mat.v[0] = bs_v4muls(mat.v[0], sca.x);
+  mat.v[1] = bs_v4muls(mat.v[1], sca.x);
+  mat.v[2] = bs_v4muls(mat.v[2], sca.x);
+  return mat;
+}
+
+bs_mat4 bs_transform(bs_vec3 pos, bs_quat rot, bs_vec3 sca) {
+    bs_mat4 m = BS_MAT4_IDENTITY_INIT;
+    m = bs_translate(pos, m);
+    m = bs_rotate(rot, m);
+    m = bs_scale(sca, m);
+
+    return m;
 }
 
 /* --- VECTOR INITIALIZATION --- */

@@ -13,12 +13,13 @@ int bs_closestDivisible(int val, int div);
 double bs_fMap(double input, double input_start, double input_end, double output_start, double output_end);
 bs_quat bs_eul2quat(bs_vec3 eul);
 
-// void bs_normv3(bs_vec3 *v);
 bs_vec2 bs_v2normalize(bs_vec2 v);
 bs_vec3 bs_v3normalize(bs_vec3 v);
+bs_vec4 bs_v4normalize(bs_vec4 v);
 bs_vec3 bs_cross(bs_vec3 v0, bs_vec3 v1);
 float bs_v2dot(bs_vec2 v0, bs_vec2 v1);
 float bs_v3dot(bs_vec3 v0, bs_vec3 v1);
+float bs_v4dot(bs_vec4 v0, bs_vec4 v1);
 bool bs_triangleIsCCW(bs_vec3 a, bs_vec3 b, bs_vec3 c, bs_vec3 normal);
 float bs_signv3(bs_vec3 p1, bs_vec3 p2, bs_vec3 p3);
 bool bs_ptInTriangle(bs_vec3 pt, bs_vec3 v1, bs_vec3 v2, bs_vec3 v3);
@@ -30,9 +31,10 @@ bs_vec2 bs_v2mid(bs_vec2 a, bs_vec2 b);
 bs_aabb bs_v3bounds(bs_vec3 *arr, int num_indices);
 
 /* --- QUATERNIONS --- */
-void bs_qToMat3(bs_vec4 q, bs_mat3 *out);
+void    bs_qToMat3(bs_vec4 q, bs_mat3 *out);
 bs_quat bs_qMulq(bs_quat q, bs_quat rhs);
 bs_quat bs_qNormalize(bs_quat q);
+float   bs_qMagnitude(bs_quat q);
 bs_quat bs_qIntegrate(bs_vec4 quat, bs_vec3 dv, float dt);
 
 /* --- BEZIER --- */
@@ -42,7 +44,11 @@ void bs_v2QuadBez(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_vec2 *arr, int num_elem
 void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *arr, int num_elems);
 
 /* --- MATRICES --- */
-void bs_transform(bs_vec3 pos, bs_quat rot, bs_vec3 sca, bs_mat4 out);
+bs_mat4 bs_m4mulrot(bs_mat4 m1, bs_mat4 m2);
+bs_mat4 bs_translate(bs_vec3 pos, bs_mat4 mat);
+bs_mat4 bs_rotate(bs_quat rot, bs_mat4 mat);
+bs_mat4 bs_scale(bs_vec3 sca, bs_mat4 mat);
+bs_mat4 bs_transform(bs_vec3 pos, bs_quat rot, bs_vec3 sca);
 
 /* --- VECTOR INITIALIZATION --- */
 bs_vec2 bs_v2(float x, float y);
