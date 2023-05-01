@@ -4,7 +4,7 @@
 #include <bs_types.h>
 
 /* --- RENDERING --- */
-void bs_setVar(unsigned int v);
+void bs_setIdx(bs_U32 i);
 void bs_setV1_(float v);
 void bs_setV4_(bs_vec4 v);
 
@@ -132,6 +132,7 @@ void bs_viewport(int x, int y, int w, int h);
 /* --- CONSTANTS --- */
 #define BS_BATCH_INCR_BY 1024
 #define BS_MODEL_INCR_BY 128
+#define BS_ANIM_INCR_BY 1
 
 /* OPENGL FILTERING SETTINGS */
 #define BS_NEAREST 0x2600
@@ -185,7 +186,7 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_VAL_NOR 8
 #define BS_VAL_BID 16
 #define BS_VAL_WEI 32
-#define BS_VAL_VAR 64
+#define BS_VAL_IDX 64
 #define BS_VAL_V4_ 128
 #define BS_VAL_V1_ 256
 

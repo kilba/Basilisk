@@ -5,7 +5,7 @@
 
 int bs_model(bs_Model *model, const char *model_path, const char *texture_path);
 void bs_animation(bs_Anim *anim, bs_Skin *skin);
-void bs_animate(bs_Anim *anim, int bind_point, int frame);
+void bs_animate(bs_U32 ref, bs_U32 frame, bs_Anim *anim);
 void bs_pushAnims();
 bs_Anim *bs_anims();
 bs_Anim *bs_modelAnims(bs_Model *model);

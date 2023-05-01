@@ -4,13 +4,19 @@
 #include <stdbool.h>
 #include <bs_types.h>
 
-enum {
-    BS_MODEL_IDX_OFFSET,
-    BS_MATERIAL_IDX_OFFSET,
-    BS_TEXTURE_IDX_OFFSET,
-    BS_ANIM_IDX_OFFSET,
+typedef struct {
+    bs_U32 model;
+    bs_U32 frame;
+} bs_Idxs;
 
-    BS_SHADER_IDX_COUNT
+enum {
+    BS_IDXS,
+    BS_MODEL,
+    BS_MATERIAL,
+    BS_TEXTURE,
+    BS_ANIM,
+
+    BS_BUF_COUNT
 };
 
 enum {
@@ -21,7 +27,12 @@ enum {
 };
 
 /* --- SHADER BUFFERS --- */
-bs_U32 bs_shaderModel(bs_mat4 mat);
+bs_U32 bs_shaderModel();
+bs_U32 bs_shaderModelReference(bs_U32 shader_model);
+
+void bs_updateShaderFrame(bs_U32 shader_frame, bs_U32 value);
+bs_U32 bs_shaderFrame(bs_U32 shader_frame);
+
 void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset);
 
 /* --- INITIALIZATION --- */

@@ -255,7 +255,7 @@ enum {
     BS_NOR,
     BS_BID,
     BS_WEI,
-    BS_VAR,
+    BS_IDX,
     BS_V4_,
     BS_V1_,
 

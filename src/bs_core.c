@@ -32,7 +32,7 @@ bs_Batch *curr_batch = NULL;
 bs_Framebuf *curr_framebuf = NULL;
 bs_UniformBuffer global_unifs;
 
-unsigned int var = 0;
+bs_U32 idx = 0;
 float v1_ = 0.0;
 bs_vec4 v4_ = BS_V4_0;
 
@@ -46,8 +46,8 @@ bs_Camera *bs_defCamera() {
     return &def_camera;
 }
 
-void bs_setVar(unsigned int v) {
-    var = v;
+void bs_setIdx(bs_U32 i) {
+    idx = i;
 }
 
 void bs_setV1_(float v) {
@@ -147,7 +147,7 @@ void bs_pushVertex(
     bs_pushAttrib(&data_ptr, &nor, sizes[3]);
     bs_pushAttrib(&data_ptr, &bid, sizes[4]);
     bs_pushAttrib(&data_ptr, &wei, sizes[5]);
-    bs_pushAttrib(&data_ptr, &var, sizes[6]);
+    bs_pushAttrib(&data_ptr, &idx, sizes[6]);
     bs_pushAttrib(&data_ptr, &v4_, sizes[7]);
     bs_pushAttrib(&data_ptr, &v1_, sizes[8]);
     
@@ -325,7 +325,6 @@ int bs_pushPrim(bs_Prim *prim) {
 
 int bs_pushMesh(bs_Mesh *mesh) {
     int ret = 0;
-    bs_setVar(mesh->id);
     for(int i = 0; i < mesh->prim_count; i++) {
         bs_Prim *prim = &mesh->prims[i];
         ret += bs_pushPrim(prim);
@@ -381,7 +380,7 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
         { BS_FLOAT, 3, sizeof(bs_vec3) , false }, /* Normal */
         { BS_INT  , 4, sizeof(bs_ivec4), false }, /* Bone Ids */
         { BS_FLOAT, 4, sizeof(bs_vec4) , false }, /* Weights */
-        { BS_UINT , 1, sizeof(float)   , false }, /* Varying */
+        { BS_UINT , 1, sizeof(int  )   , false }, /* Index */
         { BS_FLOAT, 4, sizeof(bs_vec4) , false }, /* V4_ Attrib */
         { BS_FLOAT, 1, sizeof(float)   , false }, /* V1_ Attrib */
     };

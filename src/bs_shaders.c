@@ -29,10 +29,8 @@ int replace_buf_curr = 0;
 
 int num_shader_indices = 1024 * 8;
 
-bs_U32 shader_idx_SSBO;
-bs_U32 shader_model_SSBO;
-
-bs_U32 shader_buf_offsets[BS_SHADER_IDX_COUNT] = { 0, 0, 0, 0 };
+bs_U32 shader_SSBOs[BS_BUF_COUNT];
+bs_U32 shader_buf_count[BS_BUF_COUNT] = { 0 };
 
 char *global_shader = NULL;
 
@@ -41,31 +39,45 @@ void bs_configNumShaderIndices(bs_U32 n) {
 }
 
 void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset) {
-    bs_selectSSBO(shader_model_SSBO);
+    bs_selectSSBO(shader_SSBOs[BS_MODEL]);
     bs_pushSSBO(mat.a, offset * sizeof(bs_mat4), sizeof(bs_mat4));
 }
 
-bs_U32 bs_shaderModel(bs_mat4 mat) {
-    // TODO: Check resize
-    bs_updateShaderModel(mat, shader_buf_offsets[BS_MODEL_IDX_OFFSET]);
-    return shader_buf_offsets[BS_MODEL_IDX_OFFSET]++;
+bs_U32 bs_shaderModel() {
+    return shader_buf_count[BS_MODEL]++;
+}
+
+void bs_updateShaderReference(bs_U32 ref, size_t offset) {
+    bs_selectSSBO(shader_SSBOs[BS_IDXS]);
+    bs_pushSSBO(&ref, offset, sizeof(bs_U32));
+}
+
+bs_U32 bs_shaderReference(bs_U32 ref, size_t offset) {
+    bs_updateShaderReference(ref, shader_buf_count[BS_IDXS] * sizeof(bs_Idxs) + offset);
+    return shader_buf_count[BS_IDXS]++;
+}
+
+bs_U32 bs_shaderModelReference(bs_U32 shader_model) {
+    return bs_shaderReference(shader_model, offsetof(bs_Idxs, model));
+}
+
+void bs_updateShaderFrame(bs_U32 shader_frame, bs_U32 value) {
+    bs_updateShaderReference(value, shader_frame * sizeof(bs_Idxs) + offsetof(bs_Idxs, frame));
+}
+
+bs_U32 bs_shaderFrame(bs_U32 shader_frame) {
+    return bs_shaderReference(shader_frame, offsetof(bs_Idxs, model));
 }
 
 void bs_shaderBufs() {
     int err, len;
     global_shader = bs_fileContents("basilisk.bsh", &len, &err);
 
-    if(global_shader != NULL)
+    if(global_shader != NULL && err == 0)
 	bs_replaceInAllShaders("#define BASILISK", global_shader);
 
-    size_t size = 0;
-    size += num_shader_indices * sizeof(bs_U32);     // Model idxs
-    size += num_shader_indices * sizeof(bs_U32);     // Material idxs
-    size += num_shader_indices * sizeof(bs_U32);     // Texture idxs
-    size += num_shader_indices * sizeof(bs_U32);     // Animation idxs
-
-    shader_idx_SSBO   = bs_SSBO(NULL, size, BS_SSBO_IDXS + 2);
-    shader_model_SSBO = bs_SSBO(NULL, BS_MODEL_INCR_BY * sizeof(bs_mat4), BS_SSBO_MODELS + 2);
+    shader_SSBOs[BS_IDXS]     = bs_SSBO(NULL, num_shader_indices * sizeof(bs_U32) * BS_BUF_COUNT, BS_SSBO_IDXS + 2);
+    shader_SSBOs[BS_MODEL]    = bs_SSBO(NULL, BS_MODEL_INCR_BY * sizeof(bs_mat4), BS_SSBO_MODELS + 2);
 }
 
 /* Not necessary, but prevents multiple calls to realloc() */
@@ -149,7 +161,7 @@ void bs_setDefShaderAttribs(bs_Shader *shader, const char *vs_code) {
 	{ "in vec3 bs_Nor" , BS_VAL_NOR, sizeof(bs_vec3) },
 	{ "in ivec4 bs_BID", BS_VAL_BID, sizeof(bs_ivec4) },
 	{ "in vec4 bs_Wei" , BS_VAL_WEI, sizeof(bs_vec4) },
-	{ "in uint bs_Var" , BS_VAL_VAR, sizeof(int) },
+	{ "in uint bs_Idx" , BS_VAL_IDX, sizeof(int) },
 	{ "in vec4 bs_V4_" , BS_VAL_V4_, sizeof(bs_vec4) },
 	{ "in float bs_V1_", BS_VAL_V1_, sizeof(float) },
     };

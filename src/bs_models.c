@@ -541,18 +541,11 @@ int bs_model(bs_Model *model, const char *model_path, const char *texture_path) 
     return 0;
 }
 
-void bs_animate(bs_Anim *anim, int bind_point, int frame) {
+void bs_animate(bs_U32 ref, bs_U32 frame, bs_Anim *anim) {
     if(anim == NULL) {
 	printf("Anim is NULL\n");
 	return;
     }
-
-    if(bind_point >= anim->num_mesh_anims) {
-	printf("Mesh Anim is NULL\n");
-	return;
-    }
-
-    bs_MeshAnim *mesh_anim = anim->mesh_anims + bind_point;
 
     struct {
 	int frame;
@@ -561,12 +554,11 @@ void bs_animate(bs_Anim *anim, int bind_point, int frame) {
 
     frame %= anim->frame_count;
     frame *= anim->joint_count;
-    frame += mesh_anim->shader_offset;
+    frame += anim->mesh_anims->shader_offset;
     buf.frame = frame;
     buf.num_frames = anim->frame_count;
 
-    bs_selectSSBO(anim_ssbo);
-    bs_pushSSBO(&buf, 0, sizeof(buf));
+    bs_updateShaderFrame(ref, frame);
 }
 
 void bs_pushAnims() {
