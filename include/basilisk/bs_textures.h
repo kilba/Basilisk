@@ -4,10 +4,10 @@
 #include <bs_types.h>
 
 void bs_saveTexture32(const char *name, unsigned char *data, int w, int h);
+void bs_textureDataRGBA(bs_Texture *texture, unsigned char *data, bs_ivec2 dim);
 void bs_texture(bs_Texture *texture, bs_ivec2 dim, int type);
 void bs_textureDataRaw(unsigned char *data);
 bs_U32 bs_textureDataFile(const char *path, bool update_dimensions);
-void bs_loadTex2D(bs_Texture *tex, char *path);
 void bs_textureSettings(int min_filter, int mag_filter);
 void bs_pushTexture(int internal_format, int format, int type);
 void bs_textureMipmaps();

@@ -38,13 +38,40 @@ void bs_configNumShaderIndices(bs_U32 n) {
     num_shader_indices = n;
 }
 
-void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset) {
-    bs_selectSSBO(shader_SSBOs[BS_MODEL]);
-    bs_pushSSBO(mat.a, offset * sizeof(bs_mat4), sizeof(bs_mat4));
+/* --- UPDATE BUFFERS --- */
+void bs_updateShaderBuf(const bs_U32 type, void *data, bs_U32 offset, bs_U32 size) {
+    bs_selectSSBO(shader_SSBOs[type]);
+    bs_pushSSBO(data, offset, size);
 }
 
+void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset) {
+    bs_updateShaderBuf(BS_MODEL, mat.a, offset * sizeof(bs_mat4), sizeof(bs_mat4));
+}
+
+void bs_updateShaderTexture(bs_Texture *tex, bs_U32 offset) {
+    bs_ShaderTexture shader_texture = {
+	tex->handle
+    };
+
+    bs_updateShaderBuf(BS_TEXTURE, &shader_texture, offset * sizeof(shader_texture), sizeof(shader_texture));
+}
+
+/* --- CREATE BUFFERS --- */
 bs_U32 bs_shaderModel() {
     return shader_buf_count[BS_MODEL]++;
+}
+
+bs_U32 bs_shaderTexture() {
+    return shader_buf_count[BS_TEXTURE]++;
+}
+
+/* --- UPDATE REFERENCES --- */
+void bs_updateShaderReferences(bs_Idxs idxs, size_t offset) {
+    if(idxs.tex >= shader_buf_count[BS_TEXTURE])
+	idxs.tex = 0;
+
+    bs_selectSSBO(shader_SSBOs[BS_IDXS]);
+    bs_pushSSBO(&idxs, offset, sizeof(bs_Idxs));
 }
 
 void bs_updateShaderReference(bs_U32 ref, size_t offset) {
@@ -52,21 +79,20 @@ void bs_updateShaderReference(bs_U32 ref, size_t offset) {
     bs_pushSSBO(&ref, offset, sizeof(bs_U32));
 }
 
+/* --- CREATE REFERENCES --- */
+bs_U32 bs_shaderReferences(bs_Idxs idxs) {
+    bs_updateShaderReferences(idxs, shader_buf_count[BS_IDXS] * sizeof(bs_Idxs));
+    return shader_buf_count[BS_IDXS]++;
+}
+
 bs_U32 bs_shaderReference(bs_U32 ref, size_t offset) {
     bs_updateShaderReference(ref, shader_buf_count[BS_IDXS] * sizeof(bs_Idxs) + offset);
     return shader_buf_count[BS_IDXS]++;
 }
 
-bs_U32 bs_shaderModelReference(bs_U32 shader_model) {
-    return bs_shaderReference(shader_model, offsetof(bs_Idxs, model));
-}
-
+// Shader frames treated as a reference and not buffer since it's only an INT
 void bs_updateShaderFrame(bs_U32 shader_frame, bs_U32 value) {
     bs_updateShaderReference(value, shader_frame * sizeof(bs_Idxs) + offsetof(bs_Idxs, frame));
-}
-
-bs_U32 bs_shaderFrame(bs_U32 shader_frame) {
-    return bs_shaderReference(shader_frame, offsetof(bs_Idxs, model));
 }
 
 void bs_shaderBufs() {
@@ -78,6 +104,7 @@ void bs_shaderBufs() {
 
     shader_SSBOs[BS_IDXS]     = bs_SSBO(NULL, num_shader_indices * sizeof(bs_U32) * BS_BUF_COUNT, BS_SSBO_IDXS + 2);
     shader_SSBOs[BS_MODEL]    = bs_SSBO(NULL, BS_MODEL_INCR_BY * sizeof(bs_mat4), BS_SSBO_MODELS + 2);
+    shader_SSBOs[BS_TEXTURE]  = bs_SSBO(NULL, BS_TEXTURE_INCR_BY * sizeof(bs_ShaderTexture), BS_SSBO_TEXTURES + 2);
 }
 
 /* Not necessary, but prevents multiple calls to realloc() */

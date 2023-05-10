@@ -93,7 +93,7 @@ void bs_stencilEqNonZero();
 int bs_checkError();
 
 /* --- INITIALIZATION --- */
-void bs_init(int width, int height, const char *title);
+void bs_init(bs_U32 width, bs_U32 height, const char *title);
 void bs_startRender(void (*render)());
 void bs_setGlobalVars();
 
@@ -132,6 +132,7 @@ void bs_viewport(int x, int y, int w, int h);
 /* --- CONSTANTS --- */
 #define BS_BATCH_INCR_BY 1024
 #define BS_MODEL_INCR_BY 128
+#define BS_TEXTURE_INCR_BY 128
 #define BS_ANIM_INCR_BY 1
 
 /* OPENGL FILTERING SETTINGS */

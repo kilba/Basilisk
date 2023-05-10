@@ -54,6 +54,7 @@
 
     typedef struct bs_AnimIdx bs_AnimIdx;
     typedef struct bs_Globals bs_Globals;
+    typedef struct bs_ShaderTexture bs_ShaderTexture;
     typedef struct bs_Texture bs_Texture;
     typedef struct bs_Uniform bs_Uniform;
     typedef struct bs_Shader bs_Shader;
@@ -67,6 +68,7 @@
     typedef struct bs_Material bs_Material;
     typedef struct bs_Joint bs_Joint;
     typedef struct bs_Skin bs_Skin;
+    typedef struct bs_Idxs bs_Idxs;
     typedef struct bs_Prim bs_Prim;
     typedef struct bs_Mesh bs_Mesh;
     typedef struct bs_Model bs_Model;
@@ -226,6 +228,10 @@ struct bs_aabb {
 };
 
 /* --- TEXTURES --- */
+struct bs_ShaderTexture {
+    bs_U64 handle;
+};
+
 struct bs_Texture {
     bs_ivec3 frame;
     int num_frames;
@@ -235,8 +241,13 @@ struct bs_Texture {
 
     int type;
     int attachment;
+
+    bs_U32 shader_offset;
+    bs_U32 handle;
+
     unsigned int id;
     unsigned int unit;
+
     unsigned char *data;
 };
 
@@ -371,6 +382,17 @@ struct bs_Skin {
     int joint_count;
 
     char *name;
+};
+
+struct bs_Refs {
+    bs_U32 model;
+    bs_U32 frame;
+};
+
+struct bs_Idxs {
+    bs_U32 model;
+    bs_U32 frame;
+    bs_U32 tex;
 };
 
 struct bs_Prim {

@@ -541,7 +541,7 @@ int bs_model(bs_Model *model, const char *model_path, const char *texture_path) 
     return 0;
 }
 
-void bs_animate(bs_U32 ref, bs_U32 frame, bs_Anim *anim) {
+void bs_animate(bs_Idxs idxs, bs_U32 frame, bs_Anim *anim) {
     if(anim == NULL) {
 	printf("Anim is NULL\n");
 	return;
@@ -558,7 +558,7 @@ void bs_animate(bs_U32 ref, bs_U32 frame, bs_Anim *anim) {
     buf.frame = frame;
     buf.num_frames = anim->frame_count;
 
-    bs_updateShaderFrame(ref, frame);
+    bs_updateShaderFrame(idxs.model, frame);
 }
 
 void bs_pushAnims() {

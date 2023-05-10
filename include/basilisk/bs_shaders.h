@@ -4,11 +4,6 @@
 #include <stdbool.h>
 #include <bs_types.h>
 
-typedef struct {
-    bs_U32 model;
-    bs_U32 frame;
-} bs_Idxs;
-
 enum {
     BS_IDXS,
     BS_MODEL,
@@ -23,17 +18,21 @@ enum {
     BS_SSBO_X,
     BS_SSBO_ANIMS,
     BS_SSBO_IDXS,
-    BS_SSBO_MODELS
+    BS_SSBO_MODELS,
+    BS_SSBO_TEXTURES
 };
 
 /* --- SHADER BUFFERS --- */
+// Bufs
 bs_U32 bs_shaderModel();
-bs_U32 bs_shaderModelReference(bs_U32 shader_model);
+bs_U32 bs_shaderTexture();
+
+// References
+bs_U32 bs_shaderReferences(bs_Idxs idxs);
 
 void bs_updateShaderFrame(bs_U32 shader_frame, bs_U32 value);
-bs_U32 bs_shaderFrame(bs_U32 shader_frame);
-
 void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset);
+void bs_updateShaderTexture(bs_Texture *tex, bs_U32 offset);
 
 /* --- INITIALIZATION --- */
 void bs_shaderBufs();

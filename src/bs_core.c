@@ -368,7 +368,7 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
     bs_selectBatch(batch);
 
     // Attribute setup
-    struct Attrib_Data {
+    struct AttribData {
         int type;
         int count;
         int size;
@@ -384,12 +384,12 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
         { BS_FLOAT, 4, sizeof(bs_vec4) , false }, /* V4_ Attrib */
         { BS_FLOAT, 1, sizeof(float)   , false }, /* V1_ Attrib */
     };
-    int total_attrib_count = sizeof(attrib_data) / sizeof(struct Attrib_Data);
+    int total_attrib_count = sizeof(attrib_data) / sizeof(struct AttribData);
 
     // Calculate attrib sizes
     int i = 0, j = 1;
     for(; i < total_attrib_count; i++, j *= 2) {
-        struct Attrib_Data *data = &attrib_data[i];
+        struct AttribData *data = &attrib_data[i];
 
         if((batch->shader->attribs & j) == j)
             batch->attrib_size_bytes += data->size;
@@ -398,7 +398,7 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
     // Add attributes
     i = 0; j = 1;
     for(; i < total_attrib_count; i++, j *= 2) {
-        struct Attrib_Data *data = &attrib_data[i];
+        struct AttribData *data = &attrib_data[i];
 
         if((batch->shader->attribs & j) == j)
             bs_attrib(data->type, data->count, data->size, data->normalized);
@@ -709,22 +709,16 @@ void bs_setGlobalVars() {
 }
 
 void bs_modelInit();
-void bs_init(int width, int height, const char *title) {
+void bs_init(bs_U32 width, bs_U32 height, const char *title) {
     bs_initWnd(width, height, title);
-    // bs_printHardwareInfo();
 
     bs_lookat(&def_camera, bs_v3(0, 0, 300), bs_v3(0.0, 0.0, -1.0), bs_v3(0.0, 1.0, 0.0));
     bs_ortho(&def_camera, 0, width, 0, height, 0.01, 1000.0);
 
-    def_texture.frame = BS_IV3_0;
-    def_texture.num_frames = 1;
-    def_texture.h = 0;
-    def_texture.w = 0;
-    def_texture.texh = 1.0;
-    def_texture.texw = 1.0;
-
-    bs_setTexture(&def_texture);
     bs_shaderBufs();
+
+    bs_RGBA data = BS_WHITE;
+    bs_textureDataRGBA(&def_texture, (unsigned char *)&data, BS_IV2(1, 1));
 
     // TODO: Extract to bs_shaderBufs
     global_unifs = bs_initUniformBlock(sizeof(bs_Globals), 0);

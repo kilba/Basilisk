@@ -102,6 +102,14 @@ void bs_pushTexture(int internal_format, int format, int type) {
     bs_pushTextureTarget(curr_texture->type, internal_format, format, type);
 }
 
+void bs_textureHandle() {
+    curr_texture->handle = glGetTextureHandleARB(curr_texture->id);
+    glMakeTextureHandleResidentARB(curr_texture->handle);
+
+    curr_texture->shader_offset = bs_shaderTexture();
+    bs_updateShaderTexture(curr_texture, curr_texture->shader_offset);
+}
+
 void bs_textureMipmaps() {
     glGenerateMipmap(curr_texture->type);
 }
@@ -139,6 +147,17 @@ bs_Texture *bs_selectedTexture() {
     return curr_texture;
 }
 
+void bs_textureDataRGBA(bs_Texture *texture, unsigned char *data, bs_ivec2 dim) {
+    if(data == NULL)
+	return;
+
+    bs_texture(texture, dim, BS_TEX2D);
+    bs_textureMinMag(BS_NEAREST, BS_NEAREST);
+    bs_textureDataRaw(data);
+    bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
+    bs_textureHandle();
+}
+
 void bs_texturePNG(bs_Texture *texture, char *path) {
     if(path == NULL)
 	return;
@@ -147,6 +166,7 @@ void bs_texturePNG(bs_Texture *texture, char *path) {
     bs_textureMinMag(BS_NEAREST, BS_NEAREST);
     bs_textureDataFile(path, true);
     bs_pushTexture(BS_CHANNEL_RGBA, BS_CHANNEL_RGBA, BS_UBYTE);
+    bs_textureHandle();
 }
 
 void bs_textureLinPNG(bs_Texture *texture, char *path) {
