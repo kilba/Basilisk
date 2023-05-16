@@ -48,51 +48,56 @@ void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset) {
     bs_updateShaderBuf(BS_MODEL, mat.a, offset * sizeof(bs_mat4), sizeof(bs_mat4));
 }
 
-void bs_updateShaderTexture(bs_Texture *tex, bs_U32 offset) {
-    bs_ShaderTexture shader_texture = {
-	tex->handle
-    };
-
-    bs_updateShaderBuf(BS_TEXTURE, &shader_texture, offset * sizeof(shader_texture), sizeof(shader_texture));
-}
-
 /* --- CREATE BUFFERS --- */
-bs_U32 bs_shaderModel() {
+bs_U32 bs_shaderModel(bs_mat4 model) {
     return shader_buf_count[BS_MODEL]++;
 }
 
-bs_U32 bs_shaderTexture() {
-    return shader_buf_count[BS_TEXTURE]++;
+bs_U32 bs_shaderModelInit(bs_mat4 model) {
+    bs_updateShaderModel(model, shader_buf_count[BS_MODEL]);
+    return shader_buf_count[BS_MODEL]++;
 }
 
 /* --- UPDATE REFERENCES --- */
 void bs_updateShaderReferences(bs_Idxs idxs, size_t offset) {
-    if(idxs.tex >= shader_buf_count[BS_TEXTURE])
-	idxs.tex = 0;
-
     bs_selectSSBO(shader_SSBOs[BS_IDXS]);
     bs_pushSSBO(&idxs, offset, sizeof(bs_Idxs));
 }
 
-void bs_updateShaderReference(bs_U32 ref, size_t offset) {
+void bs_updateShaderReference(void *value, size_t size, size_t offset) {
     bs_selectSSBO(shader_SSBOs[BS_IDXS]);
-    bs_pushSSBO(&ref, offset, sizeof(bs_U32));
+    bs_pushSSBO(value, offset, size);
 }
 
 /* --- CREATE REFERENCES --- */
-bs_U32 bs_shaderReferences(bs_Idxs idxs) {
-    bs_updateShaderReferences(idxs, shader_buf_count[BS_IDXS] * sizeof(bs_Idxs));
-    return shader_buf_count[BS_IDXS]++;
+bs_Refs bs_shaderModelReferences(bs_Model *model, bs_Idxs unified) {
+    bs_U32 offset = shader_buf_count[BS_IDXS];
+
+    for(int i = 0; i < model->material_count; i++) {
+	bs_Material *mat = model->materials + i;
+	unified.texture_handle = mat->texture_handle;
+	bs_shaderReferences(unified);
+    }
+
+    return (bs_Refs) { offset, model->material_count };
 }
 
-bs_U32 bs_shaderReference(bs_U32 ref, size_t offset) {
-    bs_updateShaderReference(ref, shader_buf_count[BS_IDXS] * sizeof(bs_Idxs) + offset);
-    return shader_buf_count[BS_IDXS]++;
+bs_Refs bs_shaderReferences(bs_Idxs idxs) {
+    int test = shader_buf_count[BS_IDXS];
+    bs_updateShaderReferences(idxs, shader_buf_count[BS_IDXS] * sizeof(bs_Idxs));
+    shader_buf_count[BS_IDXS]++;
+    return (bs_Refs){ test, 1 };
 }
 
 // Shader frames treated as a reference and not buffer since it's only an INT
-void bs_updateShaderFrame(bs_U32 shader_frame, bs_U32 value) {
-    bs_updateShaderReference(value, shader_frame * sizeof(bs_Idxs) + offsetof(bs_Idxs, frame));
+void bs_updateShaderFrame(bs_U32 frame, bs_Refs refs) {
+    for(int i = 0; i < refs.count; i++) {
+        bs_updateShaderReference(&frame, sizeof(bs_U32), (refs.value + i) * sizeof(bs_Idxs) + offsetof(bs_Idxs, frame));
+    }
+}
+
+void bs_updateShaderTexture(bs_Texture *texture, bs_Refs refs) {
+
 }
 
 void bs_shaderBufs() {
@@ -188,7 +193,7 @@ void bs_setDefShaderAttribs(bs_Shader *shader, const char *vs_code) {
 	{ "in vec3 bs_Nor" , BS_VAL_NOR, sizeof(bs_vec3) },
 	{ "in ivec4 bs_BID", BS_VAL_BID, sizeof(bs_ivec4) },
 	{ "in vec4 bs_Wei" , BS_VAL_WEI, sizeof(bs_vec4) },
-	{ "in uint bs_Idx" , BS_VAL_IDX, sizeof(int) },
+	{ "in uint bs_Ref" , BS_VAL_REF, sizeof(int) },
 	{ "in vec4 bs_V4_" , BS_VAL_V4_, sizeof(bs_vec4) },
 	{ "in float bs_V1_", BS_VAL_V1_, sizeof(float) },
     };

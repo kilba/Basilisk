@@ -32,7 +32,10 @@ bs_Batch *curr_batch = NULL;
 bs_Framebuf *curr_framebuf = NULL;
 bs_UniformBuffer global_unifs;
 
-bs_U32 idx = 0;
+bs_Idxs def_idxs;
+bs_Refs def_refs;
+
+bs_Refs ref = { 0, 0 };
 float v1_ = 0.0;
 bs_vec4 v4_ = BS_V4_0;
 
@@ -41,13 +44,21 @@ int bs_checkError() {
     return err; 
 }
 
-/* --- MATRICES / CAMERAS --- */
 bs_Camera *bs_defCamera() {
     return &def_camera;
 }
 
-void bs_setIdx(bs_U32 i) {
-    idx = i;
+bs_Texture *bs_defTexture() {
+    return &def_texture;
+}
+
+/* --- MATRICES / CAMERAS --- */
+bs_Idxs bs_initIdxs() {
+    return def_idxs;
+}
+
+void bs_setRef(bs_Refs r) {
+    ref = r;
 }
 
 void bs_setV1_(float v) {
@@ -147,7 +158,7 @@ void bs_pushVertex(
     bs_pushAttrib(&data_ptr, &nor, sizes[3]);
     bs_pushAttrib(&data_ptr, &bid, sizes[4]);
     bs_pushAttrib(&data_ptr, &wei, sizes[5]);
-    bs_pushAttrib(&data_ptr, &idx, sizes[6]);
+    bs_pushAttrib(&data_ptr, &ref, sizes[6]);
     bs_pushAttrib(&data_ptr, &v4_, sizes[7]);
     bs_pushAttrib(&data_ptr, &v1_, sizes[8]);
     
@@ -308,18 +319,27 @@ int bs_pushPrim(bs_Prim *prim) {
 
     bs_pushIndices(prim->indices, prim->index_count);
 
+    bs_Refs original_ref = ref;
+
+    if(original_ref.count == prim->parent->parent->material_count) {
+	bs_setRef((bs_Refs){ original_ref.value + prim->material_idx, 1 });
+    } else {
+	bs_setRef(prim->parent->parent->refs);
+    }
+
     float *vertex = prim->vertices;
     for(int i = 0; i < prim->vertex_count; i++, vertex += prim->vertex_size) {
         bs_pushVertex(
             *(bs_vec3  *)(vertex + 0),
 	    *(bs_vec2  *)(vertex + prim->offset_tex),
 	    *(bs_vec3  *)(vertex + prim->offset_nor),
-            prim->material.col, 
+	    BS_WHITE,
 	    *(bs_ivec4 *)(vertex + prim->offset_bid),
 	    *(bs_vec4  *)(vertex + prim->offset_wei)
         );
     }
 
+    bs_setRef(original_ref);
     return curr_batch->index_draw_count;
 }
 
@@ -719,6 +739,12 @@ void bs_init(bs_U32 width, bs_U32 height, const char *title) {
 
     bs_RGBA data = BS_WHITE;
     bs_textureDataRGBA(&def_texture, (unsigned char *)&data, BS_IV2(1, 1));
+
+    def_idxs.model = bs_shaderModelInit(BS_MAT4_IDENTITY);
+    def_idxs.frame = 0;
+    def_idxs.texture_handle = def_texture.handle;
+
+    def_refs = bs_shaderReferences(def_idxs);
 
     // TODO: Extract to bs_shaderBufs
     global_unifs = bs_initUniformBlock(sizeof(bs_Globals), 0);

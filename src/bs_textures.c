@@ -105,9 +105,6 @@ void bs_pushTexture(int internal_format, int format, int type) {
 void bs_textureHandle() {
     curr_texture->handle = glGetTextureHandleARB(curr_texture->id);
     glMakeTextureHandleResidentARB(curr_texture->handle);
-
-    curr_texture->shader_offset = bs_shaderTexture();
-    bs_updateShaderTexture(curr_texture, curr_texture->shader_offset);
 }
 
 void bs_textureMipmaps() {

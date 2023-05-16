@@ -32,47 +32,46 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifndef __cplusplus
-    typedef union bs_vec2 bs_vec2;
-    typedef union bs_vec3 bs_vec3;
-    typedef union bs_vec4 bs_vec4;
-    typedef union bs_umat4 bs_umat4;
+typedef union bs_vec2 bs_vec2;
+typedef union bs_vec3 bs_vec3;
+typedef union bs_vec4 bs_vec4;
+typedef union bs_umat4 bs_umat4;
 
-    typedef struct bs_ivec2 bs_ivec2;
-    typedef struct bs_ivec3 bs_ivec3;
-    typedef struct bs_ivec4 bs_ivec4;
+typedef struct bs_ivec2 bs_ivec2;
+typedef struct bs_ivec3 bs_ivec3;
+typedef struct bs_ivec4 bs_ivec4;
 
-    typedef struct bs_uvec2 bs_uvec2;
-    typedef struct bs_uvec3 bs_uvec3;
-    typedef struct bs_uvec4 bs_uvec4;
+typedef struct bs_uvec2 bs_uvec2;
+typedef struct bs_uvec3 bs_uvec3;
+typedef struct bs_uvec4 bs_uvec4;
 
-    typedef struct bs_aabb bs_aabb;
+typedef struct bs_aabb bs_aabb;
 
-    typedef struct bs_fRGBA bs_fRGBA;
-    typedef union  bs_RGBA bs_RGBA;
-    typedef union  bs_RGB bs_RGB;
+typedef struct bs_fRGBA bs_fRGBA;
+typedef union  bs_RGBA bs_RGBA;
+typedef union  bs_RGB bs_RGB;
 
-    typedef struct bs_AnimIdx bs_AnimIdx;
-    typedef struct bs_Globals bs_Globals;
-    typedef struct bs_ShaderTexture bs_ShaderTexture;
-    typedef struct bs_Texture bs_Texture;
-    typedef struct bs_Uniform bs_Uniform;
-    typedef struct bs_Shader bs_Shader;
-    typedef struct bs_ComputeShader bs_ComputeShader;
-    typedef struct bs_UniformBuffer bs_UniformBuffer;
-    typedef struct bs_Camera bs_Camera;
-    typedef struct bs_Framebuf bs_Framebuf;
-    typedef struct bs_Batch bs_Batch;
-    typedef struct bs_MeshAnim bs_MeshAnim;
-    typedef struct bs_Anim bs_Anim;
-    typedef struct bs_Material bs_Material;
-    typedef struct bs_Joint bs_Joint;
-    typedef struct bs_Skin bs_Skin;
-    typedef struct bs_Idxs bs_Idxs;
-    typedef struct bs_Prim bs_Prim;
-    typedef struct bs_Mesh bs_Mesh;
-    typedef struct bs_Model bs_Model;
-#endif 
+typedef struct bs_AnimIdx bs_AnimIdx;
+typedef struct bs_Globals bs_Globals;
+typedef struct bs_ShaderTexture bs_ShaderTexture;
+typedef struct bs_Texture bs_Texture;
+typedef struct bs_Uniform bs_Uniform;
+typedef struct bs_Shader bs_Shader;
+typedef struct bs_ComputeShader bs_ComputeShader;
+typedef struct bs_UniformBuffer bs_UniformBuffer;
+typedef struct bs_Camera bs_Camera;
+typedef struct bs_Framebuf bs_Framebuf;
+typedef struct bs_Batch bs_Batch;
+typedef struct bs_MeshAnim bs_MeshAnim;
+typedef struct bs_Anim bs_Anim;
+typedef struct bs_Material bs_Material;
+typedef struct bs_Joint bs_Joint;
+typedef struct bs_Skin bs_Skin;
+typedef struct bs_Refs bs_Refs;
+typedef struct bs_Idxs bs_Idxs;
+typedef struct bs_Prim bs_Prim;
+typedef struct bs_Mesh bs_Mesh;
+typedef struct bs_Model bs_Model;
 
 typedef int64_t bs_I64, bs_long;
 typedef int32_t bs_I32, bs_int;
@@ -242,8 +241,7 @@ struct bs_Texture {
     int type;
     int attachment;
 
-    bs_U32 shader_offset;
-    bs_U32 handle;
+    bs_U64 handle;
 
     unsigned int id;
     unsigned int unit;
@@ -266,7 +264,7 @@ enum {
     BS_NOR,
     BS_BID,
     BS_WEI,
-    BS_IDX,
+    BS_REF,
     BS_V4_,
     BS_V1_,
 
@@ -359,13 +357,6 @@ struct bs_Batch {
     unsigned int VAO, VBO, EBO;
 };
 
-struct bs_Material {
-    bs_RGBA col;
-    int tex_idx;
-
-    float metallic;
-};
-
 struct bs_Joint {
     // "mat" needs to be the first variable
     bs_mat4 mat;
@@ -385,19 +376,28 @@ struct bs_Skin {
 };
 
 struct bs_Refs {
-    bs_U32 model;
-    bs_U32 frame;
+    bs_U32 value;
+    bs_U32 count;
+
+    void *root;
+};
+
+struct bs_Material {
+    bs_RGBA col;
+    bs_U64 texture_handle;
+
+    float metallic;
+    
+    bs_Refs refs;
 };
 
 struct bs_Idxs {
     bs_U32 model;
     bs_U32 frame;
-    bs_U32 tex;
+    bs_U64 texture_handle;
 };
 
 struct bs_Prim {
-    bs_Material material;
-
     void *vertices;
     int vertex_count;
     int vertex_size;
@@ -411,6 +411,10 @@ struct bs_Prim {
     int *indices;
     int index_count;
     int unique_count;
+    
+    int material_idx;
+
+    bs_Mesh *parent;
 };
 
 struct bs_Mesh {
@@ -428,15 +432,21 @@ struct bs_Mesh {
     int index_count;
 
     unsigned int id;
+
+    bs_Model *parent;
 };
 
 struct bs_Model {
     char *name;
     char **texture_names;
 
+    bs_Material *materials;
+    bs_Texture *textures;
     bs_Skin *skins;
     bs_Mesh *meshes;
 
+    int material_count;
+    int texture_count;
     int skin_count;
     int mesh_count;
     int prim_count;
@@ -446,8 +456,8 @@ struct bs_Model {
 
     int vertex_count;
     int index_count;
-    
-    int texture_count;
+
+    bs_Refs refs;
 };
 
 struct bs_MeshAnim {
@@ -512,6 +522,7 @@ struct bs_Anim {
                                 {0.0f, 1.0f, 0.0f, 0.0f}, \
                                 {0.0f, 0.0f, 1.0f, 0.0f}, \
                                 {0.0f, 0.0f, 0.0f, 1.0f}}}
+#define BS_MAT4_IDENTITY (bs_mat4)BS_MAT4_IDENTITY_INIT
 
 /* --- QUATERNION CONSTANTS --- */
 #define BS_QUAT_IDENTITY (bs_quat) { { 0.0, 0.0, 0.0, 1.0 } }

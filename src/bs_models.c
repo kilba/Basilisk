@@ -53,115 +53,36 @@ void bs_modelAttribDataI(int accessor_idx, int offset, bs_Prim *prim, cgltf_data
     }
 }
 
-void bs_loadMaterial(bs_Model *model, cgltf_data *c_data, cgltf_primitive *c_prim, bs_Prim *prim) {
-    cgltf_material *c_mat = c_prim->material;
-    bs_Material *mat = &prim->material;
-    
-    mat->col = BS_WHITE;
-    mat->tex_idx = 0;
-    mat->metallic = 0.0;
-
-    if(c_mat == NULL)
+void bs_loadMaterial(bs_Model *model, cgltf_data *c_data, bs_Material *material, cgltf_material *c_material) {
+    // Default values
+    material->col = BS_WHITE;
+    material->metallic = 0.0;
+    material->texture_handle = bs_defTexture()->handle;
+    if(c_material == NULL)
 	return;
 
-    cgltf_pbr_metallic_roughness *metallic = &c_mat->pbr_metallic_roughness;
-    cgltf_float *mat_color = metallic->base_color_factor;
+    // Actual values
+    cgltf_pbr_metallic_roughness *metallic = &c_material->pbr_metallic_roughness;
+    cgltf_float *color = metallic->base_color_factor;
 
-    mat->col.r = mat_color[0] * 255;
-    mat->col.g = mat_color[1] * 255;
-    mat->col.b = mat_color[2] * 255;
-    mat->col.a = mat_color[3] * 255;
+    material->col = BS_RGBA(color[0] * 255, color[1] * 255, color[2] * 255, color[3] * 255);
+    material->metallic = metallic->metallic_factor;
 
-    // If the primitive has a texture
+    // Texture handling
     cgltf_texture *tex = metallic->base_color_texture.texture;
-    if(tex != NULL) {
-	int id = (int64_t)tex->image;
-	id -= (int64_t)c_data->textures[0].image;
-	id /= sizeof(cgltf_image);
 
-	mat->tex_idx = id + 1;
-    }
+    if(tex == NULL)
+	return;
 
-    mat->metallic = metallic->metallic_factor;
-}
+    // Convert texture pointer to array index
+    uint64_t id = (uint64_t)tex->image;
+    id -= (uint64_t)c_data->textures[0].image;
+    id /= sizeof(cgltf_image);
 
-bool bs_checkWindingConflict(bs_Prim *prim, int num_tris, int cur, int idx0, int idx1) {
-    int *vertex = (int *)prim->vertices + prim->offset_idx;
+    if(id >= model->texture_count)
+	return;
 
-    for(int i = 0; i < num_tris; i++) {
-	if(i == cur)
-	    continue;
-
-	int first_idx = 6 * i;
-	int v0, v1, v2;
-
-	v0 = *(vertex + (prim->vertex_size * prim->indices[first_idx + 0]));
-	v1 = *(vertex + (prim->vertex_size * prim->indices[first_idx + 2]));
-	v2 = *(vertex + (prim->vertex_size * prim->indices[first_idx + 4]));
-	
-	if((v0 == idx0 && v1 == idx1))
-	    return true;
-
-	if(v1 == idx0 && v2 == idx1)
-	    return true;
-
-	if(v2 == idx0 && v0 == idx1)
-	    return true;
-
-    }
-    return false;
-}
-
-int bs_findAdjacentIndex(int num_tris, bs_Prim *prim, int idx1, int idx2, int idx3) {
-    int *vertex = (int *)prim->vertices + prim->offset_idx;
-    
-    for(int i = 0; i < num_tris; i++) {
-	int first_idx = 6 * i;
-	int face_indices[3];
-    
-	for(int j = 0; j < 3; j++) {
-	    int idx = prim->indices[first_idx + j * 2];
-
-	    int *idx_p = vertex + (idx * prim->vertex_size);
-	    face_indices[j] = *idx_p;
-	}
-
-	for(int edge = 0; edge < 3; edge++) {
-	    int v1 = face_indices[edge];
-	    int v2 = face_indices[(edge + 1) % 3];
-	    int opp = face_indices[(edge + 2) % 3];
-
-	    /* If the two triangles share an edge */
-	    if(((v1 == idx1 && v2 == idx2) || (v2 == idx1 && v1 == idx2)) && opp != idx3)
-		return opp;
-	}
-    }
-
-    /* Return the opposite vertex if no adjacent was found */
-    return idx3;
-}
-
-/* TODO: This is currently broken */
-void bs_readIndicesAdjacent(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim_index) {
-    bs_Prim *prim = mesh->prims + prim_index;
-
-    // Read indices
-    int num_indices = cgltf_accessor_unpack_floats(c_mesh->primitives[prim_index].indices, NULL, 0);
-    int num_adjacent = num_indices * 2;
-    prim->indices = malloc(num_adjacent * sizeof(int));
-    prim->index_count = num_adjacent;
-    for(int i = 0; i < num_indices; i++) {
-	cgltf_uint outv;
-	cgltf_accessor_read_uint(c_mesh->primitives[prim_index].indices, i, &outv, 1);
-	prim->indices[i * 2] = outv;
-    }
-
-    attrib_offset = c_mesh->primitives[prim_index].index_id + 1;
-
-    mesh->vertex_count += prim->vertex_count;
-    mesh->index_count += prim->index_count;
-    model->vertex_count += prim->vertex_count;
-    model->index_count += num_adjacent;
+    material->texture_handle = model->textures[id].handle;
 }
 
 void bs_readIndices(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim_index) {
@@ -194,8 +115,8 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     int num_floats = cgltf_accessor_unpack_floats(&data->accessors[c_mesh->primitives[prim_index].attributes[0].index], NULL, 0);
 
     int vertex_size = 0;
-    bs_loadMaterial(model, data, &c_mesh->primitives[prim_index], prim);
 
+    prim->parent = mesh;
     prim->offset_nor = 0;
     prim->offset_tex = 0;
     prim->offset_bid = 0;
@@ -236,6 +157,18 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     }
 
     bs_readIndices(mesh, model, c_mesh, prim_index);
+
+    // Get material index for primitive (model->materials[prim->material_idx])
+    if(c_prim->material == NULL) {
+	prim->material_idx = 0;
+	return;
+    }
+
+    // Convert material pointer to array index
+    uint64_t mat_id = (uint64_t)c_prim->material;
+    mat_id -= (uint64_t)data->materials;
+    mat_id /= sizeof(cgltf_material);
+    prim->material_idx = mat_id + 1;
 }
 
 void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
@@ -245,6 +178,7 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
     bs_Mesh *mesh = model->meshes + mesh_index;
 
     int c_mesh_name_len = strlen(c_mesh->node->name);
+    mesh->parent = model;
     mesh->id = mesh_index;
     mesh->index_count = 0;
     mesh->vertex_count = 0;
@@ -435,6 +369,9 @@ void bs_loadTexturePath(int idx, bs_Model *model, cgltf_texture *c_texture, cons
     // TODO: Check if already ending with .png (also .jpg support)
     char *path = malloc(strlen(texture_path) + strlen(c_texture->image->name) + sizeof(".png"));
     sprintf(path, "%s/%s.png", texture_path, c_texture->image->name);
+    
+    bs_texturePNG(model->textures + idx, path);
+    printf("%s\n", path);
 
     model->texture_names[idx] = path;
 }
@@ -519,17 +456,33 @@ int bs_model(bs_Model *model, const char *model_path, const char *texture_path) 
     model->name = malloc(path_len + 1);
     strcpy(model->name, model_path);
 
+    model->textures      = malloc(data->textures_count * sizeof(bs_Texture));
     model->texture_names = malloc(data->textures_count * sizeof(char *));
     model->texture_count = data->textures_count;
-    for(int i = 0; i < data->textures_count; i++)
-	bs_loadTexturePath(i, model, data->textures + i, texture_path);
+    model->material_count = data->materials_count + 1;
 
+    model->materials = malloc(model->material_count * sizeof(bs_Material));
+
+    // Load textures
+    for(int i = 0; i < data->textures_count; i++) {
+	bs_loadTexturePath(i, model, data->textures + i, texture_path);
+    }
+
+    // Load materials
+    model->materials[0] = (bs_Material){ BS_WHITE, bs_defTexture()->handle, 0.0 };
+
+    for(int i = 1; i < model->material_count; i++) {
+	bs_loadMaterial(model, data, model->materials + i, data->materials + i - 1);
+    }
+
+    // Load skins
     model->skins = malloc(data->skins_count * sizeof(bs_Skin));
     model->skin_count = data->skins_count;
     for(int i = 0; i < data->skins_count; i++) {
 	bs_loadSkin(data->skins + i, model->skins + i);
     }
 
+    // Load meshes (also loads primitives)
     for(int i = 0; i < mesh_count; i++) {
 	bs_loadMesh(data, model, i);
 	model->prim_count += model->meshes[i].prim_count;
@@ -537,11 +490,18 @@ int bs_model(bs_Model *model, const char *model_path, const char *texture_path) 
 
     bs_loadAnims(data, model);
 
+    bs_Idxs idxs = {
+	bs_shaderModelInit(BS_MAT4_IDENTITY),
+	0,
+	bs_defTexture()->handle
+    };
+    model->refs = bs_shaderModelReferences(model, idxs);
+
     cgltf_free(data);
     return 0;
 }
 
-void bs_animate(bs_Idxs idxs, bs_U32 frame, bs_Anim *anim) {
+void bs_animate(bs_Refs refs, bs_U32 frame, bs_Anim *anim) {
     if(anim == NULL) {
 	printf("Anim is NULL\n");
 	return;
@@ -558,7 +518,7 @@ void bs_animate(bs_Idxs idxs, bs_U32 frame, bs_Anim *anim) {
     buf.frame = frame;
     buf.num_frames = anim->frame_count;
 
-    bs_updateShaderFrame(idxs.model, frame);
+    bs_updateShaderFrame(frame, refs);
 }
 
 void bs_pushAnims() {

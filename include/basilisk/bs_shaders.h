@@ -25,14 +25,15 @@ enum {
 /* --- SHADER BUFFERS --- */
 // Bufs
 bs_U32 bs_shaderModel();
-bs_U32 bs_shaderTexture();
+bs_U32 bs_shaderModelInit(bs_mat4 model);
 
 // References
-bs_U32 bs_shaderReferences(bs_Idxs idxs);
+void bs_updateShaderReferences(bs_Idxs idxs, size_t offset);
+bs_Refs bs_shaderReferences(bs_Idxs idxs);
+bs_Refs bs_shaderModelReferences(bs_Model *model, bs_Idxs unified);
 
-void bs_updateShaderFrame(bs_U32 shader_frame, bs_U32 value);
+void bs_updateShaderFrame(bs_U32 frame, bs_Refs refs);
 void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset);
-void bs_updateShaderTexture(bs_Texture *tex, bs_U32 offset);
 
 /* --- INITIALIZATION --- */
 void bs_shaderBufs();

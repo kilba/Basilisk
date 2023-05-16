@@ -3,11 +3,12 @@
 
 #include <bs_types.h>
 
-/* --- RENDERING --- */
-void bs_setIdx(bs_U32 i);
+bs_Idxs bs_initIdxs();
+void bs_setRef(bs_Refs r);
 void bs_setV1_(float v);
 void bs_setV4_(bs_vec4 v);
 
+/* --- RENDERING --- */
 void bs_pushIndex(int idx);
 void bs_pushIndices(int *idxs, int num_elems);
 void bs_pushIndexVa(int num_elems, ...);
@@ -100,6 +101,7 @@ void bs_setGlobalVars();
 /* --- MATRICES / CAMERAS --- */
 void bs_shaderCamera(bs_Camera *cam);
 bs_Camera *bs_defCamera();
+bs_Texture *bs_defTexture();
 void bs_setMatrices(bs_Shader *shader);
 void bs_persp(bs_Camera *cam, float aspect, float fovy, float nearZ, float farZ);
 void bs_ortho(bs_Camera *cam, int left, int right, int bottom, int top, float nearZ, float farZ);
@@ -187,7 +189,7 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_VAL_NOR 8
 #define BS_VAL_BID 16
 #define BS_VAL_WEI 32
-#define BS_VAL_IDX 64
+#define BS_VAL_REF 64
 #define BS_VAL_V4_ 128
 #define BS_VAL_V1_ 256
 
