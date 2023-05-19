@@ -51,6 +51,8 @@ typedef struct bs_fRGBA bs_fRGBA;
 typedef union  bs_RGBA bs_RGBA;
 typedef union  bs_RGB bs_RGB;
 
+typedef struct bs_Buffer bs_Buffer;
+
 typedef struct bs_AnimIdx bs_AnimIdx;
 typedef struct bs_Globals bs_Globals;
 typedef struct bs_ShaderTexture bs_ShaderTexture;
@@ -271,6 +273,20 @@ enum {
     BS_MAX_ATTRIB_COUNT
 };
 
+struct bs_Buffer {
+    bs_U32 size;
+
+    bs_U32 unit_size;
+    bs_U32 allocated;
+    bs_U32 increment;
+
+    bool realloc_ram;
+    bool realloc_vram;
+
+    bs_U32 type;
+    void *data;
+};
+
 struct bs_AnimIdx {
     bs_U32 frame;
     bs_U32 num_frames;
@@ -323,36 +339,24 @@ struct bs_Framebuf {
     bs_ivec2 dim;
 
     unsigned int FBO, RBO;
-    int buffer_count;
 
     int clear;
     int culling;
 
-    int buf_count;
-    int buf_alloc;
-    bs_Texture *bufs;
-
-    bs_U8 depth_index;
+    bs_Buffer buf;
 };
 
-// Contains all objects queued to render the next frame (unless using multiple batches)
 struct bs_Batch {
     bs_Shader *shader;
     bs_Camera *camera;
 
-    void *vertices;
-    int *indices;
-
     int draw_mode;
-    int vertex_draw_count;
-    int index_draw_count;
 
     int attrib_count;
-    int attrib_size_bytes;
     size_t attrib_offset;
 
-    int allocated_index_count;
-    int allocated_vertex_count;
+    bs_Buffer vertex_buf;
+    bs_Buffer index_buf;
 
     unsigned int VAO, VBO, EBO;
 };

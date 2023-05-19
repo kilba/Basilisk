@@ -6,6 +6,9 @@
 #define BS_PI 3.142857
 #define BS_SIN_45 0.70710678
 
+#define BS_MIN(a,b) (((a)<(b))?(a):(b))
+#define BS_MAX(a,b) (((a)>(b))?(a):(b))
+
 double bs_clamp(double d, double min, double max);
 int bs_sign(float x);
 float bs_fsign(float x);

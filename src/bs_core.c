@@ -103,20 +103,51 @@ void bs_selectBatch(bs_Batch *batch) {
     bs_switchShader(curr_batch->shader->id);
 }
 
+void *bs_bufferData(bs_Buffer *buf, bs_U32 offset) {
+    return (uint8_t *)(buf->data) + offset * buf->unit_size;
+}
+
+void bs_minimizeBuffer(bs_Buffer *buf) {
+    buf->allocated = buf->size;
+    buf->data = realloc(buf->data, buf->allocated * buf->unit_size);
+}
+
+void bs_bufferResizeCheck(bs_Buffer *buf, bs_U32 num_units) {
+    if((buf->size + num_units) < buf->allocated)
+	return;
+
+    buf->allocated += BS_MAX(num_units, buf->increment);
+
+    if(buf->realloc_ram) {
+	printf("RAM\n");
+	buf->data = realloc(buf->data, buf->allocated * buf->unit_size);
+    }
+
+    if(buf->realloc_vram) {
+	printf("VRAM\n");
+	glBufferData(buf->type, buf->allocated * buf->unit_size, buf->data, GL_STATIC_DRAW);
+    }
+}
+
+bs_Buffer bs_buffer(bs_U32 type, bs_U32 unit_size, bs_U32 increment, bs_U32 pre_malloc) {
+    void *data = NULL;
+    if(pre_malloc != 0)
+	data = malloc(pre_malloc * unit_size);
+    return (bs_Buffer) { 0, unit_size, 0, increment, true, type != 0, type, data };
+}
+
 void bs_batchResizeCheck(int index_count, int vertex_count) {
-    bs_Batch *batch = curr_batch;
-    if((batch->index_draw_count + index_count) < batch->allocated_index_count)
-	if((batch->vertex_draw_count + vertex_count) < batch->allocated_vertex_count)
-	    return;
-
-    int new_index_count = batch->index_draw_count + BS_BATCH_INCR_BY + index_count;
-    int new_vertex_count = batch->vertex_draw_count + BS_BATCH_INCR_BY + vertex_count;
-
-    bs_batchBufferSize(new_index_count, new_vertex_count);
+    bs_bufferResizeCheck(&curr_batch->vertex_buf, vertex_count);
+    bs_bufferResizeCheck(&curr_batch->index_buf, index_count);
 }
 
 void bs_pushIndex(int idx) {
-    curr_batch->indices[curr_batch->index_draw_count++] = curr_batch->vertex_draw_count + idx;
+    idx += curr_batch->vertex_buf.size;
+    memcpy(
+	(int *)(curr_batch->index_buf.data) + curr_batch->index_buf.size++, 
+	&idx, 
+	sizeof(bs_U32)
+    );
 }
 
 void bs_pushIndices(int *idxs, int num_elems) {
@@ -149,7 +180,7 @@ void bs_pushVertex(
 ) {
     bs_Batch *batch = curr_batch;
 
-    uint8_t *data_ptr = (uint8_t *)batch->vertices + batch->vertex_draw_count * batch->attrib_size_bytes;
+    uint8_t *data_ptr = bs_bufferData(&batch->vertex_buf, batch->vertex_buf.size);
     uint8_t *sizes = batch->shader->attrib_sizes;
     
     bs_pushAttrib(&data_ptr, &pos, sizes[0]);
@@ -162,7 +193,7 @@ void bs_pushVertex(
     bs_pushAttrib(&data_ptr, &v4_, sizes[7]);
     bs_pushAttrib(&data_ptr, &v1_, sizes[8]);
     
-    curr_batch->vertex_draw_count++;
+    curr_batch->vertex_buf.size++;
 } 
 
 int bs_pushQuadFlipped(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
@@ -175,7 +206,7 @@ int bs_pushQuadFlipped(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA c
     bs_pushVertex(p2, (bs_vec2){ 0.0, 0.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
     bs_pushVertex(p3, (bs_vec2){ 1.0, 0.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
     
-    return curr_batch->index_draw_count;    
+    return curr_batch->index_buf.size;    
 }    
     
 int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {    
@@ -188,7 +219,7 @@ int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
     bs_pushVertex(p2, (bs_vec2){ 0.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0); 
     bs_pushVertex(p3, (bs_vec2){ 1.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0); 
     
-    return curr_batch->index_draw_count;    
+    return curr_batch->index_buf.size;    
 }    
     
 int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex0, bs_vec2 tex1, bs_RGBA col) {
@@ -204,7 +235,7 @@ int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex0, bs_vec2 tex1, bs_RG
     bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ tex0.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
     bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex1.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_draw_count;
+    return curr_batch->index_buf.size;
 }
 
 int bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col) {
@@ -233,7 +264,7 @@ int bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col) {
     bs_pushVertex(p2, (bs_vec2){ tex0.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
     bs_pushVertex(p3, (bs_vec2){ tex1.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_draw_count;
+    return curr_batch->index_buf.size;
 }
 
 int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
@@ -268,7 +299,7 @@ int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     bs_pushVertex(pos2, bs_v2(1.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
     bs_pushVertex(pos3, bs_v2(0.0, 1.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_draw_count;
+    return curr_batch->index_buf.size;
 }
 
 int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
@@ -278,7 +309,7 @@ int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
     bs_pushVertex(start, bs_v2(0.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
     bs_pushVertex(end, bs_v2(1.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_draw_count;
+    return curr_batch->index_buf.size;
 }
 
 int bs_pushPoint(bs_vec3 pos, bs_RGBA color) {
@@ -286,7 +317,7 @@ int bs_pushPoint(bs_vec3 pos, bs_RGBA color) {
     bs_pushIndexVa(1, 0);
     bs_pushVertex(pos, BS_V2_0, BS_V3_0, color, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_draw_count;
+    return curr_batch->index_buf.size;
 }
 
 int bs_pushAABB(bs_aabb aabb, bs_RGBA color) {
@@ -311,7 +342,7 @@ int bs_pushAABB(bs_aabb aabb, bs_RGBA color) {
     bs_pushVertex(bs_v3(aabb.min.x, aabb.max.y, aabb.max.z), bs_v2(0.0, 0.0), bs_v3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
     bs_pushVertex(bs_v3(aabb.max.x, aabb.max.y, aabb.max.z), bs_v2(0.0, 0.0), bs_v3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_draw_count;
+    return curr_batch->index_buf.size;
 }
 
 int bs_pushPrim(bs_Prim *prim) {
@@ -340,7 +371,7 @@ int bs_pushPrim(bs_Prim *prim) {
     }
 
     bs_setRef(original_ref);
-    return curr_batch->index_draw_count;
+    return curr_batch->index_buf.size;
 }
 
 int bs_pushMesh(bs_Mesh *mesh) {
@@ -358,19 +389,6 @@ int bs_pushModel(bs_Model *model) {
         ret += bs_pushMesh(&model->meshes[i]);
     }
     return ret;
-}
-
-void bs_batchBufferSize(int index_count, int vertex_count) {
-    bs_Batch *batch = curr_batch;
-
-    batch->allocated_index_count = index_count;
-    batch->allocated_vertex_count = vertex_count;
-
-    batch->vertices = realloc(batch->vertices, vertex_count * batch->attrib_size_bytes);
-    batch->indices  = realloc(batch->indices , index_count * sizeof(int));
-
-    glBufferData(GL_ARRAY_BUFFER, vertex_count * batch->attrib_size_bytes, batch->vertices, GL_STATIC_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * index_count, batch->indices, GL_STATIC_DRAW);
 }
 
 void bs_batch(bs_Batch *batch, bs_Shader *shader) {
@@ -408,11 +426,12 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
 
     // Calculate attrib sizes
     int i = 0, j = 1;
+    int attrib_size = 0;
     for(; i < total_attrib_count; i++, j *= 2) {
         struct AttribData *data = &attrib_data[i];
 
         if((batch->shader->attribs & j) == j)
-            batch->attrib_size_bytes += data->size;
+            attrib_size += data->size;
     }
 
     // Add attributes
@@ -421,8 +440,11 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
         struct AttribData *data = &attrib_data[i];
 
         if((batch->shader->attribs & j) == j)
-            bs_attrib(data->type, data->count, data->size, data->normalized);
+            bs_attrib(data->type, data->count, data->size, attrib_size, data->normalized);
     }
+    
+    batch->vertex_buf = bs_buffer(GL_ARRAY_BUFFER, attrib_size, BS_BATCH_INCR_BY, 0);
+    batch->index_buf  = bs_buffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(bs_U32), BS_BATCH_INCR_BY, 0);
 }
 
 void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size) {
@@ -430,25 +452,25 @@ void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int i
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_size, index_data, GL_STATIC_DRAW);
 }
 
-void bs_attribI(const int type, unsigned int amount, size_t size_per_type) {
+void bs_attribI(const int type, unsigned int amount, size_t size_per_type, size_t attrib_size) {
     bs_Batch *batch = curr_batch;
 
     glEnableVertexAttribArray(batch->attrib_count);
-    glVertexAttribIPointer(batch->attrib_count++, amount, type, batch->attrib_size_bytes, (void*)batch->attrib_offset);
+    glVertexAttribIPointer(batch->attrib_count++, amount, type, attrib_size, (void*)batch->attrib_offset);
 
     batch->attrib_offset += size_per_type;
 }
 
-void bs_attrib(const int type, unsigned int amount, size_t size_per_type, bool normalized) {
+void bs_attrib(const int type, unsigned int amount, size_t size_per_type, size_t attrib_size, bool normalized) {
     if((type >= BS_SHORT) && (type <= BS_UINT)) {
-        bs_attribI(type, amount, size_per_type);
+        bs_attribI(type, amount, size_per_type, attrib_size);
         return;
     }
 
     bs_Batch *batch = curr_batch;
 
     glEnableVertexAttribArray(batch->attrib_count);
-    glVertexAttribPointer(batch->attrib_count++, amount, type, normalized, batch->attrib_size_bytes, (void*)batch->attrib_offset);
+    glVertexAttribPointer(batch->attrib_count++, amount, type, normalized, attrib_size, (void*)batch->attrib_offset);
 
     batch->attrib_offset += size_per_type;
 }
@@ -465,30 +487,22 @@ void bs_bufferRange(int target, int bind_point, int buffer, int offset, int size
     glBindBufferRange(target, bind_point, buffer, offset, size);
 }
 
-// Pushes all vertices to VRAM
+// Pushes all vertex_buf.data to VRAM
 void bs_pushBatch() {
-    glBufferSubData(GL_ARRAY_BUFFER, 0, curr_batch->vertex_draw_count * curr_batch->attrib_size_bytes, curr_batch->vertices);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, curr_batch->index_draw_count * sizeof(int), curr_batch->indices);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, curr_batch->vertex_buf.size * curr_batch->vertex_buf.unit_size, curr_batch->vertex_buf.data);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, curr_batch->index_buf.size * sizeof(int), curr_batch->index_buf.data);
 }
 
 void bs_minimizeBatch() {
-    bs_Batch *batch = curr_batch;
-
-    int new_vertex_size = batch->vertex_draw_count * batch->attrib_size_bytes;
-    int new_index_size = batch->index_draw_count * sizeof(int);
-
-    batch->vertices = realloc(batch->vertices, new_vertex_size);
-    batch->indices  = realloc(batch->indices , new_index_size);
-
-    batch->allocated_index_count = new_index_size;
-    batch->allocated_vertex_count = new_vertex_size;
+    bs_minimizeBuffer(&curr_batch->vertex_buf);
+    bs_minimizeBuffer(&curr_batch->index_buf);
 }
 
 void bs_freeBatchData() {
-    free(curr_batch->vertices);
-    free(curr_batch->indices);
-    curr_batch->vertices = NULL;
-    curr_batch->indices = NULL;
+    free(curr_batch->vertex_buf.data);
+    free(curr_batch->index_buf.data);
+    curr_batch->vertex_buf.data = NULL;
+    curr_batch->index_buf.data = NULL;
 }
 
 void bs_renderBatchData() {
@@ -514,23 +528,19 @@ void bs_renderBatchVertices(int start_index, int draw_count) {
 }
 
 void bs_clearBatch() {
-    curr_batch->vertex_draw_count = 0;
-    curr_batch->index_draw_count = 0;
+    curr_batch->vertex_buf.size = 0;
+    curr_batch->index_buf.size = 0;
 }
 
 int bs_batchSize() {
-    return curr_batch->index_draw_count;
+    return curr_batch->index_buf.size;
 }
 
 /* --- FRAMEBUFFERS --- */
 void bs_framebufResizeCheck() {
     bs_Framebuf *framebuf = curr_framebuf;
 
-    if(framebuf->buf_count < framebuf->buf_alloc)
-	return;
-
-    framebuf->buf_alloc += 2;
-    framebuf->bufs = realloc(framebuf->bufs, framebuf->buf_alloc * sizeof(bs_Texture));
+    bs_bufferResizeCheck(&framebuf->buf, 1);
 }
 
 void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim) {
@@ -538,10 +548,7 @@ void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim) {
 
     framebuf->dim = dim;
     framebuf->clear = GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
-    framebuf->depth_index = 0;
-    framebuf->buf_count = 0;
-    framebuf->buf_alloc = 4;
-    framebuf->bufs = malloc(framebuf->buf_alloc * sizeof(bs_Texture));
+    framebuf->buf = bs_buffer(0, sizeof(bs_Texture), 4, 4);
 
     glGenFramebuffers(1, &framebuf->FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuf->FBO);
@@ -551,30 +558,30 @@ void bs_setBuf(int type, int idx, bs_Texture buf) {
     bs_Framebuf *framebuf = curr_framebuf;
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, buf.id, 0);
-    framebuf->bufs[idx] = buf;
+    memcpy((bs_Texture *)(framebuf->buf.data) + idx, &buf, sizeof(bs_Texture));
 }
 
 void bs_attachBufExisting(bs_Texture buf, int type) {
     bs_Framebuf *framebuf = curr_framebuf;
 
     bs_framebufResizeCheck();
-    bs_setBuf(type, framebuf->buf_count, buf);
+    bs_setBuf(type, framebuf->buf.size, buf);
 
-    framebuf->buf_count++;
+    framebuf->buf.size++;
 }
 
 void bs_attachBuf(void (*tex_func)(bs_Texture *texture, bs_ivec2 dim)) {
     bs_Framebuf *framebuf = curr_framebuf;
     bs_framebufResizeCheck();
     
-    bs_Texture *buf = framebuf->bufs + framebuf->buf_count;
+    bs_Texture *buf = (bs_Texture *)(framebuf->buf.data) + framebuf->buf.size;
     tex_func(buf, framebuf->dim);
 
     // Add attachment offset only to BS_COLOR (GL_COLOR_ATTACHMENT0)
-    int attachment = buf->attachment + ((buf->attachment == BS_COLOR) ? framebuf->buf_count : 0);
+    int attachment = buf->attachment + ((buf->attachment == BS_COLOR) ? framebuf->buf.size : 0);
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, buf->id, 0);
-    framebuf->buf_count++;
+    framebuf->buf.size++;
 }
 
 void bs_attachRenderbuf() {

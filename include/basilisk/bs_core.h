@@ -8,6 +8,12 @@ void bs_setRef(bs_Refs r);
 void bs_setV1_(float v);
 void bs_setV4_(bs_vec4 v);
 
+/* --- BUFFERS --- */
+void *bs_bufferData(bs_Buffer *buf, bs_U32 offset);
+void bs_minimizeBuffer(bs_Buffer *buf);
+void bs_bufferResizeCheck(bs_Buffer *buf, bs_U32 num_units);
+bs_Buffer bs_buffer(bs_U32 type, bs_U32 unit_size, bs_U32 increment, bs_U32 pre_malloc);
+
 /* --- RENDERING --- */
 void bs_pushIndex(int idx);
 void bs_pushIndices(int *idxs, int num_elems);
@@ -59,8 +65,8 @@ void bs_defaultBlending();
 /* --- BATCHING --- */
 void bs_batch(bs_Batch *batch, bs_Shader *shader);
 void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size);
-void bs_attrib(const int type, unsigned int amount, size_t size_per_type, bool normalized);
-void bs_attribI(const int type, unsigned int amount, size_t size_per_type);
+void bs_attrib(const int type, unsigned int amount, size_t size_per_type, size_t attrib_size, bool normalized);
+void bs_attribI(const int type, unsigned int amount, size_t size_per_type, size_t attrib_size);
 void bs_attribDivisor(int attrib_id, int value);
 void bs_attribInstance(int attrib_id);
 
@@ -73,7 +79,6 @@ void bs_renderBatchVertices(int start_index, int draw_count);
 void bs_minimizeBatch();
 void bs_freeBatchData();
 void bs_clearBatch();
-void bs_batchBufferSize(int index_count, int vertex_count);
 
 void bs_batchShader(bs_Batch *batch, bs_Shader *shader);
 int bs_batchSize();
@@ -233,8 +238,6 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_FUNC_ADD 0x8006
 #define BS_FUNC_REVERSE_SUBTRACT 0x800B
 #define BS_FUNC_SUBTRACT 0x800A
-#define BS_MIN 0x8007
-#define BS_MAX 0x8008
 
 #define BS_ZERO 0
 #define BS_ONE 1

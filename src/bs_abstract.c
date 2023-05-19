@@ -45,14 +45,6 @@ void bs_drawTextureCam(bs_vec3 pos, bs_vec2 dim, bs_Texture *tex, bs_RGBA col, b
     bs_clearBatch();
 }
 
-void bs_drawFramebufPosCam(bs_Framebuf *framebuf, bs_vec2 pos, bs_vec2 dim, int attachment, bs_Camera *cam) {
-    bs_drawTextureCam(bs_v3(pos.x, pos.y, 0.0), dim, framebuf->bufs + attachment, BS_WHITE, cam);
-}
-
-void bs_drawFramebufCam(bs_Framebuf *framebuf, int attachment, bs_Camera *cam) {
-    bs_drawTextureCam(BS_V3_0, bs_v2(framebuf->dim.x, framebuf->dim.y), framebuf->bufs + attachment, BS_WHITE, cam);
-}
-
 void bs_drawRectCam(bs_vec3 pos, bs_vec2 dim, bs_RGBA col, bs_Camera *cam) {
     bs_selectBatch(batches + BATCH_COL);
     batches[BATCH_COL].camera = cam;
@@ -101,14 +93,6 @@ void bs_drawLineCam(bs_vec3 start, bs_vec3 end, bs_RGBA col, bs_Camera *cam) {
 /* W/O Camera */
 void bs_drawTexture(bs_vec3 pos, bs_vec2 dim, bs_Texture *tex, bs_RGBA col) {
     bs_drawTextureCam(pos, dim, tex,col, camera);
-}
-
-void bs_drawFramebufPos(bs_Framebuf *framebuf, bs_vec2 pos, bs_vec2 dim, int attachment) {
-    bs_drawFramebufPosCam(framebuf, pos, dim, attachment, camera);
-}
-
-void bs_drawFramebuf(bs_Framebuf *framebuf, int attachment) {
-    bs_drawFramebufCam(framebuf, attachment, camera);
 }
 
 void bs_drawRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
