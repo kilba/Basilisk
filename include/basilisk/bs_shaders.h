@@ -8,7 +8,6 @@ enum {
     BS_IDXS,
     BS_MODEL,
     BS_MATERIAL,
-    BS_TEXTURE,
     BS_ANIM,
 
     BS_BUF_COUNT
@@ -19,13 +18,15 @@ enum {
     BS_SSBO_ANIMS,
     BS_SSBO_IDXS,
     BS_SSBO_MODELS,
-    BS_SSBO_TEXTURES
+    BS_SSBO_MATERIALS,
 };
 
 /* --- SHADER BUFFERS --- */
 // Bufs
 bs_U32 bs_shaderModel();
 bs_U32 bs_shaderModelInit(bs_mat4 model);
+bs_U32 bs_shaderMaterial();
+bs_U32 bs_shaderMaterialInit(bs_Material *material);
 
 // References
 void bs_updateShaderReferences(bs_Idxs idxs, size_t offset);
@@ -34,6 +35,7 @@ bs_Refs bs_shaderModelReferences(bs_Model *model, bs_Idxs unified);
 
 void bs_updateShaderFrame(bs_U32 frame, bs_Refs refs);
 void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset);
+void bs_updateShaderMaterial(bs_Material *material, bs_U32 offset);
 
 /* --- INITIALIZATION --- */
 void bs_shaderBufs();

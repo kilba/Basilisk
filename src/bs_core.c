@@ -119,20 +119,19 @@ void bs_bufferResizeCheck(bs_Buffer *buf, bs_U32 num_units) {
     buf->allocated += BS_MAX(num_units, buf->increment);
 
     if(buf->realloc_ram) {
-	printf("RAM\n");
 	buf->data = realloc(buf->data, buf->allocated * buf->unit_size);
+	printf("REALLOCED : %p, %d\n", buf, buf->allocated * buf->unit_size / 1024);
     }
 
-    if(buf->realloc_vram) {
-	printf("VRAM\n");
+    if(buf->realloc_vram)
 	glBufferData(buf->type, buf->allocated * buf->unit_size, buf->data, GL_STATIC_DRAW);
-    }
 }
 
 bs_Buffer bs_buffer(bs_U32 type, bs_U32 unit_size, bs_U32 increment, bs_U32 pre_malloc) {
     void *data = NULL;
     if(pre_malloc != 0)
 	data = malloc(pre_malloc * unit_size);
+
     return (bs_Buffer) { 0, unit_size, 0, increment, true, type != 0, type, data };
 }
 
@@ -345,8 +344,8 @@ int bs_pushAABB(bs_aabb aabb, bs_RGBA color) {
     return curr_batch->index_buf.size;
 }
 
-int bs_pushPrim(bs_Prim *prim) {
-    bs_batchResizeCheck(prim->index_count, prim->vertex_count);
+int bs_pushPrim(bs_Prim *prim, int num_vertices, int num_indices) {
+    bs_batchResizeCheck(BS_MAX(prim->index_count, num_indices), BS_MAX(prim->vertex_count, num_vertices));
 
     bs_pushIndices(prim->indices, prim->index_count);
 
@@ -374,11 +373,11 @@ int bs_pushPrim(bs_Prim *prim) {
     return curr_batch->index_buf.size;
 }
 
-int bs_pushMesh(bs_Mesh *mesh) {
+int bs_pushMesh(bs_Mesh *mesh, int num_vertices, int num_indices) {
     int ret = 0;
     for(int i = 0; i < mesh->prim_count; i++) {
         bs_Prim *prim = &mesh->prims[i];
-        ret += bs_pushPrim(prim);
+        ret += bs_pushPrim(prim, num_vertices, num_indices);
     }
     return ret;
 }
@@ -386,9 +385,13 @@ int bs_pushMesh(bs_Mesh *mesh) {
 int bs_pushModel(bs_Model *model) {
     int ret = 0;
     for(int i = 0; i < model->mesh_count; i++) {
-        ret += bs_pushMesh(&model->meshes[i]);
+        ret += bs_pushMesh(&model->meshes[i], model->vertex_count, model->index_count);
     }
     return ret;
+}
+
+bs_U32 bs_batchOffset() {
+    return curr_batch->index_buf.size;
 }
 
 void bs_batch(bs_Batch *batch, bs_Shader *shader) {

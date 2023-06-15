@@ -54,11 +54,18 @@ bs_mat4 bs_scale(bs_vec3 sca, bs_mat4 mat);
 bs_mat4 bs_transform(bs_vec3 pos, bs_quat rot, bs_vec3 sca);
 
 /* --- VECTOR INITIALIZATION --- */
+bs_ivec2 bs_iv2(int x, int y);
+bs_ivec3 bs_iv3(int x, int y, int z);
+bs_ivec4 bs_iv4(int x, int y, int z, int w);
+
 bs_vec2 bs_v2(float x, float y);
 bs_vec3 bs_v3(float x, float y, float z);
 bs_vec4 bs_v4(float x, float y, float z, float w);
 bs_quat bs_q(float x, float y, float z, float w);
 
+bs_vec2 bs_v2s(float v);
+bs_vec3 bs_v3s(float v);
+bs_vec4 bs_v4s(float v);
 /* --- VECTOR ADDITION --- */
 bs_vec2 bs_v2add(bs_vec2 a, bs_vec2 b);
 bs_vec3 bs_v3add(bs_vec3 a, bs_vec3 b);

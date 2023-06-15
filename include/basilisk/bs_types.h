@@ -55,8 +55,9 @@ typedef struct bs_Buffer bs_Buffer;
 
 typedef struct bs_AnimIdx bs_AnimIdx;
 typedef struct bs_Globals bs_Globals;
-typedef struct bs_ShaderTexture bs_ShaderTexture;
 typedef struct bs_Texture bs_Texture;
+typedef struct bs_Material bs_Material;
+typedef struct bs_ShaderMaterial bs_ShaderMaterial;
 typedef struct bs_Uniform bs_Uniform;
 typedef struct bs_Shader bs_Shader;
 typedef struct bs_ComputeShader bs_ComputeShader;
@@ -66,7 +67,6 @@ typedef struct bs_Framebuf bs_Framebuf;
 typedef struct bs_Batch bs_Batch;
 typedef struct bs_MeshAnim bs_MeshAnim;
 typedef struct bs_Anim bs_Anim;
-typedef struct bs_Material bs_Material;
 typedef struct bs_Joint bs_Joint;
 typedef struct bs_Skin bs_Skin;
 typedef struct bs_Refs bs_Refs;
@@ -112,6 +112,7 @@ union bs_vec2 {
 union bs_vec3 { 
     float a[3];
     struct { float x, y, z; };
+    struct { bs_vec2 xy; float p0; };
 
 #ifdef __cplusplus
     inline bs_vec3 operator+(bs_vec3 a) {
@@ -135,6 +136,8 @@ union bs_vec3 {
 union bs_vec4 {
     float a[4];
     struct { float x, y, z, w; };
+    struct { bs_vec2 xy; float p0, p1; };
+    struct { bs_vec3 xyz; float p2; };
 
 #ifdef __cplusplus
     inline bs_vec4 operator+(bs_vec4 a) {
@@ -167,7 +170,11 @@ struct bs_uvec4 { bs_U32 x, y, z, w; };
 struct bs_fRGBA { float r, g, b, a; };
 union  bs_RGBA  { struct { unsigned char r, g, b, a; }; bs_U32 hex; };
 union  bs_RGB   { struct { unsigned char r, g, b;    }; bs_U32 hex : 24; };
-union  bs_umat4  { float a[4][4]; bs_vec4 v[4]; };
+union  bs_umat4 {
+    float a[4][4]; 
+    bs_vec4 v[4];
+
+};
 
 typedef BS_ALIGN_IF(16) bs_vec2 bs_mat2[2];
 typedef BS_ALIGN_IF(16)	bs_umat4 bs_mat4;
@@ -219,7 +226,7 @@ typedef bs_vec4 	bs_quat;
 #define BS_V3_TO_IV3(a) BS_VEC3_TO_IVEC3(a)
 #define BS_V4_TO_IV4(a) BS_VEC4_TO_IVEC4(a)
 
-#define BS_RGBA(r, g, b, a) (bs_RGBA) { r, g, b, a }
+#define BS_RGBA(r, g, b, a) (bs_RGBA) {{ r, g, b, a }}
 
 #define BS_AABB(a, b) (bs_aabb) { a, b }
 
@@ -229,10 +236,6 @@ struct bs_aabb {
 };
 
 /* --- TEXTURES --- */
-struct bs_ShaderTexture {
-    bs_U64 handle;
-};
-
 struct bs_Texture {
     bs_ivec3 frame;
     int num_frames;
@@ -370,6 +373,8 @@ struct bs_Joint {
 
     bs_Joint *parent;
     int loc;
+
+    char *name;
 };
 
 struct bs_Skin {
@@ -386,18 +391,22 @@ struct bs_Refs {
     void *root;
 };
 
-struct bs_Material {
-    bs_RGBA col;
-    bs_U64 texture_handle;
+struct bs_ShaderMaterial {
+    bs_vec4 color;
+};
 
-    float metallic;
-    
+struct bs_Material {
+    bs_ShaderMaterial data;
+
+    bs_U32 shader_material;
+    bs_U64 texture_handle;
     bs_Refs refs;
 };
 
 struct bs_Idxs {
     bs_U32 model;
     bs_U32 frame;
+    bs_U32 material;
     bs_U64 texture_handle;
 };
 
@@ -472,7 +481,7 @@ struct bs_MeshAnim {
 };
 
 struct bs_Anim {
-    bs_Mesh *mesh;
+    bs_Model *model;
     bs_mat4 *matrices;
     bs_MeshAnim *mesh_anims;
     int num_mesh_anims;

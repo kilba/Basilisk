@@ -39,8 +39,8 @@ int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
 int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
 int bs_pushPoint(bs_vec3 pos, bs_RGBA color);
 int bs_pushAABB(bs_aabb aabb, bs_RGBA color);
-int bs_pushPrim(bs_Prim *prim); 
-int bs_pushMesh(bs_Mesh *mesh);
+int bs_pushPrim(bs_Prim *prim, int num_vertices, int num_indices); 
+int bs_pushMesh(bs_Mesh *mesh, int num_vertices, int num_indices);
 int bs_pushModel(bs_Model *model);
 
 /* --- FRAMEBUFFERS --- */
@@ -63,6 +63,7 @@ void bs_additiveBlending();
 void bs_defaultBlending();
 
 /* --- BATCHING --- */
+bs_U32 bs_batchOffset();
 void bs_batch(bs_Batch *batch, bs_Shader *shader);
 void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size);
 void bs_attrib(const int type, unsigned int amount, size_t size_per_type, size_t attrib_size, bool normalized);
@@ -139,7 +140,7 @@ void bs_viewport(int x, int y, int w, int h);
 /* --- CONSTANTS --- */
 #define BS_BATCH_INCR_BY 1024
 #define BS_MODEL_INCR_BY 128
-#define BS_TEXTURE_INCR_BY 128
+#define BS_MATERIAL_INCR_BY 128
 #define BS_ANIM_INCR_BY 1
 
 /* OPENGL FILTERING SETTINGS */

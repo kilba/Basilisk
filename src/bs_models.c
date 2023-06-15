@@ -55,9 +55,9 @@ void bs_modelAttribDataI(int accessor_idx, int offset, bs_Prim *prim, cgltf_data
 
 void bs_loadMaterial(bs_Model *model, cgltf_data *c_data, bs_Material *material, cgltf_material *c_material) {
     // Default values
-    material->col = BS_WHITE;
-    material->metallic = 0.0;
+    material->data.color = bs_v4(0.5, 0.5, 0.0, 1.0);
     material->texture_handle = bs_defTexture()->handle;
+
     if(c_material == NULL)
 	return;
 
@@ -65,11 +65,12 @@ void bs_loadMaterial(bs_Model *model, cgltf_data *c_data, bs_Material *material,
     cgltf_pbr_metallic_roughness *metallic = &c_material->pbr_metallic_roughness;
     cgltf_float *color = metallic->base_color_factor;
 
-    material->col = BS_RGBA(color[0] * 255, color[1] * 255, color[2] * 255, color[3] * 255);
-    material->metallic = metallic->metallic_factor;
+    material->data.color = bs_v4(color[0], color[1], color[2], color[3]);
 
     // Texture handling
     cgltf_texture *tex = metallic->base_color_texture.texture;
+    
+    material->shader_material = bs_shaderMaterialInit(material);
 
     if(tex == NULL)
 	return;
@@ -140,7 +141,7 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
 
     prim->vertex_size = vertex_size;
     prim->vertex_count = num_floats / 3;
-    prim->vertices = malloc(prim->vertex_count * vertex_size  * sizeof(float));
+    prim->vertices = malloc(prim->vertex_count * vertex_size * sizeof(float));
 
     // Read vertices
     for(int i = 0; i < attrib_count; i++) {
@@ -201,6 +202,7 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
 
     for(int i = 0; i < c_mesh->primitives_count; i++)
 	bs_loadPrim(data, mesh, model, mesh_index, i);
+
 }
 
 void bs_checkMeshAnimResize(bs_Anim *anim) {
@@ -274,14 +276,28 @@ void bs_animation(bs_Anim *anim, bs_Skin *skin) {
 	    glm_mat4_mul(parent->mat.a, change_joint->mat.a, change_joint->mat.a);
 	    
 	    memcpy(mesh_anim->joints + idx, change_joint->mat.a, sizeof(bs_mat4));
-/*
-	    bs_mat4 res;
-	    glm_mat4_mul(anim->matrices[idx], mesh->mat, res);
-	    memcpy(mesh_anim->joints + idx, res, sizeof(bs_mat4));*/
 	}
     }
 
     anim->num_mesh_anims++;
+}
+
+int bs_jointOffsetFromName(bs_Skin *skin, const char *name) {
+    for(int i = 0; i < skin->joint_count; i++) {
+	if(strcmp(skin->joints[i].name, name) == 0)
+	    return i;
+    }
+
+    return -1;
+}
+
+bs_mat4 bs_matrixFrameFromJoint(bs_Anim *anim, bs_U32 frame, int joint_offset) {
+    if(joint_offset < 0)
+	return BS_MAT4_IDENTITY;
+    if(joint_offset >= anim->joint_count)
+	return BS_MAT4_IDENTITY;
+
+    return anim->matrices[joint_offset + anim->joint_count * frame];
 }
 
 void bs_loadAnim(cgltf_data* data, int index, int old_anim_offset, bs_Model *model) {
@@ -297,6 +313,7 @@ void bs_loadAnim(cgltf_data* data, int index, int old_anim_offset, bs_Model *mod
     anim->name = malloc(name_len + 1);
     strcpy(anim->name, c_anim->name);
 
+    anim->model = model;
     anim->mesh_anims = NULL;
     anim->num_mesh_anims = 0;
     
@@ -317,30 +334,17 @@ void bs_loadAnim(cgltf_data* data, int index, int old_anim_offset, bs_Model *mod
 
 	for(int j = 0; j < frame_count; j++) {
 	    int idx = i + (j * joint_count);
-	    bs_mat4 *joint = &joints[idx];
-	    bs_mat4 joint_mat = BS_MAT4_IDENTITY_INIT;
 
-	    vec3   tra;
-	    versor rot;
-	    vec3   sca;
+	    bs_vec3 tra;
+	    bs_quat rot;
+	    bs_vec3 sca;
 
 	    cgltf_accessor_read_float(translation_output, j, (float*)&tra, 3);
 	    cgltf_accessor_read_float(rotation_output   , j, (float*)&rot, 4);
 	    cgltf_accessor_read_float(scale_output      , j, (float*)&sca, 3);
 
-	    glm_translate(joint_mat.a , tra);
-	    glm_quat_rotate(joint_mat.a, rot, joint_mat.a);
-	    glm_scale(joint_mat.a, sca);
-
-	    memcpy(joint, joint_mat.a, sizeof(bs_mat4));
+	    joints[idx] = bs_transform(tra, rot, sca);
 	}
-    }
-
-    for(int j = 0; j < model->mesh_count; j++) {
-	bs_Mesh *mesh = model->meshes + j;
-	cgltf_mesh *c_mesh = &data->meshes[j];
-	if(c_anim->channels->target_node == c_mesh->node)
-	    anim->mesh = mesh;
     }
 
     anim->matrices = joints;
@@ -386,7 +390,6 @@ void bs_loadSkin(cgltf_skin *c_skin, bs_Skin *skin) {
     skin->joints = malloc(c_skin->joints_count * sizeof(bs_Joint));
     skin->joint_count = c_skin->joints_count;
 
-    bs_mat4 identity = BS_MAT4_IDENTITY_INIT;
     for(int i = 0; i < skin->joint_count; i++) {
 	cgltf_node *c_joint = c_skin->joints[i];
 	bs_Joint *joint = skin->joints + i;
@@ -402,7 +405,13 @@ void bs_loadSkin(cgltf_skin *c_skin, bs_Skin *skin) {
 	cgltf_accessor_read_float(c_skin->inverse_bind_matrices, i, (float*)joint->bind_matrix_inv.a, 16);
 	glm_mat4_inv(joint->bind_matrix_inv.a, joint->bind_matrix.a);
 
-	memcpy(skin->joints[i].mat.a, &identity, sizeof(bs_mat4));
+	// Set name
+	int joint_name_len = strlen(c_joint->name);
+	joint->name = malloc(joint_name_len + 1);
+	strncpy(joint->name, c_joint->name, joint_name_len);
+	joint->name[joint_name_len] = '\0';
+
+	joint->mat = BS_MAT4_IDENTITY;
 
 	c_joint->id = i;
     }
@@ -469,7 +478,8 @@ int bs_model(bs_Model *model, const char *model_path, const char *texture_path) 
     }
 
     // Load materials
-    model->materials[0] = (bs_Material){ BS_WHITE, bs_defTexture()->handle, 0.0 };
+    model->materials[0] = (bs_Material){ (bs_ShaderMaterial){ bs_v4(0.5, 0.5, 0.0, 1.0) }, 0, bs_defTexture()->handle, 0.0 };
+    model->materials[0].shader_material = bs_shaderMaterialInit(model->materials);
 
     for(int i = 1; i < model->material_count; i++) {
 	bs_loadMaterial(model, data, model->materials + i, data->materials + i - 1);
@@ -540,6 +550,26 @@ void bs_pushAnims() {
 	//free(anim->mesh_anims);
 	free(anim->matrices);
     }
+}
+
+bs_Mesh *bs_meshFromName(const char *name, bs_Model *model) {
+    for(int i = 0; i < model->mesh_count; i++) {
+	if(strcmp(name, model->meshes[i].name) == 0)
+	    return model->meshes + i;
+    }
+
+    return NULL;
+}
+
+int bs_meshIdxFromName(const char *name, bs_Model *model) {
+    bs_Mesh *mesh = bs_meshFromName(name, model);
+    if(mesh == NULL)
+	return -1;
+
+    bs_U64 ptr0 = (bs_U64)model->meshes;
+    bs_U64 ptr1 = (bs_U64)mesh;
+
+    return (ptr1 - ptr0) / sizeof(bs_Mesh);
 }
 
 bs_Skin *bs_skinFromName(const char *name, bs_Model *model) {

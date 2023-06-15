@@ -34,9 +34,7 @@ bs_U32 shader_buf_count[BS_BUF_COUNT] = { 0 };
 
 char *global_shader = NULL;
 
-void bs_configNumShaderIndices(bs_U32 n) {
-    num_shader_indices = n;
-}
+const char *last_vs_path = NULL, *last_fs_path = NULL, *last_gs_path = NULL;
 
 /* --- UPDATE BUFFERS --- */
 void bs_updateShaderBuf(const bs_U32 type, void *data, bs_U32 offset, bs_U32 size) {
@@ -48,14 +46,28 @@ void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset) {
     bs_updateShaderBuf(BS_MODEL, mat.a, offset * sizeof(bs_mat4), sizeof(bs_mat4));
 }
 
+void bs_updateShaderMaterial(bs_Material *material, bs_U32 offset) {
+    bs_v4print(material->data.color);
+    bs_updateShaderBuf(BS_MATERIAL, &material->data, offset * sizeof(bs_ShaderMaterial), sizeof(bs_ShaderMaterial));
+}
+
 /* --- CREATE BUFFERS --- */
-bs_U32 bs_shaderModel(bs_mat4 model) {
+bs_U32 bs_shaderModel() {
     return shader_buf_count[BS_MODEL]++;
 }
 
 bs_U32 bs_shaderModelInit(bs_mat4 model) {
     bs_updateShaderModel(model, shader_buf_count[BS_MODEL]);
     return shader_buf_count[BS_MODEL]++;
+}
+
+bs_U32 bs_shaderMaterial() {
+    return shader_buf_count[BS_MATERIAL]++;
+}
+
+bs_U32 bs_shaderMaterialInit(bs_Material *material) {
+    bs_updateShaderMaterial(material, shader_buf_count[BS_MATERIAL]);
+    return shader_buf_count[BS_MATERIAL]++;
 }
 
 /* --- UPDATE REFERENCES --- */
@@ -76,6 +88,7 @@ bs_Refs bs_shaderModelReferences(bs_Model *model, bs_Idxs unified) {
     for(int i = 0; i < model->material_count; i++) {
 	bs_Material *mat = model->materials + i;
 	unified.texture_handle = mat->texture_handle;
+	unified.material = mat->shader_material;
 	bs_shaderReferences(unified);
     }
 
@@ -91,13 +104,10 @@ bs_Refs bs_shaderReferences(bs_Idxs idxs) {
 
 // Shader frames treated as a reference and not buffer since it's only an INT
 void bs_updateShaderFrame(bs_U32 frame, bs_Refs refs) {
+    // TODO: Update in one go
     for(int i = 0; i < refs.count; i++) {
         bs_updateShaderReference(&frame, sizeof(bs_U32), (refs.value + i) * sizeof(bs_Idxs) + offsetof(bs_Idxs, frame));
     }
-}
-
-void bs_updateShaderTexture(bs_Texture *texture, bs_Refs refs) {
-
 }
 
 void bs_shaderBufs() {
@@ -107,9 +117,9 @@ void bs_shaderBufs() {
     if(global_shader != NULL && err == 0)
 	bs_replaceInAllShaders("#define BASILISK", global_shader);
 
-    shader_SSBOs[BS_IDXS]     = bs_SSBO(NULL, num_shader_indices * sizeof(bs_U32) * BS_BUF_COUNT, BS_SSBO_IDXS + 2);
-    shader_SSBOs[BS_MODEL]    = bs_SSBO(NULL, BS_MODEL_INCR_BY * sizeof(bs_mat4), BS_SSBO_MODELS + 2);
-    shader_SSBOs[BS_TEXTURE]  = bs_SSBO(NULL, BS_TEXTURE_INCR_BY * sizeof(bs_ShaderTexture), BS_SSBO_TEXTURES + 2);
+    shader_SSBOs[BS_IDXS]     = bs_SSBO(NULL, num_shader_indices * sizeof(bs_U32) * BS_BUF_COUNT, BS_SSBO_IDXS + 1);
+    shader_SSBOs[BS_MODEL]    = bs_SSBO(NULL, BS_MODEL_INCR_BY * sizeof(bs_mat4), BS_SSBO_MODELS + 1);
+    shader_SSBOs[BS_MATERIAL] = bs_SSBO(NULL, BS_MATERIAL_INCR_BY * sizeof(bs_ShaderMaterial), BS_SSBO_MATERIALS + 1); // 32 MB
 }
 
 /* Not necessary, but prevents multiple calls to realloc() */
@@ -219,12 +229,15 @@ void bs_shaderErrorCheck(GLuint *shader, int shadertype) {
         GLchar errorLog[100];
         glGetShaderInfoLog(*shader, maxLength, &maxLength, &errorLog[0]);
 
-        switch(shadertype) {
-            case GL_VERTEX_SHADER: bs_print(BS_CLE, "%s", "Vertex Shader Error!"); break;
-            case GL_FRAGMENT_SHADER: bs_print(BS_CLE, "%s", "Fragment Shader Error!"); break;
-            case GL_GEOMETRY_SHADER: bs_print(BS_CLE, "%s", "Geometry Shader Error!"); break;
-            case GL_COMPUTE_SHADER: bs_print(BS_CLE, "%s", "Compute Shader Error!"); break;
-        }
+	if(last_vs_path != NULL) {
+	    printf("ERROR IN: ");
+	    switch(shadertype) {
+		case GL_VERTEX_SHADER: printf("%s\n", last_vs_path); break;
+		case GL_FRAGMENT_SHADER: printf("%s\n", last_fs_path); break;
+		case GL_GEOMETRY_SHADER: printf("%s\n", last_gs_path); break;
+		default: break;
+	    }
+	}
 
         bs_print(BS_CLE, "\n");
         bs_print(BS_CLE, errorLog);
@@ -256,7 +269,6 @@ void bs_loadShaderCode(int program, GLuint *shader_id, const char *shader_code, 
 
     if((char*)replaced_shader_code != shader_code)
 	free((char*)replaced_shader_code);
-
 }
 
 void bs_setDefaultUniformLocations(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code) {
@@ -302,6 +314,10 @@ void bs_shader(bs_Shader *shader, const char *vs_path, const char *fs_path, cons
     int vs_err_code;
     int fs_err_code;
     int gs_err_code;
+
+    last_vs_path = vs_path;
+    last_fs_path = fs_path;
+    last_gs_path = gs_path;
 
     // Load shader source code into memory
     int len;
@@ -357,13 +373,6 @@ void bs_dispatchComputeShader(int x, int y, int z) {
 
 /* --- UNIFORM BLOCKS --- */
 bs_UniformBuffer bs_initUniformBlock(int block_size, int bind_point) {
-    if(bind_point == 0) {
-        // bs_print(BS_WAR, 
-            // "You have set the uniform block bind point to 0, "
-            // "which is also the bind point for the engine's global uniforms."
-        // );
-    }
-
     bs_UniformBuffer ubo;
     ubo.block_size = block_size;
 
@@ -398,6 +407,9 @@ bs_U32 bs_SSBO(void *data, int size, int bind_point) {
 }
 
 void bs_selectSSBO(bs_U32 ssbo_id) {
+    if(curr_ssbo == ssbo_id)
+	return;
+
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_id);
     curr_ssbo = ssbo_id;
 }
