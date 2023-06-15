@@ -184,10 +184,11 @@ void bs_setDefShaderUniforms(bs_Shader *shader, const char *shader_code){
         itoa(i, buffer, 10);
         memcpy(uni_texture+10, buffer, 3);
 
-        loc = bs_uniformLoc(shader->id, uni_texture);
+        loc = bs_uniformLoc(shader, uni_texture);
         if(loc == -1)
             continue;
-        bs_uniform_int(loc, i);
+
+        bs_uniformI32(loc, i);
     }
 }
 
@@ -295,18 +296,27 @@ void bs_shaderMem(bs_Shader *shader, const char *vs_code, const char *fs_code, c
     shader->attrib_size_bytes = 0;
     shader->id = glCreateProgram();
 
-    bs_loadShaderCode(shader->id, &shader->vs_id, vs_code, GL_VERTEX_SHADER);
-    bs_loadShaderCode(shader->id, &shader->fs_id, fs_code, GL_FRAGMENT_SHADER);
+    bs_U32 vs_id, fs_id, gs_id;
+
+    bs_loadShaderCode(shader->id, &vs_id, vs_code, GL_VERTEX_SHADER);
+    bs_loadShaderCode(shader->id, &fs_id, fs_code, GL_FRAGMENT_SHADER);
 
     // Geometry shader is not mandatory
-    if(gs_code != 0) {
-        bs_loadShaderCode(shader->id, &shader->gs_id, gs_code, GL_GEOMETRY_SHADER);
-    }
+    if(gs_code != 0)
+        bs_loadShaderCode(shader->id, &gs_id, gs_code, GL_GEOMETRY_SHADER);
 
     glLinkProgram(shader->id);
     glUseProgram(shader->id);
-
+    
     bs_setDefaultUniformLocations(shader, vs_code, fs_code, gs_code);
+
+    // Free
+    glDetachShader(shader->id, vs_id);
+    glDetachShader(shader->id, fs_id);
+    if(gs_code != 0)
+	glDetachShader(shader->id, gs_id);
+
+    glDeleteShader(shader->id);
     return;
 }
 
@@ -418,8 +428,8 @@ void bs_pushSSBO(void *data, int offset, int size) {
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, size, data);
 }
 
-int bs_uniformLoc(int id, const char *name) {
-    return glGetUniformLocation(id, name);
+int bs_uniformLoc(bs_Shader *shader, const char *name) {
+    return glGetUniformLocation(shader->id, name);
 }
 
 void bs_switchShader(int id) {
@@ -432,44 +442,48 @@ void bs_switchShaderCompute(int id) {
 
 // MATRICES
 // TODO: mat2, mat3
-void bs_uniform_mat4(int loc, bs_mat4 mat) {
+void bs_uniformM4(int loc, bs_mat4 mat) {
     glUniformMatrix4fv(loc, 1, GL_FALSE, (float *)mat.a);
 }
 
 // SCALARS
-// TODO: bool, int, uint, double
-void bs_uniform_float(int loc, float val) {
+// TODO: bool, double
+void bs_uniformFloat(int loc, float val) {
     glUniform1f(loc, val);
 }
 
-void bs_uniform_int(int loc, int val) {
+void bs_uniformI32(int loc, bs_I32 val) {
     glUniform1i(loc, val);
+}
+
+void bs_uniformU32(int loc, bs_U32 val) {
+    glUniform1ui(loc, val);
 }
 
 // VECTORS
 // TODO: bvecn, ivecn, uvecn, vecn, dvecn
 
-void bs_uniform_vec2(int loc, bs_vec2 vec) {
+void bs_uniformV2(int loc, bs_vec2 vec) {
     glUniform2f(loc, vec.x, vec.y);
 }
 
-void bs_uniform_ivec2(int loc, bs_ivec2 vec) {
+void bs_uniformIV2(int loc, bs_ivec2 vec) {
     glUniform2i(loc, vec.x, vec.y);
 }
 
-void bs_uniform_vec3(int loc, bs_vec3 vec) {
+void bs_uniformV3(int loc, bs_vec3 vec) {
     glUniform3f(loc, vec.x, vec.y, vec.z);
 }
 
-void bs_uniform_ivec3(int loc, bs_ivec3 vec) {
+void bs_uniformIV3(int loc, bs_ivec3 vec) {
     glUniform3i(loc, vec.x, vec.y, vec.z);
 }
 
-void bs_uniform_vec4(int loc, bs_vec4 vec) {
+void bs_uniformV4(int loc, bs_vec4 vec) {
     glUniform4f(loc, vec.x, vec.y, vec.z, vec.w);
 }
 
-void bs_uniform_ivec4(int loc, bs_ivec4 vec) {
+void bs_uniformIV4(int loc, bs_ivec4 vec) {
     glUniform4i(loc, vec.x, vec.y, vec.z, vec.w);
 }
 

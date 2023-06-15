@@ -515,9 +515,9 @@ void bs_renderBatchData() {
     bs_Uniform *proj = &curr_batch->shader->uniforms[UNIFORM_PROJ];
 
     if(view->is_valid)
-	bs_uniform_mat4(view->loc, curr_batch->camera->view);
+	bs_uniformM4(view->loc, curr_batch->camera->view);
     if(proj->is_valid)
-	bs_uniform_mat4(proj->loc, curr_batch->camera->proj);
+	bs_uniformM4(proj->loc, curr_batch->camera->proj);
 }
 
 void bs_renderBatch(int start_index, int draw_count) {

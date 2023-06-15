@@ -43,13 +43,13 @@ void bs_shaderReplaceAlloc(int amount);
 void bs_replaceInAllShaders(char *old_str, char *new_str);
 void bs_freeReplaceBlock();
 
+/* --- COMPUTE SHADERS --- */
 void bs_shaderMem(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code);
 void bs_shader(bs_Shader *shader, const char *vs_path, const char *fs_path, const char *gs_path);
 void bs_cShaderMem(bs_ComputeShader *shader, const char *cs_code, bs_Texture *tex);
 void bs_cShaderMem(bs_ComputeShader *shader, const char *cs_path, bs_Texture *tex);
 
-/* --- COMPUTE SHADERS --- */
-int bs_uniformLoc(int id, const char *name);
+int bs_uniformLoc(bs_Shader *shader, const char *name);
 void bs_switchShader(int id);
 void bs_switchShaderCompute(int id);
 
@@ -63,18 +63,19 @@ bs_U32 bs_SSBO(void *data, int size, int bind_point);
 void bs_selectSSBO(bs_U32 ssbo_id);
 void bs_pushSSBO(void *data, int offset, int size);
 
-void bs_uniform_mat4(int loc, bs_mat4 mat);
-void bs_uniform_float(int loc, float val);
-void bs_uniform_int(int loc, int val);
+void bs_uniformM4(int loc, bs_mat4 mat);
+void bs_uniformFloat(int loc, float val);
+void bs_uniformI32(int loc, bs_I32 val);
+void bs_uniformU32(int loc, bs_U32 val);
 
-void bs_uniform_vec2(int loc, bs_vec2 vec);
-void bs_uniform_ivec2(int loc, bs_ivec2 vec);
+void bs_uniformV2(int loc, bs_vec2 vec);
+void bs_uniformIV2(int loc, bs_ivec2 vec);
 
-void bs_uniform_vec3(int loc, bs_vec3 vec);
-void bs_uniform_ivec3(int loc, bs_ivec3 vec);
+void bs_uniformV3(int loc, bs_vec3 vec);
+void bs_uniformIV3(int loc, bs_ivec3 vec);
 
-void bs_uniform_vec4(int loc, bs_vec4 vec);
-void bs_uniform_ivec4(int loc, bs_ivec4 vec);
+void bs_uniformV4(int loc, bs_vec4 vec);
+void bs_uniformIV4(int loc, bs_ivec4 vec);
 
 void bs_setMemBarrier(int barrier);
 void bs_dispatchComputeShader(int x, int y, int z);

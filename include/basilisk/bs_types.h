@@ -316,9 +316,6 @@ struct bs_Shader {
 
     // OpenGL Variables
     unsigned int id;
-    unsigned int vs_id;
-    unsigned int fs_id;
-    unsigned int gs_id;
 };
 
 struct bs_ComputeShader {
@@ -407,6 +404,7 @@ struct bs_Idxs {
     bs_U32 model;
     bs_U32 frame;
     bs_U32 material;
+    bs_U32 boneid;
     bs_U64 texture_handle;
 };
 
