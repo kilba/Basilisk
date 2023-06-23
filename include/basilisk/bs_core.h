@@ -9,6 +9,7 @@ void bs_setV1_(float v);
 void bs_setV4_(bs_vec4 v);
 
 /* --- BUFFERS --- */
+void bs_bufferAppend(bs_Buffer *buf, void *data);
 void *bs_bufferData(bs_Buffer *buf, bs_U32 offset);
 void bs_minimizeBuffer(bs_Buffer *buf);
 void bs_bufferResizeCheck(bs_Buffer *buf, bs_U32 num_units);
@@ -75,7 +76,6 @@ void bs_bufferRange(int target, int bind_point, int buffer, int offset, int size
 void bs_selectBatch(bs_Batch *batch);
 void bs_pushBatch();
 void bs_renderBatch(int start_index, int draw_count);
-void bs_renderBatchVertices(int start_index, int draw_count);
 
 void bs_minimizeBatch();
 void bs_freeBatchData();
@@ -138,7 +138,7 @@ void bs_blendFunc(int val0, int val1);
 void bs_viewport(int x, int y, int w, int h);
 
 /* --- CONSTANTS --- */
-#define BS_BATCH_INCR_BY 1024
+#define BS_BATCH_INCR_BY 256
 #define BS_MODEL_INCR_BY 128
 #define BS_MATERIAL_INCR_BY 128
 #define BS_ANIM_INCR_BY 1

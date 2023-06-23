@@ -351,6 +351,7 @@ struct bs_Batch {
     bs_Camera *camera;
 
     int draw_mode;
+    bool use_indices;
 
     int attrib_count;
     size_t attrib_offset;

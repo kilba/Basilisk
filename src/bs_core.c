@@ -103,6 +103,13 @@ void bs_selectBatch(bs_Batch *batch) {
     bs_switchShader(curr_batch->shader->id);
 }
 
+void bs_bufferAppend(bs_Buffer *buf, void *data) {
+    bs_bufferResizeCheck(buf, 1);
+
+    uint8_t *dest = bs_bufferData(buf, buf->size);
+    memcpy(dest, data, buf->unit_size);
+}
+
 void *bs_bufferData(bs_Buffer *buf, bs_U32 offset) {
     return (uint8_t *)(buf->data) + offset * buf->unit_size;
 }
@@ -400,6 +407,7 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
     batch->draw_mode = BS_TRIANGLES;
     batch->camera = &def_camera;
     batch->shader = shader;
+    batch->use_indices = true;
 
     // Create buffer/array objects
     glGenVertexArrays(1, &batch->VAO);
@@ -522,12 +530,12 @@ void bs_renderBatchData() {
 
 void bs_renderBatch(int start_index, int draw_count) {
     bs_renderBatchData();
-    glDrawElements(curr_batch->draw_mode, draw_count, BS_UINT, (void*)(start_index * sizeof(GLuint)));
-}
 
-void bs_renderBatchVertices(int start_index, int draw_count) {
-    bs_renderBatchData();
-    glDrawArrays(curr_batch->draw_mode, start_index, draw_count);
+    if(curr_batch->use_indices) {
+	glDrawElements(curr_batch->draw_mode, draw_count, BS_UINT, (void*)(start_index * sizeof(GLuint)));
+    } else {
+	glDrawArrays(curr_batch->draw_mode, start_index, draw_count);
+    }
 }
 
 void bs_clearBatch() {
@@ -536,7 +544,11 @@ void bs_clearBatch() {
 }
 
 int bs_batchSize() {
-    return curr_batch->index_buf.size;
+    if(curr_batch->use_indices) {
+	return curr_batch->index_buf.size;
+    } else {
+	return curr_batch->vertex_buf.size;
+    }
 }
 
 /* --- FRAMEBUFFERS --- */
