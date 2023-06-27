@@ -503,6 +503,7 @@ int bs_model(bs_Model *model, const char *model_path, const char *texture_path) 
     bs_Idxs idxs = {
 	bs_shaderModelInit(BS_MAT4_IDENTITY),
 	0,
+	0,
 	bs_defTexture()->handle
     };
     model->refs = bs_shaderModelReferences(model, idxs);

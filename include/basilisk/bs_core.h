@@ -213,6 +213,8 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_TRIANGLE_STRIP_ADJACENCY 0x000D
 
 /* RENDERING LOGIC */
+#define BS_ARRAY_BUF 0x8892
+
 #define BS_STENCIL_TEST 0x0B90
 #define BS_DEPTH_TEST 0x0B71
 #define BS_BLEND 0x0BE2

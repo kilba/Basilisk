@@ -108,6 +108,8 @@ void bs_bufferAppend(bs_Buffer *buf, void *data) {
 
     uint8_t *dest = bs_bufferData(buf, buf->size);
     memcpy(dest, data, buf->unit_size);
+
+    buf->size++;
 }
 
 void *bs_bufferData(bs_Buffer *buf, bs_U32 offset) {
@@ -127,7 +129,7 @@ void bs_bufferResizeCheck(bs_Buffer *buf, bs_U32 num_units) {
 
     if(buf->realloc_ram) {
 	buf->data = realloc(buf->data, buf->allocated * buf->unit_size);
-	printf("REALLOCED : %p, %d\n", buf, buf->allocated * buf->unit_size / 1024);
+	printf("REALLOCED : %p, %d (%d units)\n", buf, buf->allocated * buf->unit_size, buf->size);
     }
 
     if(buf->realloc_vram)
@@ -135,11 +137,12 @@ void bs_bufferResizeCheck(bs_Buffer *buf, bs_U32 num_units) {
 }
 
 bs_Buffer bs_buffer(bs_U32 type, bs_U32 unit_size, bs_U32 increment, bs_U32 pre_malloc) {
-    void *data = NULL;
-    if(pre_malloc != 0)
-	data = malloc(pre_malloc * unit_size);
+    bs_Buffer buf = { 0, unit_size, 0, increment, true, type != 0, type, NULL };
 
-    return (bs_Buffer) { 0, unit_size, 0, increment, true, type != 0, type, data };
+    if(pre_malloc != 0)
+	bs_bufferResizeCheck(&buf, pre_malloc);
+
+    return buf;
 }
 
 void bs_batchResizeCheck(int index_count, int vertex_count) {
@@ -739,13 +742,9 @@ void bs_defaultBlending() {
 void bs_setGlobalVars() {
     bs_Globals globals;
 
-    // TODO: actual camera system, update camera position for every batch
-    bs_mat4 view_inv;
-    glm_mat4_inv((shader_camera != NULL ? shader_camera : curr_batch->camera)->view.a, view_inv.a);
-
     globals.res = bs_resolution();
     globals.elapsed = bs_elapsedTime();
-    globals.cam_pos = bs_v3(view_inv.a[3][0], view_inv.a[3][1], view_inv.a[3][2]);
+    globals.cam_pos = bs_v3s(0.0);
 
     bs_setUniformBlockData(global_unifs, &globals);
 }

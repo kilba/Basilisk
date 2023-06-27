@@ -261,6 +261,8 @@ const char *bs_replaceInShader(const char *code) {
 void bs_loadShaderCode(int program, GLuint *shader_id, const char *shader_code, int type) {
     const GLchar *replaced_shader_code = bs_replaceInShader(shader_code);
 
+    printf("GWEOM   %d\n", type);
+
     *shader_id = glCreateShader(type);
     glShaderSource(*shader_id, 1, &replaced_shader_code, NULL);
 
