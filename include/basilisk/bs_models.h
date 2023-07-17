@@ -11,7 +11,7 @@ int bs_jointOffsetFromName(bs_Skin *skin, const char *name);
 bs_mat4 bs_matrixFrameFromJoint(bs_Anim *anim, bs_U32 frame, int joint_offset);
 bs_Anim *bs_anims();
 bs_Anim *bs_modelAnims(bs_Model *model);
-bs_Anim *bs_modelAnimFromName(const char *name, bs_Model *model);
+bs_Anim *bs_modelAnimFromName(bs_Model *model, const char *name);
 bs_Anim *bs_animFromName(const char *name);
 bs_Skin *bs_skinFromName(const char *name, bs_Model *model);
 bs_Mesh *bs_meshFromName(const char *name, bs_Model *model);

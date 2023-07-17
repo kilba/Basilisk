@@ -9,6 +9,8 @@
 #define BS_MIN(a,b) (((a)<(b))?(a):(b))
 #define BS_MAX(a,b) (((a)>(b))?(a):(b))
 
+float bs_degrees(float rad);
+float bs_rad(float degrees);
 double bs_clamp(double d, double min, double max);
 int bs_sign(float x);
 float bs_fsign(float x);
@@ -32,9 +34,11 @@ bs_vec2 bs_v2rot(bs_vec2 pt, bs_vec2 origin, float angle);
 bs_vec3 bs_v3mid(bs_vec3 a, bs_vec3 b);
 bs_vec2 bs_v2mid(bs_vec2 a, bs_vec2 b);
 bs_aabb bs_v3bounds(bs_vec3 *arr, int num_indices);
+bs_vec3 bs_v3rotq(bs_vec3 v, bs_quat q);
 
 /* --- QUATERNIONS --- */
 void    bs_qToMat3(bs_vec4 q, bs_mat3 *out);
+bs_quat bs_slerp(bs_quat q1, bs_quat q2, float t);
 bs_quat bs_qMulq(bs_quat q, bs_quat rhs);
 bs_quat bs_qNormalize(bs_quat q);
 float   bs_qMagnitude(bs_quat q);
@@ -47,6 +51,8 @@ void bs_v2QuadBez(bs_vec2 p0, bs_vec2 p1, bs_vec2 p2, bs_vec2 *arr, int num_elem
 void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *arr, int num_elems);
 
 /* --- MATRICES --- */
+bs_vec4 bs_m4mulv4(bs_mat4 m, bs_vec4 v);
+bs_mat4 bs_m4mul(bs_mat4 m1, bs_mat4 m2);
 bs_mat4 bs_m4mulrot(bs_mat4 m1, bs_mat4 m2);
 bs_mat4 bs_translate(bs_vec3 pos, bs_mat4 mat);
 bs_mat4 bs_rotate(bs_quat rot, bs_mat4 mat);

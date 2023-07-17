@@ -316,6 +316,7 @@ struct bs_Shader {
 
     // OpenGL Variables
     unsigned int id;
+    unsigned int vs_id;
 };
 
 struct bs_ComputeShader {
@@ -480,6 +481,8 @@ struct bs_MeshAnim {
 
 struct bs_Anim {
     bs_Model *model;
+    bs_Skin *skin;
+
     bs_mat4 *matrices;
     bs_MeshAnim *mesh_anims;
     int num_mesh_anims;

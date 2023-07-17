@@ -129,7 +129,7 @@ void bs_bufferResizeCheck(bs_Buffer *buf, bs_U32 num_units) {
 
     if(buf->realloc_ram) {
 	buf->data = realloc(buf->data, buf->allocated * buf->unit_size);
-	printf("REALLOCED : %p, %d (%d units)\n", buf, buf->allocated * buf->unit_size, buf->size);
+	//printf("REALLOCED : %p, %d (%d units)\n", buf, buf->allocated * buf->unit_size, buf->size);
     }
 
     if(buf->realloc_vram)

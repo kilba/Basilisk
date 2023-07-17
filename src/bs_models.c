@@ -242,17 +242,11 @@ void bs_animation(bs_Anim *anim, bs_Skin *skin) {
 	exit(1);
     }
 
-    if(anim->joint_count != skin->joint_count) {
-	//bs_jointlessAnimation(anim, mesh)
-	printf("Joint mismatch:\n    %s: %d\n    %s: %d\n", anim->name, anim->joint_count, skin->name, skin->joint_count);
-	exit(1);
-    }
-
     bs_checkMeshAnimResize(anim);
     bs_MeshAnim *mesh_anim = anim->mesh_anims + anim->num_mesh_anims;
 
-    mesh_anim->joints = malloc(anim->frame_count * anim->joint_count * sizeof(bs_mat4));
-    mesh_anim->num_joints = anim->joint_count;
+    mesh_anim->joints = malloc(anim->frame_count * skin->joint_count * sizeof(bs_mat4));
+    mesh_anim->num_joints = skin->joint_count;
     mesh_anim->num_frames = anim->frame_count;
     mesh_anim->shader_offset = anim_offset;
     anim_offset += anim->frame_count * anim->joint_count;
@@ -260,10 +254,10 @@ void bs_animation(bs_Anim *anim, bs_Skin *skin) {
     // For each FRAME in animation
     for(int i = 0; i < anim->frame_count; i++) {
 	// For each JOINT in mesh
-	for(int j = 0; j < anim->joint_count; j++) {
+	for(int j = 0; j < skin->joint_count; j++) {
 	    bs_Joint *change_joint = &skin->joints[j];
 	    bs_Joint *parent = skin->joints[j].parent;
-	    int idx = j + i * anim->joint_count;
+	    int idx = j + i * skin->joint_count;
 
 	    // RESULT_JOINT  = (BIND MATRIX) * (LOCAL INVERSE)
 	    // RESULT_JOINT *= (ANIMATION JOINT OF CURRENT FRAME)
@@ -593,7 +587,7 @@ bs_Anim *bs_modelAnims(bs_Model *model) {
     return anims + model->anim_offset;
 }
 
-bs_Anim *bs_modelAnimFromName(const char *name, bs_Model *model) {
+bs_Anim *bs_modelAnimFromName(bs_Model *model, const char *name) {
     for(int i = 0; i < model->anim_count; i++) {
 	bs_Anim *anim = anims + model->anim_offset + i;
 	if(strcmp(name, anim->name) == 0)

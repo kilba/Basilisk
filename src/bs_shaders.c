@@ -47,7 +47,6 @@ void bs_updateShaderModel(bs_mat4 mat, bs_U32 offset) {
 }
 
 void bs_updateShaderMaterial(bs_Material *material, bs_U32 offset) {
-    bs_v4print(material->data.color);
     bs_updateShaderBuf(BS_MATERIAL, &material->data, offset * sizeof(bs_ShaderMaterial), sizeof(bs_ShaderMaterial));
 }
 
@@ -96,10 +95,8 @@ bs_Refs bs_shaderModelReferences(bs_Model *model, bs_Idxs unified) {
 }
 
 bs_Refs bs_shaderReferences(bs_Idxs idxs) {
-    int test = shader_buf_count[BS_IDXS];
     bs_updateShaderReferences(idxs, shader_buf_count[BS_IDXS] * sizeof(bs_Idxs));
-    shader_buf_count[BS_IDXS]++;
-    return (bs_Refs){ test, 1 };
+    return (bs_Refs){ shader_buf_count[BS_IDXS]++, 1 };
 }
 
 // Shader frames treated as a reference and not buffer since it's only an INT
@@ -258,17 +255,16 @@ const char *bs_replaceInShader(const char *code) {
     return new_code;
 }
 
-void bs_loadShaderCode(int program, GLuint *shader_id, const char *shader_code, int type) {
+void bs_loadShaderCode(GLuint *shader_id, const char *shader_code, int type) {
     const GLchar *replaced_shader_code = bs_replaceInShader(shader_code);
-
-    printf("GWEOM   %d\n", type);
 
     *shader_id = glCreateShader(type);
     glShaderSource(*shader_id, 1, &replaced_shader_code, NULL);
 
     glCompileShader(*shader_id);
     bs_shaderErrorCheck(shader_id, type);
-    glAttachShader(program, *shader_id);
+
+    bs_checkError();
 
     if((char*)replaced_shader_code != shader_code)
 	free((char*)replaced_shader_code);
@@ -278,13 +274,48 @@ void bs_setDefaultUniformLocations(bs_Shader *shader, const char *vs_code, const
     for(int i = 0; i < BS_UNIFORM_TYPE_COUNT; i++)
         shader->uniforms[i].is_valid = false;
 
-    bs_setDefShaderUniforms(shader, vs_code);
-    bs_setDefShaderUniforms(shader, fs_code);
+    if(vs_code != NULL) {
+	bs_setDefShaderUniforms(shader, vs_code);
+	bs_setDefShaderAttribs(shader, vs_code);
+    }
 
-    bs_setDefShaderAttribs(shader, vs_code);
+    if(fs_code != NULL)
+	bs_setDefShaderUniforms(shader, fs_code);
 
-    if(gs_code != 0)
+    if(gs_code != NULL)
         bs_setDefShaderUniforms(shader, gs_code);
+}
+
+void bs_shaderMemVs(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code, bs_U32 fs_id, bs_U32 gs_id) {
+    if(vs_code == NULL) {
+        shader->id = -1;
+        return;
+    }
+
+    shader->attribs = 0;
+    shader->attrib_count = 0;
+    shader->attrib_size_bytes = 0;
+    shader->id = glCreateProgram();
+
+    bs_loadShaderCode(&shader->vs_id, vs_code, GL_VERTEX_SHADER);
+    glAttachShader(shader->id, shader->vs_id);
+    glAttachShader(shader->id, fs_id);
+    if(gs_id != 0)
+	glAttachShader(shader->id, gs_id);
+    
+    glLinkProgram(shader->id);
+    glUseProgram(shader->id);
+    
+    bs_setDefaultUniformLocations(shader, vs_code, fs_code, gs_code);
+
+    // Free
+    glDetachShader(shader->id, shader->vs_id);
+    glDetachShader(shader->id, fs_id);
+    if(gs_id != 0)
+	glDetachShader(shader->id, gs_id);
+    
+    glDeleteShader(shader->id);
+    return;
 }
 
 void bs_shaderMem(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code) {
@@ -300,12 +331,16 @@ void bs_shaderMem(bs_Shader *shader, const char *vs_code, const char *fs_code, c
 
     bs_U32 vs_id, fs_id, gs_id;
 
-    bs_loadShaderCode(shader->id, &vs_id, vs_code, GL_VERTEX_SHADER);
-    bs_loadShaderCode(shader->id, &fs_id, fs_code, GL_FRAGMENT_SHADER);
+    bs_loadShaderCode(&vs_id, vs_code, GL_VERTEX_SHADER);
+    bs_loadShaderCode(&fs_id, fs_code, GL_FRAGMENT_SHADER);
+    glAttachShader(shader->id, vs_id);
+    glAttachShader(shader->id, fs_id);
 
     // Geometry shader is not mandatory
-    if(gs_code != 0)
-        bs_loadShaderCode(shader->id, &gs_id, gs_code, GL_GEOMETRY_SHADER);
+    if(gs_code != 0) {
+        bs_loadShaderCode(&gs_id, gs_code, GL_GEOMETRY_SHADER);
+	glAttachShader(shader->id, gs_id);
+    }
 
     glLinkProgram(shader->id);
     glUseProgram(shader->id);
@@ -350,12 +385,62 @@ void bs_shader(bs_Shader *shader, const char *vs_path, const char *fs_path, cons
     free(gscode);
 }
 
+void bs_shaderRange(bs_Shader *shaders, int num_vs, char **vs_paths, const char *fs_path, const char *gs_path) {
+    int vs_err_code;
+    int fs_err_code;
+    int gs_err_code;
+
+    last_fs_path = fs_path;
+    last_gs_path = gs_path;
+
+    // Load shader source code into memory
+    int len;
+    char *fs_code, *gs_code = NULL;
+    fs_code = bs_fileContents(fs_path, &len, &fs_err_code);
+
+    bs_U32 fs_id, gs_id = 0;
+
+    bs_loadShaderCode(&fs_id, fs_code, GL_FRAGMENT_SHADER);
+    if(fs_err_code != 0) {
+	shaders->id = -1;
+	return;
+    }
+
+    if(gs_path != 0) {
+	gs_code = bs_fileContents(gs_path, &len, &gs_err_code);
+	bs_loadShaderCode(&gs_id, gs_code, GL_GEOMETRY_SHADER);
+	if(gs_err_code == 2) {
+	    shaders->id = -1;
+	    return;
+	}
+    }
+
+    for(int i = 0; i < num_vs; i++) {
+	bs_Shader *shader = shaders + i;
+	char *vs_code = bs_fileContents(vs_paths[i], &len, &vs_err_code);
+
+	// Don't compile shaders if file wasn't found
+	if(vs_err_code == 2) {
+	    shader->id = -1;
+	    continue;
+	}
+    
+	bs_shaderMemVs(shader, vs_code, fs_code, gs_code, fs_id, gs_id);
+	free(vs_code);
+    }
+
+    // Load the shader from memory, compile and return it
+    free(fs_code);
+    free(gs_code);
+}
+
 /* COMPUTE SHADERS */
 void bs_loadMemComputeShader(bs_ComputeShader *shader, const char *cs_code, bs_Texture *tex) {
     if(cs_code == NULL)
         return;
 
-    bs_loadShaderCode(shader->id, &shader->cs_id, cs_code, GL_COMPUTE_SHADER);
+    bs_loadShaderCode(&shader->cs_id, cs_code, GL_COMPUTE_SHADER);
+    glAttachShader(shader->id, shader->cs_id);
 
     shader->id = glCreateProgram();
     glLinkProgram(shader->id);

@@ -3,6 +3,14 @@
 #include <string.h>
 #include <math.h>
 
+float bs_degrees(float rad) {
+    return rad * (180.0 / BS_PI);
+}
+
+float bs_rad(float degrees) {
+    return degrees * BS_PI / 180.0;
+}
+
 double bs_clamp(double d, double min, double max) {
   const double t = d < min ? min : d;
   return t > max ? max : t;
@@ -31,6 +39,53 @@ int bs_closestDivisible(int val, int div) {
 double bs_fMap(double input, double input_start, double input_end, double output_start, double output_end) {
     double slope = 1.0 * (output_end - output_start) / (input_end - input_start);
     return output_start + slope * (input - input_start);
+}
+
+
+bs_quat bs_slerp(bs_quat q1, bs_quat q2, float t) {
+    float cos_half_theta = bs_v4dot(q1, q2);
+    if(fabs(cos_half_theta) >= 1.0)
+	return q1;
+
+    if(cos_half_theta < 0.0) {
+	q1 = bs_q(-q1.x, -q1.y, -q1.z, -q1.w);
+	cos_half_theta = -cos_half_theta;
+    }
+
+    float half_theta = acos(cos_half_theta);
+    float sin_half_theta = sqrt(1.0 - cos_half_theta * cos_half_theta);
+
+    if(fabs(sin_half_theta) < 0.001) {
+	return bs_q(
+	    q1.x * 0.5 + q2.x * 0.5,
+	    q1.y * 0.5 + q2.y * 0.5,
+	    q1.z * 0.5 + q2.z * 0.5,
+	    q1.w * 0.5 + q2.w * 0.5
+	);
+    }
+
+    float ratio1 = sin((1.0 - t) * half_theta) / sin_half_theta;
+    float ratio2 = sin(t * half_theta) / sin_half_theta;
+
+    return bs_q(
+	q1.x * ratio1 + q2.x * ratio2,
+	q1.y * ratio1 + q2.y * ratio2,
+	q1.z * ratio1 + q2.z * ratio2,
+	q1.w * ratio1 + q2.w * ratio2
+    );
+
+    /*
+    float angle = acos(bs_v4dot(q1, q2));
+    float denom = sin(angle);
+
+    if(denom == 0.0)
+	return BS_QUAT_IDENTITY;
+
+    // (q1 * sin((1.0 - t) * angle) + q2 * sin(t * angle)) / denom
+    return bs_v4divs(bs_v4add(
+	bs_v4muls(q1, sin((1.0 - t) * angle)),
+	bs_v4muls(q2, sin(t * angle))
+    ), denom);*/
 }
 
 bs_quat bs_eul2quat(bs_vec3 eul) {
@@ -289,50 +344,36 @@ void bs_cubicBezierPts(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_vec3 *
 }
 
 /* --- MATRICES --- */
+bs_vec4 bs_m4mulv4(bs_mat4 m, bs_vec4 v) {
+    bs_vec4 res;
+
+    res.a[0] = m.a[0][0] * v.a[0] + m.a[1][0] * v.a[1] + m.a[2][0] * v.a[2] + m.a[3][0] * v.a[3];
+    res.a[1] = m.a[0][1] * v.a[0] + m.a[1][1] * v.a[1] + m.a[2][1] * v.a[2] + m.a[3][1] * v.a[3];
+    res.a[2] = m.a[0][2] * v.a[0] + m.a[1][2] * v.a[1] + m.a[2][2] * v.a[2] + m.a[3][2] * v.a[3];
+    res.a[3] = m.a[0][3] * v.a[0] + m.a[1][3] * v.a[1] + m.a[2][3] * v.a[2] + m.a[3][3] * v.a[3];
+
+    return res;
+}
+
 bs_mat4 bs_m4mul(bs_mat4 m1, bs_mat4 m2) {
     bs_mat4 dest;
-    dest.a[0][0] = m1.a[0][0] * m2.a[0][0] + m1.a[1][0] * m2.a[0][1] + m1.a[2][0] * m2.a[0][2];
-    dest.a[0][1] = m1.a[0][1] * m2.a[0][0] + m1.a[1][1] * m2.a[0][1] + m1.a[2][1] * m2.a[0][2];
-    dest.a[0][2] = m1.a[0][2] * m2.a[0][0] + m1.a[1][2] * m2.a[0][1] + m1.a[2][2] * m2.a[0][2];
-    dest.a[0][3] = m1.a[0][3] * m2.a[0][0] + m1.a[1][3] * m2.a[0][1] + m1.a[2][3] * m2.a[0][2];
-    
-    dest.a[1][0] = m1.a[0][0] * m2.a[1][0] + m1.a[1][0] * m2.a[1][1] + m1.a[2][0] * m2.a[1][2];    
-    dest.a[1][1] = m1.a[0][1] * m2.a[1][0] + m1.a[1][1] * m2.a[1][1] + m1.a[2][1] * m2.a[1][2];   
-    dest.a[1][2] = m1.a[0][2] * m2.a[1][0] + m1.a[1][2] * m2.a[1][1] + m1.a[2][2] * m2.a[1][2];  
-    dest.a[1][3] = m1.a[0][3] * m2.a[1][0] + m1.a[1][3] * m2.a[1][1] + m1.a[2][3] * m2.a[1][2]; 
-    
-    dest.a[2][0] = m1.a[0][0] * m2.a[2][0] + m1.a[1][0] * m2.a[2][1] + m1.a[2][0] * m2.a[2][2];
-    dest.a[2][1] = m1.a[0][1] * m2.a[2][0] + m1.a[1][1] * m2.a[2][1] + m1.a[2][1] * m2.a[2][2];
-    dest.a[2][2] = m1.a[0][2] * m2.a[2][0] + m1.a[1][2] * m2.a[2][1] + m1.a[2][2] * m2.a[2][2];
-    dest.a[2][3] = m1.a[0][3] * m2.a[2][0] + m1.a[1][3] * m2.a[2][1] + m1.a[2][3] * m2.a[2][2];
 
-    dest.a[3][0] = m1.a[0][0] * m2.a[3][0] + m1.a[1][0] * m2.a[3][1] + m1.a[2][0] * m2.a[3][2];
-    dest.a[3][1] = m1.a[0][1] * m2.a[3][0] + m1.a[1][1] * m2.a[3][1] + m1.a[2][1] * m2.a[3][2];
-    dest.a[3][2] = m1.a[0][2] * m2.a[3][0] + m1.a[1][2] * m2.a[3][1] + m1.a[2][2] * m2.a[3][2];
-    dest.a[3][3] = m1.a[0][3] * m2.a[3][0] + m1.a[1][3] * m2.a[3][1] + m1.a[2][3] * m2.a[3][2];
+    dest.v[0] = bs_m4mulv4(m1, m2.v[0]);
+    dest.v[1] = bs_m4mulv4(m1, m2.v[1]);
+    dest.v[2] = bs_m4mulv4(m1, m2.v[2]);
+    dest.v[3] = bs_m4mulv4(m1, m2.v[3]);
 
     return dest;
 }
 
 bs_mat4 bs_m4mulrot(bs_mat4 m1, bs_mat4 m2) {
     bs_mat4 dest;
-  
-    dest.a[0][0] = m1.a[0][0] * m2.a[0][0] + m1.a[1][0] * m2.a[0][1] + m1.a[2][0] * m2.a[0][2];
-    dest.a[0][1] = m1.a[0][1] * m2.a[0][0] + m1.a[1][1] * m2.a[0][1] + m1.a[2][1] * m2.a[0][2];
-    dest.a[0][2] = m1.a[0][2] * m2.a[0][0] + m1.a[1][2] * m2.a[0][1] + m1.a[2][2] * m2.a[0][2];
-    dest.a[0][3] = m1.a[0][3] * m2.a[0][0] + m1.a[1][3] * m2.a[0][1] + m1.a[2][3] * m2.a[0][2];
-    
-    dest.a[1][0] = m1.a[0][0] * m2.a[1][0] + m1.a[1][0] * m2.a[1][1] + m1.a[2][0] * m2.a[1][2];    
-    dest.a[1][1] = m1.a[0][1] * m2.a[1][0] + m1.a[1][1] * m2.a[1][1] + m1.a[2][1] * m2.a[1][2];   
-    dest.a[1][2] = m1.a[0][2] * m2.a[1][0] + m1.a[1][2] * m2.a[1][1] + m1.a[2][2] * m2.a[1][2];  
-    dest.a[1][3] = m1.a[0][3] * m2.a[1][0] + m1.a[1][3] * m2.a[1][1] + m1.a[2][3] * m2.a[1][2]; 
-    
-    dest.a[2][0] = m1.a[0][0] * m2.a[2][0] + m1.a[1][0] * m2.a[2][1] + m1.a[2][0] * m2.a[2][2];
-    dest.a[2][1] = m1.a[0][1] * m2.a[2][0] + m1.a[1][1] * m2.a[2][1] + m1.a[2][1] * m2.a[2][2];
-    dest.a[2][2] = m1.a[0][2] * m2.a[2][0] + m1.a[1][2] * m2.a[2][1] + m1.a[2][2] * m2.a[2][2];
-    dest.a[2][3] = m1.a[0][3] * m2.a[2][0] + m1.a[1][3] * m2.a[2][1] + m1.a[2][3] * m2.a[2][2];
 
+    dest.v[0] = bs_m4mulv4(m1, m2.v[0]);
+    dest.v[1] = bs_m4mulv4(m1, m2.v[1]);
+    dest.v[2] = bs_m4mulv4(m1, m2.v[2]);
     dest.v[3] = bs_v4(m1.a[3][0], m1.a[3][1], m1.a[3][2], m1.a[3][3]);
+
     return dest;
 }
 
@@ -546,6 +587,21 @@ bool bs_v3cmp(bs_vec3 a, bs_vec3 b) {
 
 bool bs_v4cmp(bs_vec4 a, bs_vec4 b) {
     return (a.x == b.x) & (a.y == b.y) & (a.z == b.z) & (a.w == b.w);
+}
+
+/* --- VECTOR ROTATION --- */
+bs_vec3 bs_v3rotq(bs_vec3 v, bs_quat q) {
+    bs_vec3 u = bs_v3(q.x, q.y, q.z);
+    float s = q.w;
+
+    return
+    bs_v3add(
+	bs_v3add(
+	    bs_v3muls(u, 2.0 * bs_v3dot(u, v)),
+	    bs_v3muls(v, s * s - bs_v3dot(u, u))
+	),
+	bs_v3muls(bs_cross(u, v), 2.0 * s)
+    );
 }
 
 /* --- RANDOM --- */

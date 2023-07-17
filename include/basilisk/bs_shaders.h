@@ -44,6 +44,7 @@ void bs_replaceInAllShaders(char *old_str, char *new_str);
 void bs_freeReplaceBlock();
 
 /* --- COMPUTE SHADERS --- */
+void bs_shaderRange(bs_Shader *shaders, int num_vs, char **vs_paths, const char *fs_path, const char *gs_path);
 void bs_shaderMem(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code);
 void bs_shader(bs_Shader *shader, const char *vs_path, const char *fs_path, const char *gs_path);
 void bs_cShaderMem(bs_ComputeShader *shader, const char *cs_code, bs_Texture *tex);
