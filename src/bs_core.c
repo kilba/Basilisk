@@ -100,7 +100,8 @@ void bs_selectBatch(bs_Batch *batch) {
     glBindBuffer(GL_ARRAY_BUFFER, batch->VBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch->EBO);
 
-    bs_switchShader(curr_batch->shader->id);
+    if(batch->shader == NULL) return;
+    bs_switchShader(batch->shader->id);
 }
 
 void bs_bufferAppend(bs_Buffer *buf, void *data) {
@@ -190,18 +191,18 @@ void bs_pushVertex(
     bs_Batch *batch = curr_batch;
 
     uint8_t *data_ptr = bs_bufferData(&batch->vertex_buf, batch->vertex_buf.size);
-    uint8_t *sizes = batch->shader->attrib_sizes;
-    
-    bs_pushAttrib(&data_ptr, &pos, sizes[0]);
-    bs_pushAttrib(&data_ptr, &tex, sizes[1]);
-    bs_pushAttrib(&data_ptr, &col, sizes[2]);
-    bs_pushAttrib(&data_ptr, &nor, sizes[3]);
-    bs_pushAttrib(&data_ptr, &bid, sizes[4]);
-    bs_pushAttrib(&data_ptr, &wei, sizes[5]);
-    bs_pushAttrib(&data_ptr, &ref, sizes[6]);
-    bs_pushAttrib(&data_ptr, &v4_, sizes[7]);
-    bs_pushAttrib(&data_ptr, &v1_, sizes[8]);
-    
+    bs_AttribSizes *attrib_sizes = &curr_batch->shader->vs.attrib_sizes;
+      
+    bs_pushAttrib(&data_ptr, &pos, attrib_sizes->pos);
+    bs_pushAttrib(&data_ptr, &tex, attrib_sizes->tex);
+    bs_pushAttrib(&data_ptr, &col, attrib_sizes->col);
+    bs_pushAttrib(&data_ptr, &nor, attrib_sizes->nor);
+    bs_pushAttrib(&data_ptr, &bid, attrib_sizes->bid);
+    bs_pushAttrib(&data_ptr, &wei, attrib_sizes->wei);
+    bs_pushAttrib(&data_ptr, &ref, attrib_sizes->ref);
+    bs_pushAttrib(&data_ptr, &v4_, attrib_sizes->v4_);
+    bs_pushAttrib(&data_ptr, &v1_, attrib_sizes->v1_);
+       
     curr_batch->vertex_buf.size++;
 } 
 
@@ -444,7 +445,7 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
     for(; i < total_attrib_count; i++, j *= 2) {
         struct AttribData *data = &attrib_data[i];
 
-        if((batch->shader->attribs & j) == j)
+        if((batch->shader->vs.attribs & j) == j)
             attrib_size += data->size;
     }
 
@@ -453,7 +454,7 @@ void bs_batch(bs_Batch *batch, bs_Shader *shader) {
     for(; i < total_attrib_count; i++, j *= 2) {
         struct AttribData *data = &attrib_data[i];
 
-        if((batch->shader->attribs & j) == j)
+        if((batch->shader->vs.attribs & j) == j)
             bs_attrib(data->type, data->count, data->size, attrib_size, data->normalized);
     }
     
@@ -520,15 +521,14 @@ void bs_freeBatchData() {
 }
 
 void bs_renderBatchData() {
-    bs_switchShader(curr_batch->shader->id);
+    bs_Shader *shader = curr_batch->shader;
+    if(shader == NULL) return;
+    bs_switchShader(shader->id);
 
-    bs_Uniform *view = &curr_batch->shader->uniforms[UNIFORM_VIEW];
-    bs_Uniform *proj = &curr_batch->shader->uniforms[UNIFORM_PROJ];
-
-    if(view->is_valid)
-	bs_uniformM4(view->loc, curr_batch->camera->view);
-    if(proj->is_valid)
-	bs_uniformM4(proj->loc, curr_batch->camera->proj);
+    if(shader->view_loc != -1)
+	bs_uniformM4(shader->view_loc, curr_batch->camera->view);
+    if(shader->proj_loc != -1)
+	bs_uniformM4(shader->proj_loc, curr_batch->camera->proj);
 }
 
 void bs_renderBatch(int start_index, int draw_count) {

@@ -81,7 +81,6 @@ void bs_minimizeBatch();
 void bs_freeBatchData();
 void bs_clearBatch();
 
-void bs_batchShader(bs_Batch *batch, bs_Shader *shader);
 int bs_batchSize();
 void bs_batchResizeCheck(int index_count, int vertex_count);
 

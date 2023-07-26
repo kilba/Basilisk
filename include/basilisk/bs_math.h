@@ -12,6 +12,7 @@
 float bs_degrees(float rad);
 float bs_rad(float degrees);
 double bs_clamp(double d, double min, double max);
+float bs_lerp(float a, float b, float f);
 int bs_sign(float x);
 float bs_fsign(float x);
 int bs_closestDivisible(int val, int div);

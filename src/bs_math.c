@@ -16,6 +16,10 @@ double bs_clamp(double d, double min, double max) {
   return t > max ? max : t;
 }
 
+float bs_lerp(float a, float b, float f) {
+    return a * (1.0 - f) + (b * f);
+}
+
 int bs_sign(float x) {
     return (x > 0) - (x < 0);
 }

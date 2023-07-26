@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.23.2)
 
 project(basilisk)
+set(CMAKE_BUILD_TYPE Debug)
 
 add_library(${PROJECT_NAME}
     src/bs_wnd.c
@@ -12,7 +13,6 @@ add_library(${PROJECT_NAME}
     src/bs_models.c
     src/bs_shaders.c
     src/bs_textures.c
-    src/bs_abstract.c
 
     external/glad/glad.c
     external/lodepng/lodepng.c

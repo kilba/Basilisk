@@ -7,7 +7,6 @@ extern "C"{
 
 #include <bs_core.h>
 #include <bs_wnd.h>
-#include <bs_abstract.h>
 #include <bs_debug.h>
 #include <bs_math.h>
 #include <bs_mem.h>

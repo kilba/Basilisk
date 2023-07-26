@@ -45,8 +45,13 @@ void bs_freeReplaceBlock();
 
 /* --- COMPUTE SHADERS --- */
 void bs_shaderRange(bs_Shader *shaders, int num_vs, char **vs_paths, const char *fs_path, const char *gs_path);
-void bs_shaderMem(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code);
-void bs_shader(bs_Shader *shader, const char *vs_path, const char *fs_path, const char *gs_path);
+void bs_shader(bs_Shader *shader, bs_VertexShader *vs, bs_U32 fs, bs_U32 gs);
+void bs_vertexShaderMem(bs_VertexShader *vs, char *code);
+void bs_fragmentShaderMem(bs_U32 *fs, char *code);
+void bs_geometryShaderMem(bs_U32 *gs, char *code);
+void bs_vertexShader(bs_VertexShader *vs, const char *path);
+void bs_fragmentShader(bs_U32 *fs, const char *path);
+void bs_geometryShader(bs_U32 *gs, const char *path);
 void bs_cShaderMem(bs_ComputeShader *shader, const char *cs_code, bs_Texture *tex);
 void bs_cShaderMem(bs_ComputeShader *shader, const char *cs_path, bs_Texture *tex);
 

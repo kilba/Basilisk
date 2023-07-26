@@ -61,6 +61,8 @@ typedef struct bs_ShaderMaterial bs_ShaderMaterial;
 typedef struct bs_Uniform bs_Uniform;
 typedef struct bs_Shader bs_Shader;
 typedef struct bs_ComputeShader bs_ComputeShader;
+typedef struct bs_VertexShader bs_VertexShader;
+typedef struct bs_AttribSizes bs_AttribSizes;
 typedef struct bs_UniformBuffer bs_UniformBuffer;
 typedef struct bs_Camera bs_Camera;
 typedef struct bs_Framebuf bs_Framebuf;
@@ -262,20 +264,6 @@ enum {
     BS_UNIFORM_TYPE_COUNT,
 };
 
-enum {
-    BS_POS,
-    BS_TEX,
-    BS_COL,
-    BS_NOR,
-    BS_BID,
-    BS_WEI,
-    BS_REF,
-    BS_V4_,
-    BS_V1_,
-
-    BS_MAX_ATTRIB_COUNT
-};
-
 struct bs_Buffer {
     bs_U32 size;
 
@@ -301,22 +289,35 @@ struct bs_Globals {
     bs_vec3 cam_pos;
 };
 
-// TODO: Remove this shit
-struct bs_Uniform {
-    bool is_valid;
-    int loc;
+struct bs_AttribSizes {
+    uint8_t pos; 
+    uint8_t tex;
+    uint8_t col;
+    uint8_t nor;
+    uint8_t bid;
+    uint8_t wei;
+    uint8_t ref;
+    uint8_t v4_;
+    uint8_t v1_;
 };
 
-struct bs_Shader {
-    bs_Uniform uniforms[BS_UNIFORM_TYPE_COUNT];
-    uint8_t attrib_sizes[BS_MAX_ATTRIB_COUNT];
+struct bs_VertexShader {
+    bs_U32 id;
+
+    bs_AttribSizes attrib_sizes;
     int attrib_size_bytes;
     int attrib_count;
     int attribs;
+};
+
+struct bs_Shader {
+    bs_VertexShader vs;
+
+    bs_U32 proj_loc;
+    bs_U32 view_loc;
 
     // OpenGL Variables
     unsigned int id;
-    unsigned int vs_id;
 };
 
 struct bs_ComputeShader {
@@ -348,8 +349,8 @@ struct bs_Framebuf {
 };
 
 struct bs_Batch {
-    bs_Shader *shader;
     bs_Camera *camera;
+    bs_Shader *shader;
 
     int draw_mode;
     bool use_indices;

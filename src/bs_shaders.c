@@ -144,31 +144,15 @@ void bs_freeReplaceBlock() {
 }
 
 // Gets all default uniform locations
-void bs_setDefShaderUniforms(bs_Shader *shader, const char *shader_code){
+void bs_setDefShaderUniforms(bs_Shader *shader) {
     const char *def_uniforms[] = { 
         "bs_Proj", 
         "bs_View", 
     };
 
     // Loop through all the uniform types
-    for (int i = 0; i < BS_UNIFORM_TYPE_COUNT; i++) {
-        // Check if the shader contains the uniform
-        if(strstr(shader_code, def_uniforms[i])){
-            bs_Uniform *uniform = &shader->uniforms[i];
-
-            // If uniform already has been set
-            if(uniform->is_valid)
-                continue;
-
-            int uniform_loc = glGetUniformLocation(shader->id, def_uniforms[i]);
-            // If uniform is unused or non existent
-            if(uniform_loc == -1)
-                continue;
-
-            uniform->is_valid = true;
-            uniform->loc = uniform_loc;
-        }
-    }
+    shader->proj_loc = glGetUniformLocation(shader->id, "bs_Proj");
+    shader->view_loc = glGetUniformLocation(shader->id, "bs_View");
 
     // Set all the texture units
     int texture_unit_count = 0;
@@ -189,11 +173,11 @@ void bs_setDefShaderUniforms(bs_Shader *shader, const char *shader_code){
     }
 }
 
-void bs_setDefShaderAttribs(bs_Shader *shader, const char *vs_code) {
+void bs_setDefShaderAttribs(bs_VertexShader *vs, const char *vs_code) {
     struct {
 	char *name;
 	int value;
-	int size;
+	uint8_t size;
     } attribs[] = {
 	{ "in vec3 bs_Pos" , BS_VAL_POS, sizeof(bs_vec3) },
 	{ "in vec2 bs_Tex" , BS_VAL_TEX, sizeof(bs_vec2) },
@@ -206,13 +190,18 @@ void bs_setDefShaderAttribs(bs_Shader *shader, const char *vs_code) {
 	{ "in float bs_V1_", BS_VAL_V1_, sizeof(float) },
     };
 
-    for(int i = 0; i < BS_MAX_ATTRIB_COUNT; i++) {
-	shader->attrib_sizes[i] = 0;
+    int num = sizeof(bs_AttribSizes); // Each element should be uint8_t so no need to divide
+    for(int i = 0; i < num; i++) {
+	uint8_t *attrib_sizes = (uint8_t *)&vs->attrib_sizes;
+	uint8_t *attrib_size = attrib_sizes + i;
+	*attrib_size = 0;
+
 	if(strstr(vs_code, attribs[i].name)) {
-	    shader->attrib_size_bytes += attribs[i].size;
-	    shader->attrib_sizes[i] = attribs[i].size;
-	    shader->attribs |= attribs[i].value;
-	    shader->attrib_count++;
+	    *attrib_size = attribs[i].size;
+
+	    vs->attrib_size_bytes += attribs[i].size;
+	    vs->attribs |= attribs[i].value;
+	    vs->attrib_count++;
 	}
     }
 }
@@ -271,19 +260,19 @@ void bs_loadShaderCode(GLuint *shader_id, const char *shader_code, int type) {
 }
 
 void bs_setDefaultUniformLocations(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code) {
-    for(int i = 0; i < BS_UNIFORM_TYPE_COUNT; i++)
-        shader->uniforms[i].is_valid = false;
+    shader->proj_loc = -1;
+    shader->view_loc = -1;
 
     if(vs_code != NULL) {
-	bs_setDefShaderUniforms(shader, vs_code);
-	bs_setDefShaderAttribs(shader, vs_code);
+	bs_setDefShaderUniforms(shader);
+	bs_setDefShaderAttribs(&shader->vs, vs_code);
     }
 
     if(fs_code != NULL)
-	bs_setDefShaderUniforms(shader, fs_code);
+	bs_setDefShaderUniforms(shader);
 
     if(gs_code != NULL)
-        bs_setDefShaderUniforms(shader, gs_code);
+        bs_setDefShaderUniforms(shader);
 }
 
 void bs_shaderMemVs(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code, bs_U32 fs_id, bs_U32 gs_id) {
@@ -292,13 +281,11 @@ void bs_shaderMemVs(bs_Shader *shader, const char *vs_code, const char *fs_code,
         return;
     }
 
-    shader->attribs = 0;
-    shader->attrib_count = 0;
-    shader->attrib_size_bytes = 0;
+    memset(&shader->vs, 0, sizeof(bs_VertexShader));
     shader->id = glCreateProgram();
 
-    bs_loadShaderCode(&shader->vs_id, vs_code, GL_VERTEX_SHADER);
-    glAttachShader(shader->id, shader->vs_id);
+    bs_loadShaderCode(&shader->vs.id, vs_code, GL_VERTEX_SHADER);
+    glAttachShader(shader->id, shader->vs.id);
     glAttachShader(shader->id, fs_id);
     if(gs_id != 0)
 	glAttachShader(shader->id, gs_id);
@@ -309,7 +296,7 @@ void bs_shaderMemVs(bs_Shader *shader, const char *vs_code, const char *fs_code,
     bs_setDefaultUniformLocations(shader, vs_code, fs_code, gs_code);
 
     // Free
-    glDetachShader(shader->id, shader->vs_id);
+    glDetachShader(shader->id, shader->vs.id);
     glDetachShader(shader->id, fs_id);
     if(gs_id != 0)
 	glDetachShader(shader->id, gs_id);
@@ -318,71 +305,85 @@ void bs_shaderMemVs(bs_Shader *shader, const char *vs_code, const char *fs_code,
     return;
 }
 
-void bs_shaderMem(bs_Shader *shader, const char *vs_code, const char *fs_code, const char *gs_code) {
-    if(vs_code == NULL || fs_code == NULL) {
-        shader->id = -1;
-        return;
-    }
+void bs_shader(bs_Shader *shader, bs_VertexShader *vs, bs_U32 fs, bs_U32 gs) {
+    memset(shader, 0, sizeof(bs_Shader));
 
-    shader->attribs = 0;
-    shader->attrib_count = 0;
-    shader->attrib_size_bytes = 0;
+    shader->vs = *vs;
     shader->id = glCreateProgram();
-
-    bs_U32 vs_id, fs_id, gs_id;
-
-    bs_loadShaderCode(&vs_id, vs_code, GL_VERTEX_SHADER);
-    bs_loadShaderCode(&fs_id, fs_code, GL_FRAGMENT_SHADER);
-    glAttachShader(shader->id, vs_id);
-    glAttachShader(shader->id, fs_id);
-
+    glAttachShader(shader->id, vs->id);
+    glAttachShader(shader->id, fs);
     // Geometry shader is not mandatory
-    if(gs_code != 0) {
-        bs_loadShaderCode(&gs_id, gs_code, GL_GEOMETRY_SHADER);
-	glAttachShader(shader->id, gs_id);
-    }
+    if(gs != 0)
+	glAttachShader(shader->id, gs);
 
     glLinkProgram(shader->id);
     glUseProgram(shader->id);
-    
-    bs_setDefaultUniformLocations(shader, vs_code, fs_code, gs_code);
+
+    shader->proj_loc = -1;
+    shader->view_loc = -1;
+
+    bs_setDefShaderUniforms(shader);
 
     // Free
-    glDetachShader(shader->id, vs_id);
-    glDetachShader(shader->id, fs_id);
-    if(gs_code != 0)
-	glDetachShader(shader->id, gs_id);
+    glDetachShader(shader->id, vs->id);
+    glDetachShader(shader->id, fs);
+    if(gs != 0)
+	glDetachShader(shader->id, gs);
 
     glDeleteShader(shader->id);
-    return;
 }
 
-void bs_shader(bs_Shader *shader, const char *vs_path, const char *fs_path, const char *gs_path) {
-    int vs_err_code;
-    int fs_err_code;
-    int gs_err_code;
+void bs_vertexShaderMem(bs_VertexShader *vs, char *code) {
+    memset(vs, 0, sizeof(bs_VertexShader));
 
-    last_vs_path = vs_path;
-    last_fs_path = fs_path;
-    last_gs_path = gs_path;
+    bs_loadShaderCode(&vs->id, code, GL_VERTEX_SHADER);
+    bs_setDefShaderAttribs(vs, code);
+}
 
-    // Load shader source code into memory
-    int len;
-    char *vscode = bs_fileContents(vs_path, &len, &vs_err_code);
-    char *fscode = bs_fileContents(fs_path, &len, &fs_err_code);
-    char *gscode = bs_fileContents(gs_path, &len, &gs_err_code);
+void bs_fragmentShaderMem(bs_U32 *fs, char *code) {
+    bs_loadShaderCode(fs, code, GL_FRAGMENT_SHADER);
+}
 
-    // Don't compile shaders if file wasn't found
-    if(vs_err_code == 2 || fs_err_code == 2) {
-        shader->id = -1;
-        return;
+void bs_geometryShaderMem(bs_U32 *gs, char *code) {
+    bs_loadShaderCode(gs, code, GL_GEOMETRY_SHADER);
+}
+
+char *bs_shaderType(bs_U32 *id, const char *path, int type) {
+    char *code;
+    int len, err;
+
+    code = bs_fileContents(path, &len, &err);
+    if(err != 0)
+	return NULL;
+    bs_loadShaderCode(id, code, type);
+    return code;
+}
+
+void bs_vertexShader(bs_VertexShader *vs, const char *path) {
+    memset(vs, 0, sizeof(bs_VertexShader));
+
+    char *code = bs_shaderType(&vs->id, path, GL_VERTEX_SHADER);
+    if(code == NULL) {
+	printf("ERROR: invalid vs path \"%s\"\n", path);
+	return;
     }
+    bs_setDefShaderAttribs(vs, code);
+}
 
-    // Load the shader from memory, compile and return it
-    bs_shaderMem(shader, vscode, fscode, gscode);
-    free(vscode);
-    free(fscode);
-    free(gscode);
+void bs_fragmentShader(bs_U32 *fs, const char *path) {
+    char *code = bs_shaderType(fs, path, GL_FRAGMENT_SHADER);
+    if(code == NULL) {
+	printf("ERROR: invalid FS path \"%s\"\n", path);
+	return;
+    }
+}
+
+void bs_geometryShader(bs_U32 *gs, const char *path) {
+    char * code = bs_shaderType(gs, path, GL_GEOMETRY_SHADER);
+    if(code == NULL) {
+	printf("ERROR: invalid GS path \"%s\"\n", path);
+	return;
+    }
 }
 
 void bs_shaderRange(bs_Shader *shaders, int num_vs, char **vs_paths, const char *fs_path, const char *gs_path) {
