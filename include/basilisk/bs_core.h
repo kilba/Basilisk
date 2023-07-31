@@ -65,6 +65,7 @@ void bs_defaultBlending();
 
 /* --- BATCHING --- */
 bs_U32 bs_batchOffset();
+void bs_batchShader(bs_Batch *batch, bs_Shader *shader);
 void bs_batch(bs_Batch *batch, bs_Shader *shader);
 void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size);
 void bs_attrib(const int type, unsigned int amount, size_t size_per_type, size_t attrib_size, bool normalized);

@@ -423,6 +423,21 @@ void bs_loadSkin(cgltf_skin *c_skin, bs_Skin *skin) {
     }
 }
 
+void bs_defaultArmatureSetup(cgltf_data *data, bs_Model *model) {
+    model->armature = bs_skinFromName("Armature", model);
+    if(model->armature == NULL)
+	return;
+
+    bs_Anim *anims = bs_modelAnims(model);
+    for(int i = 0; i < model->anim_count; i++) {
+	bs_Anim *anim = anims + i;
+	if(anim->joint_count != model->armature->joint_count)
+	    continue;
+
+	bs_animation(anim, model->armature);
+    }
+}
+
 void bs_cgltfError(int err) {
     switch(err) {
 	case cgltf_result_success: return;
@@ -501,6 +516,8 @@ int bs_model(bs_Model *model, const char *model_path, const char *texture_path) 
 	bs_defTexture()->handle
     };
     model->refs = bs_shaderModelReferences(model, idxs);
+
+    bs_defaultArmatureSetup(data, model);
 
     cgltf_free(data);
     return 0;

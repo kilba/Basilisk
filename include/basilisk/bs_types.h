@@ -350,7 +350,7 @@ struct bs_Framebuf {
 
 struct bs_Batch {
     bs_Camera *camera;
-    bs_Shader *shader;
+    bs_Shader shader;
 
     int draw_mode;
     bool use_indices;
@@ -407,6 +407,7 @@ struct bs_Idxs {
     bs_U32 model;
     bs_U32 frame;
     bs_U32 material;
+    bs_U32 bone;
     bs_U64 texture_handle;
 };
 
@@ -456,6 +457,7 @@ struct bs_Model {
     bs_Material *materials;
     bs_Texture *textures;
     bs_Skin *skins;
+    bs_Skin *armature;
     bs_Mesh *meshes;
 
     int material_count;
@@ -482,7 +484,6 @@ struct bs_MeshAnim {
 
 struct bs_Anim {
     bs_Model *model;
-    bs_Skin *skin;
 
     bs_mat4 *matrices;
     bs_MeshAnim *mesh_anims;
@@ -544,16 +545,16 @@ struct bs_Anim {
 
 /* --- COLOR CONSTANTS --- */
 // bs_RGBA Constants
-#define BS_BLANK (bs_RGBA){ 0, 0, 0, 0 }
-#define BS_BLACK (bs_RGBA){ 0, 0, 0, 255 }
-#define BS_WHITE (bs_RGBA){ 255, 255, 255, 255 }
+#define BS_BLANK (bs_RGBA){{ 0, 0, 0, 0 }}
+#define BS_BLACK (bs_RGBA){{ 0, 0, 0, 255 }}
+#define BS_WHITE (bs_RGBA){{ 255, 255, 255, 255 }}
 
-#define BS_RED     (bs_RGBA){ 255, 0  , 0  , 255 }
-#define BS_GREEN   (bs_RGBA){ 0  , 255, 0  , 255 }
-#define BS_BLUE    (bs_RGBA){ 0  , 0  , 255, 255 }
-
-#define BS_CYAN    (bs_RGBA){ 0  , 255, 255, 255 }
-#define BS_YELLOW  (bs_RGBA){ 255, 255, 0  , 255 }
-#define BS_MAGENTA (bs_RGBA){ 255, 0  , 255, 255 }
+#define BS_RED     (bs_RGBA){{ 255, 0  , 0  , 255 }}  
+#define BS_GREEN   (bs_RGBA){{ 0  , 255, 0  , 255 }}  
+#define BS_BLUE    (bs_RGBA){{ 0  , 0  , 255, 255 }}  
+   
+#define BS_CYAN    (bs_RGBA){{ 0  , 255, 255, 255 }}
+#define BS_YELLOW  (bs_RGBA){{ 255, 255, 0  , 255 }}
+#define BS_MAGENTA (bs_RGBA){{ 255, 0  , 255, 255 }}
 
 #endif /* BS_TYPES_H */
