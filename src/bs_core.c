@@ -206,7 +206,8 @@ void bs_pushVertex(
     curr_batch->vertex_buf.size++;
 } 
 
-int bs_pushQuadFlipped(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
+bs_BatchPart bs_pushQuadFlipped(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
+    bs_U32 offset = curr_batch->index_buf.size;
     bs_batchResizeCheck(6, 4);
 
     bs_pushIndexVa(6, 0, 1, 2, 2, 1, 3);
@@ -216,10 +217,11 @@ int bs_pushQuadFlipped(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA c
     bs_pushVertex(p2, (bs_vec2){ 0.0, 0.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
     bs_pushVertex(p3, (bs_vec2){ 1.0, 0.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
     
-    return curr_batch->index_buf.size;    
+    return (bs_BatchPart){ offset, curr_batch->index_buf.size };
 }    
     
-int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {    
+bs_BatchPart bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {    
+    bs_U32 offset = curr_batch->index_buf.size;
     bs_batchResizeCheck(6, 4);    
     
     bs_pushIndexVa(6, 0, 1, 2, 2, 1, 3);    
@@ -229,10 +231,11 @@ int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col) {
     bs_pushVertex(p2, (bs_vec2){ 0.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0); 
     bs_pushVertex(p3, (bs_vec2){ 1.0, 1.0 }, BS_V3_0, col, BS_IV4_0, BS_V4_0); 
     
-    return curr_batch->index_buf.size;    
+    return (bs_BatchPart){ offset, curr_batch->index_buf.size };
 }    
     
-int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex0, bs_vec2 tex1, bs_RGBA col) {
+bs_BatchPart bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex0, bs_vec2 tex1, bs_RGBA col) {
+    bs_U32 offset = curr_batch->index_buf.size;
     bs_batchResizeCheck(6, 4);    
     
     dim.x += pos.x;    
@@ -245,10 +248,11 @@ int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex0, bs_vec2 tex1, bs_RG
     bs_pushVertex((bs_vec3){ pos.x, dim.y, pos.z }, (bs_vec2){ tex0.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
     bs_pushVertex((bs_vec3){ dim.x, dim.y, pos.z }, (bs_vec2){ tex1.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_buf.size;
+    return (bs_BatchPart){ offset, curr_batch->index_buf.size };
 }
 
-int bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col) {
+bs_BatchPart bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col) {
+    bs_U32 offset = curr_batch->index_buf.size;
     bs_batchResizeCheck(6, 4);
     bs_Texture *tex = bs_selectedTexture();
 
@@ -274,10 +278,10 @@ int bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col) {
     bs_pushVertex(p2, (bs_vec2){ tex0.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
     bs_pushVertex(p3, (bs_vec2){ tex1.x, tex0.y }, BS_V3_0, col, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_buf.size;
+    return (bs_BatchPart){ offset, curr_batch->index_buf.size };
 }
 
-int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
+bs_BatchPart bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     bs_Texture *tex = bs_selectedTexture();
 
     bs_vec2 tex0, tex1;
@@ -289,7 +293,7 @@ int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     return bs_pushRectCoord(pos, dim, tex0, tex1, col);
 }
 
-int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
+bs_BatchPart bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     bs_Texture *tex = bs_selectedTexture();
 
     bs_vec2 tex0, tex1;
@@ -301,7 +305,8 @@ int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col) {
     return bs_pushRectCoord(pos, dim, tex0, tex1, col);
 }
 
-int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
+bs_BatchPart bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
+    bs_U32 offset = curr_batch->index_buf.size;
     bs_batchResizeCheck(3, 3);
     bs_pushIndexVa(3, 0, 1, 2),
 
@@ -309,28 +314,31 @@ int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color) {
     bs_pushVertex(pos2, bs_v2(1.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
     bs_pushVertex(pos3, bs_v2(0.0, 1.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_buf.size;
+    return (bs_BatchPart){ offset, curr_batch->index_buf.size };
 }
 
-int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
+bs_BatchPart bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color) {
+    bs_U32 offset = curr_batch->index_buf.size;
     bs_batchResizeCheck(2, 2);
     bs_pushIndexVa(2, 0, 1),
 
     bs_pushVertex(start, bs_v2(0.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
     bs_pushVertex(end, bs_v2(1.0, 0.0), BS_V3_0, color, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_buf.size;
+    return (bs_BatchPart){ offset, curr_batch->index_buf.size };
 }
 
-int bs_pushPoint(bs_vec3 pos, bs_RGBA color) {
+bs_BatchPart bs_pushPoint(bs_vec3 pos, bs_RGBA color) {
+    bs_U32 offset = curr_batch->index_buf.size;
     bs_batchResizeCheck(1, 1);
     bs_pushIndexVa(1, 0);
     bs_pushVertex(pos, BS_V2_0, BS_V3_0, color, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_buf.size;
+    return (bs_BatchPart){ offset, curr_batch->index_buf.size };
 }
 
-int bs_pushAABB(bs_aabb aabb, bs_RGBA color) {
+bs_BatchPart bs_pushAABB(bs_aabb aabb, bs_RGBA color) {
+    bs_U32 offset = curr_batch->index_buf.size;
     bs_batchResizeCheck(36, 8);
     bs_pushIndexVa(36,
 	2, 7, 6, 2, 3, 7, // Bottom
@@ -352,15 +360,15 @@ int bs_pushAABB(bs_aabb aabb, bs_RGBA color) {
     bs_pushVertex(bs_v3(aabb.min.x, aabb.max.y, aabb.max.z), bs_v2(0.0, 0.0), bs_v3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
     bs_pushVertex(bs_v3(aabb.max.x, aabb.max.y, aabb.max.z), bs_v2(0.0, 0.0), bs_v3(0.0, 0.0, 0.0), color, BS_IV4_0, BS_V4_0);
 
-    return curr_batch->index_buf.size;
+    return (bs_BatchPart){ offset, curr_batch->index_buf.size };
 }
 
-int bs_pushPrim(bs_Prim *prim, int num_vertices, int num_indices) {
-    bs_batchResizeCheck(BS_MAX(prim->index_count, num_indices), BS_MAX(prim->vertex_count, num_vertices));
-
-    bs_pushIndices(prim->indices, prim->index_count);
-
+bs_BatchPart bs_pushPrim(bs_Prim *prim, int num_vertices, int num_indices) {
+    bs_U32 offset = curr_batch->index_buf.size;
     bs_Refs original_ref = ref;
+
+    bs_batchResizeCheck(BS_MAX(prim->index_count, num_indices), BS_MAX(prim->vertex_count, num_vertices));
+    bs_pushIndices(prim->indices, prim->index_count);
 
     if(original_ref.count == prim->parent->parent->material_count) {
 	bs_setRef((bs_Refs){ original_ref.value + prim->material_idx, 1 });
@@ -381,24 +389,24 @@ int bs_pushPrim(bs_Prim *prim, int num_vertices, int num_indices) {
     }
 
     bs_setRef(original_ref);
-    return curr_batch->index_buf.size;
+    return (bs_BatchPart){ offset, curr_batch->index_buf.size };
 }
 
-int bs_pushMesh(bs_Mesh *mesh, int num_vertices, int num_indices) {
-    int ret = 0;
+bs_BatchPart bs_pushMesh(bs_Mesh *mesh, int num_vertices, int num_indices) {
+    bs_BatchPart batch_part = (bs_BatchPart){ curr_batch->index_buf.size, 0 };
     for(int i = 0; i < mesh->prim_count; i++) {
         bs_Prim *prim = &mesh->prims[i];
-        ret += bs_pushPrim(prim, num_vertices, num_indices);
+	batch_part.num += bs_pushPrim(mesh->prims + i, num_vertices, num_indices).num;
     }
-    return ret;
+    return batch_part;
 }
 
-int bs_pushModel(bs_Model *model) {
-    int ret = 0;
+bs_BatchPart bs_pushModel(bs_Model *model) {
+    bs_BatchPart batch_part = (bs_BatchPart){ curr_batch->index_buf.size, 0 };
     for(int i = 0; i < model->mesh_count; i++) {
-        ret += bs_pushMesh(&model->meshes[i], model->vertex_count, model->index_count);
+        batch_part.num += bs_pushMesh(model->meshes + i, model->vertex_count, model->index_count).num;
     }
-    return ret;
+    return batch_part;
 }
 
 bs_U32 bs_batchOffset() {
@@ -524,6 +532,10 @@ void bs_freeBatchData() {
     curr_batch->index_buf.data = NULL;
 }
 
+bs_BatchPart bs_batchRange(bs_U32 offset, bs_U32 num) {
+    return (bs_BatchPart){ offset, num };
+}
+
 void bs_renderBatchData() {
     if(curr_batch->shader.id == 0) return;
     bs_switchShader(curr_batch->shader.id);
@@ -534,13 +546,13 @@ void bs_renderBatchData() {
 	bs_uniformM4(curr_batch->shader.proj_loc, curr_batch->camera->proj);
 }
 
-void bs_renderBatch(int start_index, int draw_count) {
+void bs_renderBatch(bs_BatchPart range) {
     bs_renderBatchData();
 
     if(curr_batch->use_indices) {
-	glDrawElements(curr_batch->draw_mode, draw_count, BS_UINT, (void*)(start_index * sizeof(GLuint)));
+	glDrawElements(curr_batch->draw_mode, range.num, BS_UINT, (void*)(range.offset * sizeof(GLuint)));
     } else {
-	glDrawArrays(curr_batch->draw_mode, start_index, draw_count);
+	glDrawArrays(curr_batch->draw_mode, range.offset, range.num);
     }
 }
 

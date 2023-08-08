@@ -67,6 +67,7 @@ typedef struct bs_UniformBuffer bs_UniformBuffer;
 typedef struct bs_Camera bs_Camera;
 typedef struct bs_Framebuf bs_Framebuf;
 typedef struct bs_Batch bs_Batch;
+typedef struct bs_BatchPart bs_BatchPart;
 typedef struct bs_MeshAnim bs_MeshAnim;
 typedef struct bs_Anim bs_Anim;
 typedef struct bs_Joint bs_Joint;
@@ -348,6 +349,11 @@ struct bs_Framebuf {
     bs_Buffer buf;
 };
 
+struct bs_BatchPart {
+    bs_U32 offset;
+    bs_U32 num;
+};
+
 struct bs_Batch {
     bs_Camera *camera;
     bs_Shader shader;
@@ -361,7 +367,7 @@ struct bs_Batch {
     bs_Buffer vertex_buf;
     bs_Buffer index_buf;
 
-    unsigned int VAO, VBO, EBO;
+    bs_U32 VAO, VBO, EBO;
 };
 
 struct bs_Joint {

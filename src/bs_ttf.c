@@ -338,13 +338,6 @@ void bs_cmap(bs_cmapInfo *cmap) {
     cmap->num_subtables = bs_memU16(cmap->buf, CMAP_NUMBER_SUBTABLES);
 }
 
-bs_Batch batch00;
-bs_Shader shader00;
-void bs_pushText() {
-    bs_selectBatch(&batch00);
-    bs_renderBatch(0, bs_batchSize());
-}
-
 bs_ivec2 bmp_dim = BS_IV2(64, 64);
 unsigned char bmp[64 * 64];
 
@@ -414,28 +407,6 @@ void bs_rasterizeGlyph(bs_glyph *glyph, bs_vec2 *pts, int num_pts) {
 }
 
 int bs_loadFont(char *path) {
-    memset(bmp, 0, bmp_dim.x * bmp_dim.y * sizeof(char));
-    char *vs = "#version 430\n" \
-	"layout (location = 0) in vec3 bs_Pos;" \
-	"layout (location = 1) in vec4 bs_Col;" \
-
-	"uniform mat4 bs_Proj; uniform mat4 bs_View;" \
-	"out vec4 fcol;"\
-
-	"void main() {" \
-	    "fcol = bs_Col;"\
-	    "gl_Position = bs_Proj * bs_View * vec4(bs_Pos, 1.0);" \
-	"}";
-
-    char *fs = "#version 430\n" \
-	"out vec4 FragColor;" \
-	"in vec4 fcol;"\
-	"void main() {" \
-	    "FragColor = fcol;" \
-	"}";
-
-    bs_shaderMem(&shader00, vs, fs, 0);
-
     int err;
     void *buf = bs_fileContents(path, &ttf.data_len, &err);
     if(err != 0)
@@ -456,8 +427,6 @@ int bs_loadFont(char *path) {
     
     int idx = 35;
     bs_glyf(&ttf.glyf, idx);
-
-    bs_batch(&batch00, &shader00);
 
     int num_pts = ttf.glyf.glyphs[idx].num_points;
     bs_glyph *gi = ttf.glyf.glyphs + idx;

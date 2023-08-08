@@ -30,19 +30,19 @@ void bs_pushVertex(
     bs_vec4  wei
 );
 
-int bs_pushQuadFlipped(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
-int bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
-int bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col);
-int bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col);
-int bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
-int bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
-int bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
-int bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
-int bs_pushPoint(bs_vec3 pos, bs_RGBA color);
-int bs_pushAABB(bs_aabb aabb, bs_RGBA color);
-int bs_pushPrim(bs_Prim *prim, int num_vertices, int num_indices); 
-int bs_pushMesh(bs_Mesh *mesh, int num_vertices, int num_indices);
-int bs_pushModel(bs_Model *model);
+bs_BatchPart bs_pushQuadFlipped(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
+bs_BatchPart bs_pushQuad(bs_vec3 p0, bs_vec3 p1, bs_vec3 p2, bs_vec3 p3, bs_RGBA col);
+bs_BatchPart bs_pushRectCoord(bs_vec3 pos, bs_vec2 dim, bs_vec2 tex_dim0, bs_vec2 tex_dim1, bs_RGBA col);
+bs_BatchPart bs_pushRectRotated(bs_vec3 pos, bs_vec2 dim, float angle, bs_RGBA col);
+bs_BatchPart bs_pushRectFlipped(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
+bs_BatchPart bs_pushRect(bs_vec3 pos, bs_vec2 dim, bs_RGBA col);
+bs_BatchPart bs_pushTriangle(bs_vec3 pos1, bs_vec3 pos2, bs_vec3 pos3, bs_RGBA color);
+bs_BatchPart bs_pushLine(bs_vec3 start, bs_vec3 end, bs_RGBA color);
+bs_BatchPart bs_pushPoint(bs_vec3 pos, bs_RGBA color);
+bs_BatchPart bs_pushAABB(bs_aabb aabb, bs_RGBA color);
+bs_BatchPart bs_pushPrim(bs_Prim *prim, int num_vertices, int num_indices);
+bs_BatchPart bs_pushMesh(bs_Mesh *mesh, int num_vertices, int num_indices);
+bs_BatchPart bs_pushModel(bs_Model *model);
 
 /* --- FRAMEBUFFERS --- */
 void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim);
@@ -65,6 +65,7 @@ void bs_defaultBlending();
 
 /* --- BATCHING --- */
 bs_U32 bs_batchOffset();
+bs_BatchPart bs_batchRange(bs_U32 offset, bs_U32 num);
 void bs_batchShader(bs_Batch *batch, bs_Shader *shader);
 void bs_batch(bs_Batch *batch, bs_Shader *shader);
 void bs_batchRawData(void *vertex_data, void *index_data, int vertex_size, int index_size);
@@ -76,7 +77,7 @@ void bs_attribInstance(int attrib_id);
 void bs_bufferRange(int target, int bind_point, int buffer, int offset, int size);
 void bs_selectBatch(bs_Batch *batch);
 void bs_pushBatch();
-void bs_renderBatch(int start_index, int draw_count);
+void bs_renderBatch(bs_BatchPart range);
 
 void bs_minimizeBatch();
 void bs_freeBatchData();
