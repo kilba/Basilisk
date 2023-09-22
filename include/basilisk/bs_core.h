@@ -49,14 +49,17 @@ void bs_framebuf(bs_Framebuf *framebuf, bs_ivec2 dim);
 void bs_setBuf(int type, int idx, bs_Texture buf);
 void bs_attachBuf(void (*tex_func)(bs_Texture *texture, bs_ivec2 dim));
 void bs_attachBufExisting(bs_Texture buf, int type);
+void bs_attachBufFromFramebuf(bs_Framebuf *framebuf, int buf);
 void bs_attachRenderbuf();
 void bs_setDrawBufs(int n, ...);
 void bs_selectFramebuf(bs_Framebuf *framebuf);
 void bs_pushFramebuf();
 
-unsigned char *bs_framebufData(int x, int y, int w, int h);
+bs_U16 *bs_u16FramebufData(bs_U32 x, bs_U32 y, bs_U32 w, bs_U32 h, bs_U32 buf);
+bs_U32 *bs_uFramebufData(bs_U32 x, bs_U32 y, bs_U32 w, bs_U32 h, bs_U32 buf);
+unsigned char *bs_framebufData(bs_U32 x, bs_U32 y, bs_U32 w, bs_U32 h, bs_U32 buf);
 unsigned char *bs_screenshot();
-void bs_screenshotFile(const char *file_name);
+void bs_saveScreenshot(const char *file_name);
 
 void bs_polygonLine();
 void bs_polygonFill();
@@ -94,6 +97,8 @@ void bs_disableColor();
 void bs_enableColor();
 
 void bs_stencilDefault();
+void bs_flipDepth();
+void bs_defaultDepth();
 void bs_stencilEqZero();
 void bs_stencilEqNonZero();
 
@@ -304,7 +309,7 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_KEY_RETURN 0x0D
 #define BS_KEY_SHIFT 0x10
 #define BS_KEY_CONTROL 0x11
-#define BS_KEY_MENU 0x12
+#define BS_KEY_ALT 0x12
 #define BS_KEY_PAUSE 0x13
 #define BS_KEY_CAPITAL 0x14
 #define BS_KEY_ENTER BS_KEY_RETURN
@@ -423,8 +428,9 @@ void bs_viewport(int x, int y, int w, int h);
 #define BS_KEY_RSHIFT 0xA1
 #define BS_KEY_LCONTROL 0xA2
 #define BS_KEY_RCONTROL 0xA3
-#define BS_KEY_LMENU 0xA4
-#define BS_KEY_RMENU 0xA5
+#define BS_KEY_RCTRL 0xA3
+#define BS_KEY_LALT 0xA4
+#define BS_KEY_RALT 0xA5
 #define BS_KEY_BROWSER_BACK 0xA6
 #define BS_KEY_BROWSER_FORWARD 0xA7
 #define BS_KEY_BROWSER_REFRESH 0xA8

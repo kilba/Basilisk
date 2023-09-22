@@ -37,6 +37,9 @@ bs_vec2 bs_v2mid(bs_vec2 a, bs_vec2 b);
 bs_aabb bs_v3bounds(bs_vec3 *arr, int num_indices);
 bs_vec3 bs_v3rotq(bs_vec3 v, bs_quat q);
 
+bs_vec2 bs_v2lerp(bs_vec2 from, bs_vec2 to, float f);
+bs_vec3 bs_v3lerp(bs_vec3 from, bs_vec3 to, float f);
+
 /* --- QUATERNIONS --- */
 void    bs_qToMat3(bs_vec4 q, bs_mat3 *out);
 bs_quat bs_slerp(bs_quat q1, bs_quat q2, float t);
@@ -73,6 +76,11 @@ bs_quat bs_q(float x, float y, float z, float w);
 bs_vec2 bs_v2s(float v);
 bs_vec3 bs_v3s(float v);
 bs_vec4 bs_v4s(float v);
+
+bs_vec2 bs_xz(bs_vec3 v);
+
+bs_vec3 bs_v3fromv2(bs_vec2 v, float z);
+bs_vec4 bs_v4fromv3(bs_vec3 v, float w);
 /* --- VECTOR ADDITION --- */
 bs_vec2 bs_v2add(bs_vec2 a, bs_vec2 b);
 bs_vec3 bs_v3add(bs_vec3 a, bs_vec3 b);
@@ -110,6 +118,9 @@ bs_vec4 bs_v4divs(bs_vec4 a, float s);
 bool bs_v2cmp(bs_vec2 a, bs_vec2 b);
 bool bs_v3cmp(bs_vec3 a, bs_vec3 b);
 bool bs_v4cmp(bs_vec4 a, bs_vec4 b);
+
+/* --- 3D STUFF --- */
+bs_vec2 bs_screenPtFromWorld(bs_Camera *cam, bs_vec3 pos);
 
 /* --- RANDOM --- */
 int bs_randRangeI(int min, int max);

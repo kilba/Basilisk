@@ -11,10 +11,10 @@ bs_RGBA bs_getBackgroundColor();
 bs_fRGBA bs_getBackgroundColorF();
 void bs_tickSpeed(int fps);
 
-bool bs_isKeyDown(int key_code);
-bool bs_isKeyOnce(int key_code);
-bool bs_isKeyDownOnce(int key_code);
-bool bs_isKeyUpOnce(int key_code);
+bool bs_isKeyDown(bs_U8 key_code);
+bool bs_isKeyOnce(bs_U8 key_code);
+bool bs_isKeyDownOnce(bs_U8 key_code);
+bool bs_isKeyUpOnce(bs_U8 key_code);
 
 double bs_elapsedTime();
 double bs_deltaTime();

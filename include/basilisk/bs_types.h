@@ -198,22 +198,6 @@ typedef bs_vec4 	bs_quat;
 #define BS_VEC2_Z(a, b) (bs_vec3){ a.x, a.y, b }
 #define BS_V2_Z(a, b) BS_VEC2_Z(a, b)
 
-#define BS_XY(a) (bs_vec2){ a.x, a.y }
-#define BS_XZ(a) (bs_vec2){ a.x, a.z }
-#define BS_XW(a) (bs_vec2){ a.x, a.w }
-
-#define BS_YX(a) (bs_vec2){ a.y, a.x }
-#define BS_YZ(a) (bs_vec2){ a.y, a.z }
-#define BS_YW(a) (bs_vec2){ a.y, a.w }
-
-#define BS_ZX(a) (bs_vec2){ a.z, a.x }
-#define BS_ZY(a) (bs_vec2){ a.z, a.y }
-#define BS_ZW(a) (bs_vec2){ a.z, a.w }
-
-#define BS_WX(a) (bs_vec2){ a.w, a.x }
-#define BS_WY(a) (bs_vec2){ a.w, a.y }
-#define BS_WZ(a) (bs_vec2){ a.w, a.z }
-
 /* --- IVECX --- */
 #define BS_IVEC2(x, y) (bs_ivec2){ x, y }
 #define BS_IVEC3(x, y, z) (bs_ivec3){ x, y, z }
@@ -393,8 +377,6 @@ struct bs_Skin {
 struct bs_Refs {
     bs_U32 value;
     bs_U32 count;
-
-    void *root;
 };
 
 struct bs_ShaderMaterial {

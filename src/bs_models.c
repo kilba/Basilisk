@@ -490,7 +490,7 @@ int bs_model(bs_Model *model, const char *model_path, const char *texture_path) 
     model->materials[0] = (bs_Material){ (bs_ShaderMaterial){ bs_v4(0.5, 0.5, 0.0, 1.0) }, 0, bs_defTexture()->handle, 0.0 };
     model->materials[0].shader_material = bs_shaderMaterialInit(model->materials);
 
-    for(int i = 1; i < model->material_count; i++) {
+    for(int i = 1; i < data->materials_count; i++) {
 	bs_loadMaterial(model, data, model->materials + i, data->materials + i - 1);
     }
 

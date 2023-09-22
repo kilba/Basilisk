@@ -32,6 +32,8 @@ bs_Batch *curr_batch = NULL;
 bs_Framebuf *curr_framebuf = NULL;
 bs_UniformBuffer global_unifs;
 
+bs_U32 curr_FBO = 0;
+
 bs_Idxs def_idxs;
 bs_Refs def_refs;
 
@@ -93,14 +95,23 @@ void bs_look(bs_Camera *cam, bs_vec3 eye, bs_vec3 dir, bs_vec3 up) {
 }
 
 /* --- BATCHED RENDERING --- */
+void bs_bindBuffer(int glenum, bs_U32 buf) {
+    static bs_U32 current = -1;
+    if(current != buf) {
+	glBindBuffer(glenum, buf);
+	current = buf;
+    }
+}
+
 void bs_selectBatch(bs_Batch *batch) {
     curr_batch = batch;
 
-    glBindVertexArray(batch->VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, batch->VBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch->EBO);
-
     if(batch->shader.id == 0) return;
+
+    glBindVertexArray(batch->VAO);
+    bs_bindBuffer(GL_ARRAY_BUFFER, batch->VBO);
+    bs_bindBuffer(GL_ELEMENT_ARRAY_BUFFER, batch->EBO);
+
     bs_switchShader(batch->shader.id);
 }
 
@@ -371,7 +382,7 @@ bs_BatchPart bs_pushPrim(bs_Prim *prim, int num_vertices, int num_indices) {
     bs_pushIndices(prim->indices, prim->index_count);
 
     if(original_ref.count == prim->parent->parent->material_count) {
-	bs_setRef((bs_Refs){ original_ref.value + prim->material_idx, 1 });
+	bs_setRef((bs_Refs){ original_ref.value + prim->material_idx });
     } else {
 	bs_setRef(prim->parent->parent->refs);
     }
@@ -379,7 +390,7 @@ bs_BatchPart bs_pushPrim(bs_Prim *prim, int num_vertices, int num_indices) {
     float *vertex = prim->vertices;
     for(int i = 0; i < prim->vertex_count; i++, vertex += prim->vertex_size) {
         bs_pushVertex(
-            *(bs_vec3  *)(vertex + 0),
+            *(bs_vec3  *)(vertex),
 	    *(bs_vec2  *)(vertex + prim->offset_tex),
 	    *(bs_vec3  *)(vertex + prim->offset_nor),
 	    BS_WHITE,
@@ -603,6 +614,11 @@ void bs_attachBufExisting(bs_Texture buf, int type) {
     framebuf->buf.size++;
 }
 
+void bs_attachBufFromFramebuf(bs_Framebuf *framebuf, int buf) {
+    bs_Texture *texture = bs_bufferData(&framebuf->buf, buf);
+    bs_attachBufExisting(*texture, texture->attachment);
+}
+
 void bs_attachBuf(void (*tex_func)(bs_Texture *texture, bs_ivec2 dim)) {
     bs_Framebuf *framebuf = curr_framebuf;
     bs_framebufResizeCheck();
@@ -643,7 +659,11 @@ void bs_selectFramebuf(bs_Framebuf *framebuf) {
     glEnable(GL_DEPTH_TEST);
 
     glViewport(0, 0, framebuf->dim.x, framebuf->dim.y);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuf->FBO);
+
+    if(curr_FBO != framebuf->FBO) {
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuf->FBO);
+	curr_FBO = framebuf->FBO;
+    }
 
     // Clear any previous drawing
     glClearColor(0.0, 0.0, 0.0, 0.0);
@@ -652,25 +672,41 @@ void bs_selectFramebuf(bs_Framebuf *framebuf) {
 
 void bs_pushFramebuf() {
     glDisable(GL_DEPTH_TEST);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    if(curr_FBO != 0) {
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	curr_FBO = 0;
+    }
 
     bs_ivec2 res = bs_resolution();
     glViewport(0, 0, res.x, res.y);
 }
 
-unsigned char *bs_framebufData(int x, int y, int w, int h) {
-    const int rgb_size = 3;
-    unsigned char *data = malloc(w * h * rgb_size);
-    glReadPixels(x, y, w, h, BS_CHANNEL_RGB, BS_UBYTE, data);
+void *bs_framebufPixels(bs_U32 x, bs_U32 y, bs_U32 w, bs_U32 h, bs_U32 buf, bs_U32 channel, bs_U32 datatype, size_t size) {
+    glReadBuffer(GL_COLOR_ATTACHMENT0 + buf);
+    void *data = malloc(w * h * size);
+    glReadPixels(x, y, w, h, channel, datatype, data);
     return data;
+}
+
+bs_U16 *bs_u16FramebufData(bs_U32 x, bs_U32 y, bs_U32 w, bs_U32 h, bs_U32 buf) {
+    return bs_framebufPixels(x, y, w, h, buf, GL_RED_INTEGER, GL_UNSIGNED_SHORT, sizeof(bs_U16));
+}
+
+bs_U32 *bs_uFramebufData(bs_U32 x, bs_U32 y, bs_U32 w, bs_U32 h, bs_U32 buf) {
+    return bs_framebufPixels(x, y, w, h, buf, GL_RED_INTEGER, BS_UINT, sizeof(bs_U32));
+}
+
+unsigned char *bs_framebufData(bs_U32 x, bs_U32 y, bs_U32 w, bs_U32 h, bs_U32 buf) {
+    return bs_framebufPixels(x, y, w, h, buf, GL_RGB, BS_UBYTE, 3);
 }
 
 unsigned char *bs_screenshot() {
     bs_ivec2 res = curr_framebuf->dim;
-    return bs_framebufData(0, 0, res.x, res.y);
+    return bs_framebufData(0, 0, res.x, res.y, GL_FRONT);
 }
 
-void bs_screenshotFile(const char *file_name) {
+void bs_saveScreenshot(const char *file_name) {
     unsigned char *data = bs_screenshot();
     bs_ivec2 res = curr_framebuf->dim;
     lodepng_encode24_file(file_name, data, res.x, res.y);
@@ -680,6 +716,14 @@ void bs_screenshotFile(const char *file_name) {
 void bs_stencilDefault() {
     bs_stencilFunc(BS_ALWAYS, 0, 0xFF);
     bs_stencilOp(BS_KEEP, BS_KEEP, BS_KEEP);
+}
+
+void bs_flipDepth() {
+    glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+}
+
+void bs_defaultDepth() {
+    glClipControl(GL_LOWER_LEFT, GL_NEGATIVE_ONE_TO_ONE);
 }
 
 void bs_stencilEqZero() {

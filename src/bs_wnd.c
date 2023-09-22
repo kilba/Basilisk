@@ -8,6 +8,8 @@
 
 // Zero-initialised array of every key's state
 bool keys[256] = { 0 };
+bool keys_sync[256] = { 0 };
+
 bs_fRGBA clear_color = { 0.0, 0.0, 0.0, 1.0 };
 
 HWND hwnd;
@@ -15,7 +17,7 @@ HDC dc;
 HGLRC rc;
 
 int w, h;
-double elapsed;
+double elapsed = 0.0;
 double delta_time;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -36,7 +38,7 @@ void bs_initWnd(int width, int height, const char *title) {
     w = width;
     h = height;
 
-    const char g_szClassName[] = "myWindowClass";
+    const char g_szClassName[] = "wnd";
     WNDCLASSEX wc;
 
     HINSTANCE hInstance = GetModuleHandle(0);
@@ -51,7 +53,7 @@ void bs_initWnd(int width, int height, const char *title) {
     wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
     wc.lpszMenuName  = NULL;
-    wc.lpszClassName = "myWindowClass";
+    wc.lpszClassName = "wnd";
     wc.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
 
     if(!RegisterClassEx(&wc)) {
@@ -79,17 +81,17 @@ void bs_initWnd(int width, int height, const char *title) {
     PIXELFORMATDESCRIPTOR pfd = {
         sizeof(PIXELFORMATDESCRIPTOR),
         1,
-        PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    // Flags
-        PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
-        32,                   // Colordepth of the framebuffer.
+        PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+        PFD_TYPE_RGBA,
+        32,
         0, 0, 0, 0, 0, 0,
         0,
         0,
         0,
         0, 0, 0, 0,
-        24,                   // Number of bits for the depthbuffer
-        8,                    // Number of bits for the stencilbuffer
-        0,                    // Number of Aux buffers in the framebuffer.
+        24,
+        8,
+        0,
         PFD_MAIN_PLANE,
         0,
         0, 0, 0
@@ -103,25 +105,7 @@ void bs_initWnd(int width, int height, const char *title) {
 
     wglMakeCurrent(dc, temprc);
     gladLoadGL();
-/*
-    int gl43Attribs[] = {
-	    WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-	    WGL_CONTEXT_MINOR_VERSION_ARB, 3,
-	    WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-	    0
-    };
 
-    rc = wglCreateContextAttribsARB(dc, 0, gl43Attribs);
-    if(rc == NULL) {
-	printf("%d\n", GetLastError());
-	exit(1);
-    }
-    
-    wglMakeCurrent(NULL, NULL);
-    wglDeleteContext(temprc);
-    wglMakeCurrent(dc, rc);
-
-    */
     glViewport(0, 0, width, height);
 
     ShowWindow(hwnd, SW_SHOW);
@@ -132,27 +116,27 @@ void bs_initWnd(int width, int height, const char *title) {
 }
 
 /* --- INPUTS --- */
-bool bs_isKeyDown(int key_code) {
+bool bs_isKeyDown(bs_U8 key_code) {
     SHORT tabKeyState = GetAsyncKeyState(key_code);
     keys[key_code] = tabKeyState & 0x8000;
     return keys[key_code];
 }
 
-bool bs_isKeyOnce(int key_code) {
+bool bs_isKeyOnce(bs_U8 key_code) {
     SHORT tabKeyState = GetAsyncKeyState(key_code);
 
-    bool prior = keys[key_code];
+    bool old = keys[key_code];
     keys[key_code] = tabKeyState & 0x8000;
 
-    return keys[key_code] != prior;
+    return keys[key_code] != old;
 }
 
-bool bs_isKeyDownOnce(int key_code) {
+bool bs_isKeyDownOnce(bs_U8 key_code) {
     bool key = bs_isKeyOnce(key_code);
     return key & keys[key_code];
 }
 
-bool bs_isKeyUpOnce(int key_code) {
+bool bs_isKeyUpOnce(bs_U8 key_code) {
     bool key = bs_isKeyOnce(key_code);
     return key & !keys[key_code];
 }
@@ -233,7 +217,6 @@ void bs_wndTick(void (*render)()) {
 
         delta_time = elapsed - prev;
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 

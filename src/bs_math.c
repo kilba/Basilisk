@@ -464,6 +464,18 @@ bs_vec4 bs_v4s(float v) {
     return (bs_vec4) { v, v, v, v };
 }
 
+bs_vec2 bs_xz(bs_vec3 v) {
+    return bs_v2(v.x, v.z);
+}
+
+bs_vec3 bs_v3fromv2(bs_vec2 v, float z) {
+    return bs_v3(v.x, v.y, z);
+}
+
+bs_vec4 bs_v4fromv3(bs_vec3 v, float w) {
+    return bs_v4(v.x, v.y, v.z, w);
+}
+
 /* --- VECTOR ADDITION --- */
 // VEC2
 bs_vec2 bs_v2add(bs_vec2 a, bs_vec2 b) {
@@ -580,6 +592,15 @@ bs_vec4 bs_v4divs(bs_vec4 a, float s) {
     return bs_v4(a.x / s, a.y / s, a.z / s, a.w / s);
 }
 
+/* --- VECTOR LERP --- */
+bs_vec2 bs_v2lerp(bs_vec2 from, bs_vec2 to, float f) {
+    return bs_v2(bs_lerp(from.x, to.x, f), bs_lerp(from.y, to.y, f));
+}
+
+bs_vec3 bs_v3lerp(bs_vec3 from, bs_vec3 to, float f) {
+    return bs_v3(bs_lerp(from.x, to.x, f), bs_lerp(from.y, to.y, f), bs_lerp(from.z, to.z, f));
+}
+
 /* --- VECTOR COMPARISON --- */
 bool bs_v2cmp(bs_vec2 a, bs_vec2 b) {
     return (a.x == b.x) & (a.y == b.y);
@@ -606,6 +627,11 @@ bs_vec3 bs_v3rotq(bs_vec3 v, bs_quat q) {
 	),
 	bs_v3muls(bs_cross(u, v), 2.0 * s)
     );
+}
+
+/* --- 3D STUFF --- */
+bs_vec2 bs_screenPtFromWorld(bs_Camera *cam, bs_vec3 pos) {
+    return bs_m4mulv4(bs_m4mul(cam->proj, cam->view), bs_v4fromv3(pos, 1.0)).xy;
 }
 
 /* --- RANDOM --- */
