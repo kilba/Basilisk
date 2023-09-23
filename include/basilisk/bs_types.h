@@ -94,6 +94,14 @@ union bs_vec2 {
     struct { float x, y; };
 
 #ifdef __cplusplus
+    inline bool operator!=(bs_vec2 a) {
+        return (x != a.x) || (y != a.y);
+    }
+
+    inline bool operator==(bs_vec2 a) {
+        return (x == a.x) && (y == a.y);
+    }
+
     inline bs_vec2 operator+(bs_vec2 a) {
         return { x + a.x, y + a.y };
     }
@@ -118,6 +126,14 @@ union bs_vec3 {
     struct { bs_vec2 xy; float p0; };
 
 #ifdef __cplusplus
+    inline bool operator!=(bs_vec3 a) {
+        return (x != a.x) || (y != a.y) || (y != a.z);
+    }
+
+    inline bool operator==(bs_vec3 a) {
+        return (x == a.x) && (y == a.y) && (z == a.z);
+    }
+
     inline bs_vec3 operator+(bs_vec3 a) {
         return { x + a.x, y + a.y, z + a.z };
     }
@@ -143,6 +159,14 @@ union bs_vec4 {
     struct { bs_vec3 xyz; float p2; };
 
 #ifdef __cplusplus
+    inline bool operator!=(bs_vec4 a) {
+        return (x != a.x) || (y != a.y) || (y != a.z) || (w != a.w);
+    }
+
+    inline bool operator==(bs_vec4 a) {
+        return (x == a.x) && (y == a.y) && (z == a.z) && (w == a.w);
+    }
+
     inline bs_vec4 operator+(bs_vec4 a) {
         return { x + a.x, y + a.y, z + a.z, w + a.w };
     }

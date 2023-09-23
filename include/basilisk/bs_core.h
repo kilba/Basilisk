@@ -136,6 +136,7 @@ void bs_stencilOp(int val0, int val1, int val2);
 void bs_stencilOpSeparate(int val0, int val1, int val2, int val3);
 void bs_cullFace(int val);
 void bs_clear(int bit_field);
+void bs_clearDepth(double val);
 void bs_clearStencil(int val);
 void bs_clearColor(float r, float g, float b, float a);
 void bs_frontFace(int face);
