@@ -126,6 +126,7 @@ void bs_enable(int val);
 void bs_disable(int val);
 void bs_stencilFunc(int val0, int val1, int val2);
 void bs_depthFunc(int val);
+void bs_stencilMaskSeparate(int val0, int val1);
 void bs_stencilMask(int val);
 void bs_depthMask(int val);
 void bs_disableDepth();

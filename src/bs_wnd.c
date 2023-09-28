@@ -20,7 +20,11 @@ int w, h;
 double elapsed = 0.0;
 double delta_time;
 
+void (*wndProcCallback)(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) = NULL;
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    if(wndProcCallback != NULL) wndProcCallback(hwnd, msg, wParam, lParam);
+
     switch(msg) {
         case WM_CLOSE:
             DestroyWindow(hwnd);
@@ -32,6 +36,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             return DefWindowProc(hwnd, msg, wParam, lParam);
     }
     return 0;
+}
+
+void bs_wndProc(void (*func)(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)) {
+    wndProcCallback = func;
 }
 
 void bs_initWnd(int width, int height, const char *title) {
@@ -57,9 +65,7 @@ void bs_initWnd(int width, int height, const char *title) {
     wc.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
 
     if(!RegisterClassEx(&wc)) {
-        MessageBox(NULL, "Window Registration Failed!", "Error!",
-            MB_ICONEXCLAMATION | MB_OK);
-
+        MessageBox(NULL, "Window Registration Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
         return;
     }
 
@@ -78,6 +84,7 @@ void bs_initWnd(int width, int height, const char *title) {
         return;
     }
 
+    // Maybe able to delete this
     PIXELFORMATDESCRIPTOR pfd = {
         sizeof(PIXELFORMATDESCRIPTOR),
         1,
@@ -113,6 +120,10 @@ void bs_initWnd(int width, int height, const char *title) {
 
     // TODO: Get screen refresh rate
     SetTimer(hwnd, 999, 1000 / 120, NULL);
+}
+
+HWND bs_hwnd() {
+    return hwnd;
 }
 
 /* --- INPUTS --- */
@@ -238,6 +249,8 @@ double bs_elapsedTime() {
 double bs_deltaTime() {
     return delta_time;
 }
+
+
 
 bs_ivec2 bs_wndPosition() {
     RECT rect;

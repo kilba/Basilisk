@@ -719,12 +719,10 @@ void bs_stencilDefault() {
 }
 
 void bs_flipDepth() {
-    glDepthFunc(GL_GREATER);
     glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 }
 
 void bs_defaultDepth() {
-    glDepthFunc(GL_LESS);
     glClipControl(GL_LOWER_LEFT, GL_NEGATIVE_ONE_TO_ONE);
 }
 
@@ -871,6 +869,10 @@ void bs_depthFunc(int val) {
 
 void bs_stencilMask(int val) {
     glStencilMask(val);
+}
+
+void bs_stencilMaskSeparate(int val0, int val1) {
+    glStencilMaskSeparate(val0, val1);
 }
 
 void bs_depthMask(int val) {

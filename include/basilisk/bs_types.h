@@ -117,6 +117,14 @@ union bs_vec2 {
     inline bs_vec2 operator/(bs_vec2 a) {
         return { x / a.x, y / a.y };
     }
+
+    inline bs_vec2 operator*(float v) {
+        return { x * v, y * v };
+    }
+
+    inline bs_vec2 operator/(float v) {
+        return { x / v, y / v };
+    }
 #endif 
 };
 
@@ -148,6 +156,14 @@ union bs_vec3 {
 
     inline bs_vec3 operator/(bs_vec3 a) {
         return { x / a.x, y / a.y, z / a.z };
+    }
+
+    inline bs_vec3 operator*(float v) {
+        return { x * v, y * v, z * v };
+    }
+
+    inline bs_vec3 operator/(float v) {
+        return { x / v, y / v, z / v };
     }
 #endif 
 };
@@ -198,9 +214,18 @@ struct bs_fRGBA { float r, g, b, a; };
 union  bs_RGBA  { struct { unsigned char r, g, b, a; }; bs_U32 hex; };
 union  bs_RGB   { struct { unsigned char r, g, b;    }; bs_U32 hex : 24; };
 union  bs_umat4 {
-    float a[4][4]; 
+    float a[4][4];
     bs_vec4 v[4];
 
+#ifdef __cplusplus
+    inline bool operator!=(bs_umat4 m) {
+        return (v[0] != m.v[0]) || (v[1] != m.v[1]) || (v[2] != m.v[2]) || (v[3] != m.v[3]);
+    }
+
+    inline bool operator==(bs_umat4 m) {
+        return (v[0] == m.v[0]) && (v[1] == m.v[1]) && (v[2] == m.v[2]) && (v[3] == m.v[3]);
+    }
+#endif 
 };
 
 typedef BS_ALIGN_IF(16) bs_vec2 bs_mat2[2];
