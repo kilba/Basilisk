@@ -460,6 +460,7 @@ struct bs_Prim {
     int offset_idx;
 
     int *indices;
+    int *unique_indices;
     int index_count;
     int unique_count;
     

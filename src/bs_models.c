@@ -85,14 +85,111 @@ void bs_loadMaterial(bs_Model *model, cgltf_data *c_data, bs_Material *material,
 
     material->texture_handle = model->textures[id].handle;
 }
+/*
+int bs_findAdjacentIndex(int num_tris, bs_Prim *prim, int idx1, int idx2, int idx3) {
+    for(int i = 0; i < num_tris; i++) {
+	int first_idx = 6 * i;
+	int face_indices[3];
+    
+	for(int j = 0; j < 3; j++) {
+	    int idx = prim->indices[first_idx + j * 2];
+	    face_indices[j] = prim->vertices[idx].unique_index;
+	}
 
-void bs_readIndices(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim_index) {
+	for(int edge = 0; edge < 3; edge++) {
+	    int v1 = face_indices[edge];
+	    int v2 = face_indices[(edge + 1) % 3];
+	    int opp = face_indices[(edge + 2) % 3];
+
+	    if(((v1 == idx1 && v2 == idx2) || (v2 == idx1 && v1 == idx2)) && opp != idx3)
+		return opp;
+	}
+    }
+    return -1;
+}
+
+void bs_readIndicesAdjacent(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim_index) {
     bs_Prim *prim = mesh->prims + prim_index;
 
     // Read indices
     int num_indices = cgltf_accessor_unpack_floats(c_mesh->primitives[prim_index].indices, NULL, 0);
+    int num_adjacent = num_indices * 2;
+    prim->indices = malloc(num_adjacent * sizeof(int));
+    prim->index_count = num_adjacent;
+    for(int i = 0; i < num_indices; i++) {
+	cgltf_uint outv;
+	cgltf_accessor_read_uint(c_mesh->primitives[prim_index].indices, i, &outv, 1);
+	prim->indices[i * 2] = outv;
+    }
+
+    attrib_offset = c_mesh->primitives[prim_index].index_id + 1;
+
+    mesh->vertex_count += prim->vertex_count;
+    model->vertex_count += prim->vertex_count;
+    model->index_count += num_adjacent;
+    int num_tris = num_indices / 3;
+
+    struct Key {
+	bs_vec3 pos;
+	int idx;
+    } *keys = calloc(prim->vertex_count, sizeof(struct Key));
+    int key_count = 0;
+
+    for(int i = 0; i < num_tris; i++) {
+	int first_idx = 6 * i;
+
+	for(int j = 0; j < 3; j++) {
+	    int idx = prim->indices[first_idx + j * 2];
+	    int contain_id = -1;
+
+	    for(int k = 0; k < key_count; k++) {
+		if(memcmp(&keys[k].pos, &prim->vertices[idx].position, sizeof(bs_vec3)) == 0) {
+		    contain_id = k;
+		    break;
+		}
+	    }
+
+	    if(contain_id == -1) {
+		prim->vertices[idx].unique_index = idx;
+
+		keys[key_count].pos = prim->vertices[idx].position;
+		keys[key_count].idx = idx;
+		key_count++;
+	    } else {
+		prim->vertices[idx].unique_index = keys[contain_id].idx;
+	    }
+	}
+    }
+
+    for(int i = 0; i < num_tris; i++) {
+	int first_idx = 6 * i;
+
+	int v[3];
+	for(int j = 0; j < 3; j++) {
+	    int idx = prim->indices[first_idx + j * 2];
+	    v[j] = prim->vertices[idx].unique_index;
+	}
+
+	int n[3];
+	for(int j = 0; j < 3; j++) {
+	    n[j] = bs_findAdjacentIndex(num_tris, prim, v[j], v[(j + 1) % 3], v[(j + 2) % 3]);
+//	    prim->indices[first_idx + j * 2 + 1] = n[j];
+	}
+    }
+}
+*/
+void bs_readIndices(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim_index, bool find_unique_indices) {
+    bs_Prim *prim = mesh->prims + prim_index;
+
+    int num_indices = cgltf_accessor_unpack_floats(c_mesh->primitives[prim_index].indices, NULL, 0);
     prim->indices = malloc(num_indices * sizeof(int));
     prim->index_count = num_indices;
+
+    if(find_unique_indices) {
+	prim->unique_indices = malloc(prim->vertex_count * sizeof(int));
+    }
+
+    // Read indices
     for(int i = 0; i < num_indices; i++) {
 	cgltf_uint outv;
 	cgltf_accessor_read_uint(c_mesh->primitives[prim_index].indices, i, &outv, 1);
@@ -107,7 +204,7 @@ void bs_readIndices(bs_Mesh *mesh, bs_Model *model, cgltf_mesh *c_mesh, int prim
     model->index_count += num_indices;
 }
 
-void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_index, int prim_index) {
+void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_index, int prim_index, bool find_unique_indices) {
     cgltf_mesh *c_mesh = data->meshes + mesh_index;
     cgltf_primitive *c_prim = c_mesh->primitives + prim_index;
     bs_Prim *prim = &mesh->prims[prim_index];
@@ -117,6 +214,7 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
 
     int vertex_size = 0;
 
+    prim->unique_indices = NULL;
     prim->parent = mesh;
     prim->offset_nor = 0;
     prim->offset_tex = 0;
@@ -157,7 +255,7 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     	}
     }
 
-    bs_readIndices(mesh, model, c_mesh, prim_index);
+    bs_readIndices(mesh, model, c_mesh, prim_index, find_unique_indices);
 
     // Get material index for primitive (model->materials[prim->material_idx])
     if(c_prim->material == NULL) {
@@ -172,7 +270,7 @@ void bs_loadPrim(cgltf_data *data, bs_Mesh *mesh, bs_Model *model, int mesh_inde
     prim->material_idx = mat_id + 1;
 }
 
-void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
+void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index, bool find_unique_indices) {
     cgltf_mesh *c_mesh = &data->meshes[mesh_index];
     cgltf_node *node = &data->nodes[mesh_index];
 
@@ -201,7 +299,7 @@ void bs_loadMesh(cgltf_data *data, bs_Model *model, int mesh_index) {
     mesh->prim_count = c_mesh->primitives_count;
 
     for(int i = 0; i < c_mesh->primitives_count; i++)
-	bs_loadPrim(data, mesh, model, mesh_index, i);
+	bs_loadPrim(data, mesh, model, mesh_index, i, find_unique_indices);
 
 }
 
@@ -404,7 +502,6 @@ void bs_loadSkin(cgltf_skin *c_skin, bs_Skin *skin) {
 	joint->name = malloc(joint_name_len + 1);
 	strncpy(joint->name, c_joint->name, joint_name_len);
 	joint->name[joint_name_len] = '\0';
-
 	joint->mat = BS_MAT4_IDENTITY;
 
 	c_joint->id = i;
@@ -449,7 +546,7 @@ void bs_cgltfError(int err) {
     }
 }
 
-int bs_model(bs_Model *model, const char *model_path, const char *texture_path) {
+int bs_model(bs_Model *model, const char *model_path, const char *texture_path, bool find_unique_indices) {
     cgltf_options options = {0};
     cgltf_data* data = NULL;
 
@@ -503,7 +600,7 @@ int bs_model(bs_Model *model, const char *model_path, const char *texture_path) 
 
     // Load meshes (also loads primitives)
     for(int i = 0; i < mesh_count; i++) {
-	bs_loadMesh(data, model, i);
+	bs_loadMesh(data, model, i, find_unique_indices);
 	model->prim_count += model->meshes[i].prim_count;
     }
 

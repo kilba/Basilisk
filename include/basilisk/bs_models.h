@@ -3,7 +3,7 @@
 
 #include <bs_types.h>
 
-int bs_model(bs_Model *model, const char *model_path, const char *texture_path);
+int bs_model(bs_Model *model, const char *model_path, const char *texture_path, bool find_unique_indices);
 void bs_animation(bs_Anim *anim, bs_Skin *skin);
 void bs_animate(bs_Refs refs, bs_U32 frame, bs_Anim *anim);
 void bs_pushAnims();

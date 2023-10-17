@@ -656,18 +656,18 @@ void bs_setDrawBufs(int n, ...) {
 }
 
 void bs_selectFramebuf(bs_Framebuf *framebuf) {
-    glEnable(GL_DEPTH_TEST);
+    if(framebuf == NULL) {
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	return;
+    }
 
+    glEnable(GL_DEPTH_TEST);
     glViewport(0, 0, framebuf->dim.x, framebuf->dim.y);
 
     if(curr_FBO != framebuf->FBO) {
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuf->FBO);
 	curr_FBO = framebuf->FBO;
     }
-
-    // Clear any previous drawing
-    glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClear(framebuf->clear);
 }
 
 void bs_pushFramebuf() {
@@ -789,8 +789,7 @@ void bs_enableColor() {
 }
 
 void bs_additiveBlending() {
-    glBlendFunc(GL_ONE, GL_ONE);
-    glBlendEquation(GL_FUNC_ADD);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 }
 
 void bs_defaultBlending() {
